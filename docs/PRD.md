@@ -830,7 +830,7 @@ It should provide:
 3. The recap explains what Worth It noticed and why. For example, it may show the price difference for a store-brand suggestion or remind the shopper about a similar recent purchase.
 4. For a supported health concern, it gives a brief, evidence-based tip. Ordinary items receive no health warning.
 5. The recap totals the potential reduction if the shopper follows its suggestions. If enabled, it then shows one hypothetical investment illustration based on that combined amount.
-5. The shopper may pause, replay, read captions, review supporting details, skip the recap, or continue checkout. The shopper decides whether to make any changes. The recap is an animated presentation inside the checkout panel, populated with the current review's findings rather than an AI-generated video.
+6. The shopper may pause, replay, read captions, review supporting details, skip the recap, or continue checkout. The shopper decides whether to make any changes. The recap is an animated presentation inside the checkout panel, populated with the current review's findings rather than an AI-generated video.
 
 ### 10.2 Purchase Insight Panel
 
