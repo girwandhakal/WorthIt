@@ -38,8 +38,10 @@ export const GMAIL_READONLY_SCOPE = 'https://www.googleapis.com/auth/gmail.reado
  * responses. It never reaches Google. Normal builds are unaffected.
  */
 const E2E_OAUTH_CLIENT_ID = 'e2e-placeholder.apps.googleusercontent.com';
+const buildTimestamp = new Date().toISOString();
 
 export default defineConfig({
+  vite: () => ({ define: { __WORTH_IT_BUILD__: JSON.stringify(buildTimestamp) } }),
   modules: ['@wxt-dev/module-react'],
   manifestVersion: 3,
   // A plain (not dot-prefixed) folder so it's easy to find in Chrome's Load unpacked dialog.

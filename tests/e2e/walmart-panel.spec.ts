@@ -7,6 +7,11 @@ test.describe('Walmart cart panel', () => {
     await page.goto('https://www.walmart.com/cart');
     const indicator = page.getByRole('button', { name: 'Worth It: Reviewed 3 items. Open review' });
     await expect(indicator).toBeVisible();
+    const diagnosticText = await page.locator('html').getAttribute('data-worth-it-debug');
+    expect(JSON.parse(diagnosticText!)).toMatchObject({ started: true, merchant: 'walmart', route: 'cart',
+      panel: 'mounted', background: 'ok', review: 'delivered', extractedItems: 3, readableItems: 3, error: 'none' });
+    expect(JSON.parse(diagnosticText!).build).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(diagnosticText).not.toContain('Great Value');
     await expect(page.getByRole('region', { name: 'Worth It' })).toHaveCount(0);
 
     await indicator.click();
