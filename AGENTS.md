@@ -32,8 +32,8 @@ Do not start implementation work blocked by #4 until its relevant decisions are 
 - Assess readable cart items, but show concise prompts only for meaningful findings and report uncertainty instead of guessing.
 - Prefer an available store brand for groceries. Claim similarity or savings only when product data supports it. Store-brand pairs and prices come from `docs/WALMART_REFERENCE_PRODUCTS.md`; the owner's MVP decisions are in section 1 of `docs/TECH_SPEC.md`.
 - Purchase history shows prior purchases, not proof of current ownership or consumption. Treat routine consumables as restocking unless evidence supports otherwise.
-- Health messages are limited to owner-approved triggers and credible evidence. Most foods get no health warning; do not diagnose or claim a single item/serving causes disease.
-- Do not connect bank accounts or use personal financial data. If enabled, the investment illustration is hypothetical and shown once for aggregate cart potential savings, never per item.
+- The only health message is the approved added-sugar note for items whose labels list added sugar; never suggest a product with added sugar. Do not quote Daily Value percentages, diagnose, or claim a single item/serving causes disease.
+- Do not connect bank accounts or use personal financial data. The investment illustration is on by default (the shopper can turn it off), hypothetical, and shown once for aggregate cart potential savings, never per item.
 - Gmail history is optional and requires explicit read-only consent. Parse locally, ask the user to review records before saving, and do not retain raw email bodies/attachments. Synthetic receipt emails for the hackathon use the same Gmail import flow and must be labeled synthetic.
 - Never commit secrets (including the OpenAI API key), OAuth tokens, real emails, personal purchase data, or account-specific artifacts.
 

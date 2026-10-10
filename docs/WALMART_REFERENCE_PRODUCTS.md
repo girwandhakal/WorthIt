@@ -10,7 +10,8 @@
 - **Name-brand item in the cart:** Worth It reads its price live from the cart page. The store-brand price comes from this list and is shown as a last-checked price with the date above; savings computed from it are labeled as an estimate.
 - **Different package sizes:** Compare unit prices. The savings figure is for the same amount as the name-brand package.
 - **Store brand not cheaper:** Worth It still names the store brand (PRD PR-07 and PR-16) but never claims savings.
-- **Label facts:** "Similar ingredients" claims and health notes need label data (ingredients, nutrition facts, sweeteners, added sugar % DV). Issue #7 adds those fields to each record from the product page before any such claim ships. Until then, those checks return `unknown`.
+- **Label facts:** "Similar ingredients" claims and the added-sugar rule need label data (ingredients and grams of added sugars per serving). Issue #7 adds those fields to each record from the product page before any such claim ships. Until then, those checks return `unknown`.
+- **Added sugar:** Worth It never suggests a food or drink whose label lists added sugar (or whose added sugar is unknown). Pairs where the store brand lists added sugar, which is likely for the cereals, bread, ketchup, peanut butter, and Sam's Cola, get no switch suggestion; the name-brand item gets the added-sugar note instead if its label lists added sugar.
 - **Purpose and skip rules:** The purpose column follows the category-to-purpose map in [the technical specification](TECH_SPEC.md#7-assessment-rules-and-calculation-behavior).
 - **Walkthrough cart:** Build it on Walmart.com from name-brand items in this list, plus a few store-brand and unpaired items, so the cart shows store-brand suggestions, a no-savings case, a skip suggestion, and items with nothing to flag.
 - **Refresh:** Recheck prices and IDs on Walmart.com before the walkthrough and update the date above.
@@ -47,5 +48,5 @@
 |---|---:|---|---|---|
 | Squishmallows FuzzAMallow 5 in plush (`17741466139`) | $3.97 | Toys / collectibles | Discretionary, novelty with no practical use | Skip-eligible: suggest skipping it (no store-brand alternative). |
 | Monster 16.4 ft LED Strip Lights (`18110413708`) | $14.88 | Decor | Discretionary | Skip-eligible only if similar decor was bought in the last 90 days. |
-| Skittles Original, Sharing Size 15.6 oz (`656700117`) | $4.97 | Candy | Discretionary food | Health-note candidate; needs approved added-sugar label data. |
-| Reese's Miniatures, Share Pack 9.6 oz (`17569970321`) | $5.97 | Candy | Discretionary food | Health-note candidate; needs approved added-sugar label data. |
+| Skittles Original, Sharing Size 15.6 oz (`656700117`) | $4.97 | Candy | Discretionary food | Gets the added-sugar note when its recorded label lists added sugar. |
+| Reese's Miniatures, Share Pack 9.6 oz (`17569970321`) | $5.97 | Candy | Discretionary food | Gets the added-sugar note when its recorded label lists added sugar. |
