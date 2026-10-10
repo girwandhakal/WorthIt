@@ -12,7 +12,7 @@
 
 ## 1. Product Overview
 
-Worth It is an AI-powered Chrome extension designed to help consumers reduce impulsive, unnecessary, redundant, and excessively expensive purchases while shopping online.
+Worth It is an AI-powered Chrome extension designed to help consumers reduce impulsive, unnecessary, redundant, and excessively expensive purchases while shopping online. It is an advisor that makes shoppers think twice before buying, not an analysis tool: it highlights the few things worth a second thought and asks a short question or gives one clear suggestion, while the analysis behind it stays out of the way.
 
 The hackathon MVP centers on one polished experience: a deterministic pre-checkout review of the shopper’s cart, followed by a clear animated recap. Purchase history, savings comparisons, and optional wording assistance all support that checkout moment.
 
@@ -95,6 +95,15 @@ The product should avoid guilt-inducing, judgmental, or overly restrictive messa
 ### 3.5 Personalize Recommendations
 
 Recommendations should reflect the user's stated purpose, preferences, and purchasing history rather than applying identical rules to everyone.
+
+### 3.6 Advise and Highlight, Don't Analyze
+
+Worth It's job is to create a brief moment of reflection before purchase, the way a thoughtful friend would ask "do you really need another one?" It is not a report, dashboard, or analysis tool.
+
+- **Highlight the few things that matter.** The checkout panel leads with at most three highlighted items, the ones most worth a second thought. Smaller suggestions are grouped into one line that the shopper can expand.
+- **Speak as an advisor.** Each highlight is one or two short sentences in plain, second-person language and ends with either a question ("Do you need another one?") or one clear suggested action ("Consider skipping it").
+- **Keep the analysis behind the scenes.** Scores, purpose classes (such as essential or discretionary), criterion names, per-item tables, and charts are internal; they never appear in the checkout panel. Evidence and sources are one tap away under "Why?".
+- **End with a nudge, not a report.** The recap closes with the savings sentence and the investment illustration, then leaves the decision to the shopper.
 
 ---
 
@@ -416,18 +425,17 @@ Worth It should display recommendations directly within the shopping experience.
 
 The extension should present a compact, visually clear panel when a purchase deserves attention.
 
-The panel may include:
+Following principle 3.6, the panel highlights at most three items with short advice and keeps supporting detail behind a "Why?" control. Between the highlights and the details, it may include:
 
 - Product being considered.
 - Purchase price.
-- Necessity assessment.
 - Relevant historical purchases.
 - Reasons the purchase was flagged.
 - Lower-cost alternatives.
 - One clarification question, when necessary.
 - Available user actions.
 - A concise explanation of what, if anything, is concerning about each item and the cart overall.
-- The item's share of the cart total, where prices and quantities are known.
+- The item's share of the cart total, in the "Why?" details, where prices and quantities are known.
 - Relevant product, nutrition, or purchase-history evidence, with source links when applicable.
 - One clearly labeled cart-level opportunity-cost illustration based on aggregate potential savings, shown after the item summaries (on by default; can be turned off in settings).
 
@@ -801,7 +809,7 @@ Available for every recommendation.
 6. Diet soda with 0 g added sugar gets no health note in the MVP; sweetener-specific notes are not an approved trigger.
 7. Chips are flagged only if their label lists added sugar; ultra-processed classification is not an approved trigger in the MVP.
 8. Items that do not meet a health trigger receive no health advice; missing or uncertain data must not be used to invent a risk.
-9. It presents the item-specific findings and each item's share of the basket where the data is available. The user can keep all items and continue checkout.
+9. It highlights the most important findings as short advice, with each item's share of the basket available in the "Why?" details where the data is available. The user can keep all items and continue checkout.
 10. When purchase history contains comparable grocery purchases, it may estimate the cumulative amount the user might have spent less by choosing the store brand each time, clearly labeling this as hypothetical and explaining whether it uses historical prices or today's price difference applied to recorded quantities. This past-purchase estimate is separate from current-cart potential reduction and is not included in the investment projection.
 
 ### Scenario 8: Cart Savings and Long-Term Opportunity Cost
@@ -848,7 +856,7 @@ It should provide:
 
 ### 10.2 Purchase Insight Panel
 
-The contextual panel should communicate:
+The panel follows principle 3.6: it advises and highlights rather than analyzes. For each highlighted item it should communicate:
 
 **What is happening?**  
 The purchase or cart item being evaluated.
@@ -862,7 +870,7 @@ A short explanation grounded in available evidence.
 **What could the user do instead?**  
 Continue, clarify purpose, choose a cheaper alternative, or postpone.
 
-The panel should avoid overwhelming users with investment calculations, technical details, or long AI-generated explanations.
+The panel should avoid overwhelming users with investment calculations, technical details, scores, category labels, item-by-item tables, or long AI-generated explanations.
 
 ### 10.3 Optional Dashboard
 
