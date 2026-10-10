@@ -38,7 +38,7 @@ The first usable slice should prove one complete journey:
 4. A compact panel summarizes only meaningful, supported observations and says when data is missing.
 5. The panel may show store-brand savings, a recent similar purchase, or a qualifying nutrition note with its source.
 6. It totals supported potential savings for the current cart and may show one optional projection at the end.
-7. The shopper dismisses the panel, reviews evidence, or continues. They make all cart changes themselves.
+7. The shopper dismisses the panel, reviews evidence, or continues. They make all cart changes themselves. The demo uses a bundled, clearly labeled synthetic purchase-history fixture so repeat-purchase examples work without receipt emails.
 
 Start with one retailer and a small set of product categories that can be demonstrated reliably. The PRD names Amazon and Walmart; this specification recommends Walmart US first because the grocery examples depend on grocery data. Confirm this retailer order before coding. Add Amazon through a separate adapter after the first full flow works.
 
@@ -268,8 +268,8 @@ Do not begin with live retailer automation. Build confidence in layers:
 3. **Assessment tests:** each rule’s positive, negative, uncertain, and boundary cases; ensure missing data never becomes a health or savings claim.
 4. **UI tests:** captions, keyboard controls, reduced motion, dismiss/continue, and no cart-edit actions.
 5. **End-to-end:** load the unpacked extension in Chromium with a persistent context and local test fixture pages that mimic the supported retailer DOM.
-6. **Synthetic purchase-history fixture:** bundle a small deterministic dataset under `tests/fixtures/history/` for the demo. Include examples of a recent similar durable good, routine consumable restocking, a prior store-brand comparison, and an uncertain or returned purchase. Use fictional products, dates, quantities, and prices; include no real names, addresses, email addresses, order IDs, account identifiers, or copied receipt content. Mark the fixture as demo data in the UI and keep it outside the user's editable real-history database.
-8. **Manual retailer smoke check:** use a developer’s test cart, check page changes and selectors, and verify no interactions modify the cart. Retailer HTML may change; handle extraction failure visibly.
+6. **Synthetic purchase-history fixture:** bundle a small deterministic dataset under `tests/fixtures/history/` for the demo. Include examples of a recent similar durable good, routine consumable restocking, a prior store-brand comparison, and an uncertain or returned purchase. Use fictional products, dates, quantities, and prices; include no real names, addresses, email addresses, order IDs, account identifiers, or copied receipt content. Mark the fixture as demo data in the UI and keep it outside the user's editable real-history database. Load it only in an explicit demo mode; never silently seed it into real shopping history.
+7. **Manual retailer smoke check:** use a developer’s test cart, check page changes and selectors, and verify no interactions modify the cart. Retailer HTML may change; handle extraction failure visibly.
 
 CI should install from the lockfile and run lint, typecheck, unit/integration tests, and production build. Keep screenshots and fixture data synthetic or scrubbed of account details. The user has asked for a spec, not implementation; checks begin when the code exists.
 
