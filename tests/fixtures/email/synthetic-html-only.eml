@@ -1,0 +1,45 @@
+From: Test Owner <owner@example.com>
+To: Test Owner <owner@example.com>
+Subject: [Worth It Test Receipt] Walmart order WI-TEST-0002
+MIME-Version: 1.0
+Content-Type: text/html; charset="UTF-8"
+
+<html>
+<head><style>td { padding: 4px; }</style></head>
+<body>
+<p>WORTH IT TEST RECEIPT (synthetic, fictional)</p>
+<p>Merchant: Walmart</p>
+<p>Order number: WI-TEST-0002</p>
+<p>Order date: 2026-08-02</p>
+<table>
+  <tr>
+    <th>Item ID</th>
+    <th>Item</th>
+    <th>Qty</th>
+    <th>Price</th>
+    <th>Status</th>
+  </tr>
+  <tr>
+    <td>697314670</td>
+    <td>Hanes Men&#39;s Value Pack Crew T-Shirts, 6 pk</td>
+    <td>1</td>
+    <td>$23.98</td>
+    <td>Returned</td>
+  </tr>
+  <tr>
+    <td>17741466139</td>
+    <td>Squishmallows FuzzAMallow 5 inch Plush</td>
+    <td>1</td>
+    <td>$3.97</td>
+    <td>Canceled</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>Great Value Large White Eggs, 12 Count &amp; more</td>
+    <td></td>
+    <td></td>
+    <td>Delivered</td>
+  </tr>
+</table>
+</body>
+</html>

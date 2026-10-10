@@ -22,7 +22,7 @@ npm run test           # Vitest unit and integration tests
 npm run test:e2e       # builds, then runs Playwright against local fixture pages
 ```
 
-`test:e2e` needs Playwright's Chromium once: `npx playwright install chromium`. End-to-end tests load the built extension and serve synthetic Walmart pages from `tests/fixtures/`; they never contact Walmart, Google, or OpenAI.
+`test:e2e` needs Playwright's Chromium once: `npx playwright install chromium`. It builds a separate copy in `.output/chrome-mv3-e2e` (with a placeholder OAuth client), loads it, and serves synthetic Walmart pages and stubbed Gmail responses from `tests/fixtures/`; it never contacts Walmart, Google, or OpenAI. Load `.output/chrome-mv3` from `npm run build` in Chrome, not the e2e copy.
 
 ### Install the unpacked extension
 
@@ -31,13 +31,15 @@ npm run test:e2e       # builds, then runs Playwright against local fixture page
 3. Choose **Load unpacked** and select the `.output/chrome-mv3` folder.
 4. Open `https://www.walmart.com/cart`. Worth It reviews the cart and shows a small "Reviewed N items" indicator, or opens its panel when something merits a second look.
 
-Account-specific build settings (the stable extension key and Gmail OAuth client) are read from `.env.local`; see [.env.example](.env.example). Never commit real values.
+On first install Worth It opens a short onboarding page that explains what it reads and lets you choose settings. Everything else (purchase history, Gmail import, the OpenAI key, privacy and deletion) is in the extension's settings page.
+
+Account-specific build settings (the stable extension key and Gmail OAuth client) are read from `.env.local`; see [.env.example](.env.example) and [Gmail setup](docs/GMAIL_SETUP.md). Never commit real values. Synthetic test receipts are described in [docs/SYNTHETIC_RECEIPTS.md](docs/SYNTHETIC_RECEIPTS.md).
 
 ## Permissions and why they are needed
 
 | Permission | Why |
 |---|---|
-| `https://www.walmart.com/*` | Read cart rows (name, item link, quantity, displayed prices) on the cart page. Walmart is a single-page app, so the script is present on the site but stays inert everywhere except `/cart`. It never reads checkout, payment, address, or sign-in fields and never clicks retailer controls. |
+| `https://www.walmart.com/*` | Read cart rows (name, item link, quantity, displayed prices) on the cart page. Walmart is a single-page app, so the script is present on the site but stays inert everywhere except `/cart` and, only if you opt in to purchase recording, the order confirmation and purchase-history pages, where it reads item rows when you click "Record these purchases". It never reads checkout, payment, address, or sign-in fields and never clicks retailer controls. |
 | `storage` | Keep preferences and per-tab panel state on this device. |
 | `identity` | Optional, user-initiated Gmail connection (read-only) for importing receipts. |
 | `https://gmail.googleapis.com/*` | Search and read likely order emails after the shopper connects Gmail. Parsed locally; email bodies are not kept. |

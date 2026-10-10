@@ -227,3 +227,11 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+
+.wi-orders .wi-lead {
+  font-size: 16px;
+}
+
+.wi-orders input[type='checkbox'] {
+  accent-color: var(--wi-accent);
+}

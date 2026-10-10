@@ -1,0 +1,99 @@
+/* Shared by the options page and the in-page order recorder. Uses the --wi-*
+   tokens defined by the host stylesheet. */
+
+.wi-review-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.wi-muted {
+  color: var(--wi-muted);
+  font-size: 13px;
+}
+
+.wi-review-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.wi-review-row label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px;
+  border: 1px solid var(--wi-border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.wi-review-row input {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+}
+
+.wi-review-text {
+  display: grid;
+  gap: 2px;
+}
+
+.wi-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.wi-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--wi-surface);
+  border: 1px solid var(--wi-border);
+  font-size: 12px;
+}
+
+.wi-badge-synthetic_gmail {
+  background: #efe7fb;
+  border-color: #c9b5ee;
+  color: #4b2a85;
+}
+
+.wi-badge-warn {
+  background: #fbefe2;
+  border-color: #efc9a1;
+  color: #7a3f08;
+}
+
+@media (prefers-color-scheme: dark) {
+  .wi-badge-synthetic_gmail {
+    background: #2d2340;
+    border-color: #4b3a6d;
+    color: #d7c6f5;
+  }
+  .wi-badge-warn {
+    background: #3a2a1b;
+    border-color: #6b4a2a;
+    color: #f5cfa5;
+  }
+}
+
+.wi-unparsed {
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.wi-review-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.wi-primary:disabled,
+.wi-secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

@@ -1,27 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { extractWalmartCart } from '../../src/adapters/walmart/extract-cart';
-import { getDismissed, type SessionArea } from '../../src/background/dismissals';
+import { getDismissed } from '../../src/background/dismissals';
 import { handleContentMessage } from '../../src/background/handle-message';
 import { reviewCart } from '../../src/background/review-cart';
 import type { CartReview } from '../../src/domain/review';
 import { validateContentRequest } from '../../src/messaging/validate-message';
+import { EXTENSION_ID, testDeps } from '../helpers/background';
 import { loadRetailerDocument } from '../helpers/fixtures';
 
-const EXTENSION_ID = 'worth-it-test-id';
 const URL_CART = new URL('https://www.walmart.com/cart');
-
-function memorySession(): SessionArea {
-  const data = new Map<string, unknown>();
-  return {
-    get: async (key) => (data.has(key) ? { [key]: data.get(key) } : {}),
-    set: async (items) => {
-      for (const [key, value] of Object.entries(items)) data.set(key, value);
-    },
-    remove: async (key) => {
-      data.delete(key);
-    },
-  };
-}
 
 const snapshotOf = (file: string) =>
   extractWalmartCart(loadRetailerDocument('walmart', file), URL_CART, new Date('2026-10-10T00:00:00Z'));
@@ -86,8 +73,8 @@ describe('reviewCart', () => {
 
 describe('handleContentMessage', () => {
   it('returns a review and remembers dismissals per tab', async () => {
-    const session = memorySession();
-    const deps = { extensionId: EXTENSION_ID, session };
+    const deps = await testDeps();
+    const session = deps.session;
     const sender = { id: EXTENSION_ID, tab: { id: 7 } };
     const snapshot = snapshotOf('cart-missing-data.html');
 
@@ -114,7 +101,7 @@ describe('handleContentMessage', () => {
   });
 
   it('rejects invalid messages without throwing', async () => {
-    const deps = { extensionId: EXTENSION_ID, session: memorySession() };
+    const deps = await testDeps();
     await expect(handleContentMessage({ type: 'nope' }, { id: EXTENSION_ID, tab: { id: 1 } }, deps)).resolves.toEqual({
       ok: false,
       error: 'Message failed validation.',
