@@ -7,10 +7,11 @@ import {
   type Suggestion,
 } from '../domain/finding';
 import type { ClarificationRecord, PurchaseRecord } from '../domain/history';
+import type { ProductFacts, ProductFactsMap } from '../domain/product-facts';
 import { sumCents } from '../shared/currency';
 import { REPEAT_PURPOSE_QUESTION_ID, itemMatchKey, storedAnswer } from './clarification';
 import { REFERENCE_DATA_VERSION, referenceForItem, type ReferenceProduct } from './reference/products';
-import { assessAddedSugar } from './rules/nutrition';
+import { assessAddedSugar, assessFoodQuality } from './rules/nutrition';
 import { assessPurpose } from './rules/purpose';
 import { assessRepeatPurchase, findHistoryMatches } from './rules/repeat-purchase';
 import { assessStoreBrand, type ShopperPreferences } from './rules/store-brand';
@@ -22,6 +23,8 @@ export interface AssessmentInputs {
   preferences: ShopperPreferences;
   /** Shopper's local date, YYYY-MM-DD. */
   today: string;
+  /** Facts read from each product's own page, by retailer item ID. Absent items are 'unknown'. */
+  facts?: ProductFactsMap;
   /** Resolves reviewed reference data for a cart item (retailer-specific IDs). */
   lookupReference?: (item: CartItem) => ReferenceProduct | null;
 }
@@ -39,13 +42,16 @@ export function assessCart(inputs: AssessmentInputs): CartAssessment {
     referenceVersion: REFERENCE_DATA_VERSION,
     assessedOn: inputs.today,
     readableTotalCents,
-    items: inputs.snapshot.items.map((item) => assessItem(item, lookup(item), inputs, readableTotalCents)),
+    items: inputs.snapshot.items.map((item) =>
+      assessItem(item, lookup(item), item.retailerItemId ? (inputs.facts?.[item.retailerItemId] ?? null) : null, inputs, readableTotalCents),
+    ),
   };
 }
 
 function assessItem(
   item: CartItem,
   reference: ReferenceProduct | null,
+  facts: ProductFacts | null,
   inputs: AssessmentInputs,
   readableTotalCents: number | null,
 ): ItemAssessment {
@@ -55,7 +61,7 @@ function assessItem(
   const answer = storedAnswer(inputs.clarifications, REPEAT_PURPOSE_QUESTION_ID, matchKey);
 
   const readability = assessReadability(item);
-  const purpose = assessPurpose(reference, unitPriceCents, item.linePriceCents);
+  const purpose = assessPurpose(reference, unitPriceCents, item.linePriceCents, facts);
   const matches = findHistoryMatches(item, reference, inputs.history, inputs.today);
   const repeat = assessRepeatPurchase({
     reference,
@@ -65,17 +71,19 @@ function assessItem(
     answer,
     matchKey,
   });
-  const sugar = assessAddedSugar(reference, item.linePriceCents);
-  const storeBrand = assessStoreBrand(item, reference, inputs.preferences);
+  const sugar = assessAddedSugar(reference, item.linePriceCents, facts);
+  const foodQuality = assessFoodQuality(reference, facts, item.linePriceCents);
+  const storeBrand = assessStoreBrand(item, reference, inputs.preferences, facts);
 
-  const criteria: CriterionResult[] = [readability, purpose.result, repeat.result, storeBrand, sugar];
+  const criteria: CriterionResult[] = [readability, purpose.result, repeat.result, storeBrand, sugar, foodQuality];
 
   // One primary suggestion per item: skip (redundancy, then novelty) beats the
-  // added-sugar skip-or-reduce, which beats a cheaper alternative.
+  // added-sugar skip-or-reduce, then any other label concern, which beat a cheaper alternative.
   const candidates: Suggestion[] = [];
   if (repeat.skipEligible) candidates.push({ kind: 'skip_redundant', amountCents: item.linePriceCents });
   if (purpose.result.suggestion) candidates.push(purpose.result.suggestion);
   if (sugar.suggestion) candidates.push(sugar.suggestion);
+  if (foodQuality.suggestion) candidates.push(foodQuality.suggestion);
   if (storeBrand.suggestion) candidates.push(storeBrand.suggestion);
   const actionable = item.issues.includes('unavailable') ? [] : candidates;
   const primary = actionable.find((suggestion) => suggestion.kind !== 'store_brand_note') ?? null;

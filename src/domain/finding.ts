@@ -9,7 +9,7 @@ import type { ClarificationAnswer, HistorySource, PurchaseStatus } from './histo
 
 export const CRITERIA_VERSION = 1;
 
-export type CriterionId = 'readability' | 'purpose' | 'store_brand' | 'repeat_purchase' | 'added_sugar';
+export type CriterionId = 'readability' | 'purpose' | 'store_brand' | 'repeat_purchase' | 'added_sugar' | 'food_quality';
 
 export const CRITERION_LABELS: Record<CriterionId, string> = {
   readability: 'Item details readable',
@@ -17,6 +17,7 @@ export const CRITERION_LABELS: Record<CriterionId, string> = {
   store_brand: 'Store-brand value',
   repeat_purchase: 'Recent similar purchase',
   added_sugar: 'Added sugar (label)',
+  food_quality: 'Ingredients and nutrition (label)',
 };
 
 /** `no_concern` and `not_applicable` are distinct from `unknown` (missing evidence). */
@@ -34,6 +35,8 @@ export type SuggestionKind =
   | 'skip_redundant'
   | 'skip_novelty'
   | 'reduce_added_sugar'
+  /** Any other label-based food concern (sweetener, processed meat, trans fat, sodium, dyes, ultra-processed). */
+  | 'reduce_food_concern'
   | 'cheaper_alternative'
   /** Store brand named but no savings claimed (about the same price, or costs more). */
   | 'store_brand_note';

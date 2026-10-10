@@ -15,7 +15,7 @@ import {
   walkthroughSnapshot,
 } from '../helpers/assessment';
 
-const ALL_CRITERIA: CriterionId[] = ['readability', 'purpose', 'repeat_purchase', 'store_brand', 'added_sugar'];
+const ALL_CRITERIA: CriterionId[] = ['readability', 'purpose', 'repeat_purchase', 'store_brand', 'added_sugar', 'food_quality'];
 const totalOfPrimaries = (items: ReturnType<typeof assess>['items']) =>
   items.reduce((sum, item) => sum + (item.primary?.amountCents ?? 0), 0);
 
@@ -89,12 +89,12 @@ describe('mixed walkthrough cart (TECH_SPEC section 2)', () => {
     expect(assess(walkthroughSnapshot(), { history })).toEqual(result);
   });
 
-  it('ranks panel findings: skips, added sugar, cheaper by amount, then notes', () => {
+  it('ranks panel findings by potential savings, biggest first, then notes', () => {
     const findings = panelFindings(result, walkthroughSnapshot().items);
     expect(findings.map((f) => [f.kind, f.itemName.split(' ')[0]])).toEqual([
       ['skip_redundant', 'Stanley'],
-      ['skip_novelty', 'Squishmallows'],
       ['reduce_added_sugar', 'Skittles'],
+      ['skip_novelty', 'Squishmallows'],
       ['cheaper_alternative', 'Horizon'],
       ['cheaper_alternative', 'Diet'],
       ['cheaper_alternative', 'Kraft'],
@@ -344,6 +344,7 @@ describe('insufficient evidence', () => {
       repeat_purchase: 'unknown',
       store_brand: 'unknown',
       added_sugar: 'unknown',
+      food_quality: 'unknown',
     });
     expect(item.primary).toBeNull();
     expect(panelFindings(assess(snapshot([line('99999999')])), [line('99999999')])).toEqual([]);

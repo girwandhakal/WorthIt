@@ -58,7 +58,14 @@ export interface CartSummary {
   /** At most three, in deterministic ranking order. */
   highlights: ReviewFinding[];
   /** Everything else, collapsed into one expandable line. */
-  grouped: { label: string; findings: ReviewFinding[] } | null;
+  grouped: {
+    /** e.g. "You also had 3 other items you could reconsider or swap for a different one, worth about $4.81 more." */
+    label: string;
+    findings: ReviewFinding[];
+    /** Other items with a suggestion, and the potential reduction they add (each counted once). */
+    itemCount: number;
+    amountCents: number;
+  } | null;
   totals: {
     /** Each item counted once, by its primary suggestion. */
     combinedCents: number;

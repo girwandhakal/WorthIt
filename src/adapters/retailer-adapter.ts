@@ -1,4 +1,5 @@
 import type { CartSnapshot, Merchant } from '../domain/cart';
+import type { ProductFactsMap } from '../domain/product-facts';
 import type { ObservedOrderItem, OrderPageKind } from '../domain/orders';
 
 /** Host element of Worth It's own UI; never read as part of a retailer page. */
@@ -14,6 +15,12 @@ export interface RetailerAdapter {
   isCartRoute(url: URL): boolean;
   /** Reads visible cart rows into a normalized snapshot. Never mutates the page. */
   extractCart(doc: Document, url: URL, now: Date): CartSnapshot;
+  /**
+   * Reads each cart item's own product page (ingredients, Nutrition Facts,
+   * category) so the review can judge the item itself. Optional; an item it
+   * can't read is simply left out and reported as unknown.
+   */
+  loadProductFacts?(itemIds: readonly string[]): Promise<ProductFactsMap>;
   /** Opt-in purchase recording: which order page this is, if any. */
   orderPageKind(url: URL): OrderPageKind | null;
   /** Reads purchased item rows only; never payment, address, or account fields. */

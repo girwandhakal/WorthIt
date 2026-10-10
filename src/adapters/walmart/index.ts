@@ -1,7 +1,14 @@
 import type { RetailerAdapter } from '../retailer-adapter';
 import { extractWalmartCart } from './extract-cart';
+import type { ProductFacts } from '../../domain/product-facts';
 import { extractWalmartOrders, walmartOrderPageKind } from './extract-orders';
+import { BlockedError, loadProductFacts, type Breaker } from './product-facts';
 import { CART_PATH, WALMART_ORIGIN } from './selectors';
+
+/** Facts live for the life of the page, so editing a quantity doesn't refetch every product. */
+const factsCache = new Map<string, ProductFacts | null>();
+/** One bot check pauses every later request from this page. */
+const breaker: Breaker = { trippedAt: null };
 
 export const walmartAdapter: RetailerAdapter = {
   merchant: 'walmart',
@@ -9,4 +16,15 @@ export const walmartAdapter: RetailerAdapter = {
   extractCart: extractWalmartCart,
   orderPageKind: walmartOrderPageKind,
   extractOrders: extractWalmartOrders,
+  loadProductFacts: (itemIds) =>
+    loadProductFacts(itemIds, {
+      cache: factsCache,
+      breaker,
+      // Same-origin read of the product page the shopper could open themselves; nothing is sent elsewhere.
+      fetchHtml: async (itemId, signal) => {
+        const response = await fetch(`${WALMART_ORIGIN}/ip/${itemId}`, { credentials: 'same-origin', headers: { accept: 'text/html' }, signal });
+        if ([403, 412, 429].includes(response.status)) throw new BlockedError(String(response.status));
+        return response.ok ? response.text() : null;
+      },
+    }),
 };

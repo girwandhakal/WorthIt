@@ -5,6 +5,7 @@ import { formatCents } from '../shared/currency';
 import { renderTemplate, type TemplateKey } from '../summary/templates';
 import { uncertaintyText } from './assess-cart';
 import { ADDED_SUGAR_NOTE, SOURCES, type Source, type SourceId } from './evidence/sources';
+import { removalSentence } from './rules/nutrition';
 
 /**
  * Turns the deterministic assessment into concise, non-shaming findings.
@@ -47,15 +48,31 @@ const KIND_RANK: Record<ReviewFinding['kind'], number> = {
   skip_redundant: 0,
   skip_novelty: 1,
   reduce_added_sugar: 2,
-  cheaper_alternative: 3,
-  repeat_question: 4,
-  store_brand_note: 5,
-  uncertain: 6,
+  reduce_food_concern: 3,
+  cheaper_alternative: 4,
+  repeat_question: 5,
+  store_brand_note: 6,
+  uncertain: 7,
 };
 
-/** Skips (redundancy, then novelty), added sugar, cheaper options; each by amount, ties by cart order. */
+/** 0: a suggestion with a known amount; 1: a question or other suggestion without one; 2: notes and uncertainty. */
+function tier(finding: ReviewFinding): number {
+  if (!isHighlightable(finding)) return 2;
+  return finding.amountCents !== null ? 0 : 1;
+}
+
+/**
+ * Biggest potential savings first, so the highlights are the items that matter
+ * most to the cart. Ties fall back to the kind of suggestion (skips before
+ * cheaper options), then cart order.
+ */
 export function compareFindings(a: ReviewFinding, b: ReviewFinding): number {
-  return KIND_RANK[a.kind] - KIND_RANK[b.kind] || (b.amountCents ?? -1) - (a.amountCents ?? -1) || a.position - b.position;
+  return (
+    tier(a) - tier(b) ||
+    (b.amountCents ?? -1) - (a.amountCents ?? -1) ||
+    KIND_RANK[a.kind] - KIND_RANK[b.kind] ||
+    a.position - b.position
+  );
 }
 
 /** Kinds that may be highlighted (one of the top three). */
@@ -71,14 +88,20 @@ function findingFor(item: ItemAssessment, suggestion: Suggestion): ReviewFinding
         ? 'purpose'
         : suggestion.kind === 'reduce_added_sugar'
           ? 'added_sugar'
-          : 'store_brand';
+          : suggestion.kind === 'reduce_food_concern'
+            ? 'food_quality'
+            : 'store_brand';
   const criterion = item.criteria.find((candidate) => candidate.criterion === criterionId)!;
   const why = [...criterion.evidence];
+  // Everything else the label shows is listed behind "Why?" too, each with its source.
+  if (suggestion.kind === 'reduce_added_sugar') {
+    why.push(...(item.criteria.find((candidate) => candidate.criterion === 'food_quality')?.evidence ?? []));
+  }
   // Context for a skip: the cheaper option is still worth knowing about.
   const alternative = item.secondary.find((other) => other.kind === 'cheaper_alternative')?.alternative;
-  if (suggestion.kind === 'skip_redundant' && alternative?.savingsCents) {
+  if ((suggestion.kind === 'skip_redundant' || suggestion.kind === 'reduce_food_concern') && alternative?.savingsCents) {
     why.push({
-      label: 'If you do need one',
+      label: suggestion.kind === 'skip_redundant' ? 'If you do need one' : 'If you do buy it',
       value: `${alternative.name} costs about ${formatCents(alternative.savingsCents)} less`,
       source: 'walmart_reference',
     });
@@ -96,7 +119,7 @@ function findingFor(item: ItemAssessment, suggestion: Suggestion): ReviewFinding
     position: item.position,
     kind: suggestion.kind,
     itemName: item.itemName,
-    text: wording ? renderTemplate(wording.template, wording.slots) : fixedText(suggestion),
+    text: wording ? renderTemplate(wording.template, wording.slots) : fixedText(suggestion, criterion.summary),
     wording,
     amountCents: suggestion.amountCents,
     question: suggestion.kind === 'skip_redundant' ? item.question : null,
@@ -153,11 +176,9 @@ function wordingFor(item: ItemAssessment, suggestion: Suggestion): FindingWordin
   }
 }
 
-function fixedText(suggestion: Suggestion): string {
-  const amount = suggestion.amountCents !== null ? formatCents(suggestion.amountCents) : null;
-  if (suggestion.kind === 'reduce_added_sugar') {
-    return `${ADDED_SUGAR_NOTE}${amount ? ` Removing it would lower your cart by ${amount}.` : ''}`;
-  }
+function fixedText(suggestion: Suggestion, criterionSummary: string): string {
+  if (suggestion.kind === 'reduce_added_sugar') return `${ADDED_SUGAR_NOTE}${removalSentence(suggestion.amountCents)}`;
+  if (suggestion.kind === 'reduce_food_concern') return `${criterionSummary}${removalSentence(suggestion.amountCents)}`;
   return storeBrandNoteText(suggestion.alternative!);
 }
 

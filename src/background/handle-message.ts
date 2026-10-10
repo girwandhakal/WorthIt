@@ -69,6 +69,7 @@ async function dispatch(request: ContentRequest, tabId: number, deps: Background
         dismissedIds,
         skippedQuestions,
         investmentIllustration: preferences.investmentIllustration,
+        ...(request.facts ? { facts: request.facts } : {}),
       });
       const summary = deps.post
         ? await phraseSummary(review.summary, {

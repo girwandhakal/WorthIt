@@ -37,6 +37,8 @@ export interface ReviewControllerDeps {
 export function startReviewController(deps: ReviewControllerDeps): () => void {
   let active: { stop: () => void; refresh: () => void; panel: Promise<PanelHandle | null> } | null = null;
   let generation = 0;
+  /** Only the newest request may update the panel; slower, older ones are dropped. */
+  let latestRequest = 0;
 
   const ignore = () => undefined;
   const handlers: PanelHandlers = {
@@ -98,14 +100,19 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
       background: 'pending', review: 'pending', extractedItems: snapshot.items.length,
       readableItems: snapshot.items.filter(isFullyReadable).length, displayedItems: snapshot.displayedItemCount ?? null,
     });
+    const requestId = ++latestRequest;
+    // Read each item's own product page (ingredients, Nutrition Facts, category). Never fatal.
+    const itemIds = snapshot.items.flatMap((item) => (item.retailerItemId ? [item.retailerItemId] : []));
+    const facts = deps.adapter.loadProductFacts && itemIds.length > 0 ? await deps.adapter.loadProductFacts(itemIds).catch(() => ({})) : {};
+    if (myGeneration !== generation || requestId !== latestRequest) return;
     let response: unknown;
     try {
-      response = await deps.send({ type: 'cart/review', snapshot });
+      response = await deps.send({ type: 'cart/review', snapshot, ...(Object.keys(facts).length > 0 ? { facts } : {}) });
     } catch (error) {
       if (myGeneration === generation) deps.diagnose?.({ background: 'unavailable', error: messagingErrorCode(error) });
       return;
     }
-    if (myGeneration !== generation) return; // Route changed while waiting.
+    if (myGeneration !== generation || requestId !== latestRequest) return; // Route changed or a newer cart read replaced this one.
     deps.diagnose?.({ background: isReviewResponse(response) ? 'ok' : 'invalid-response' });
     if (!isReviewResponse(response)) return;
     const handle = await panel;

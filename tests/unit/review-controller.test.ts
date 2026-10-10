@@ -6,6 +6,7 @@ import type { CartReview } from '../../src/domain/review';
 import type { ContentRequest } from '../../src/messaging/messages';
 import { reviewContext } from '../helpers/background';
 import { readFixture } from '../helpers/fixtures';
+import { PAGES, factsFor } from '../helpers/product-page';
 
 function loadIntoDocument(file: string) {
   const parsed = new DOMParser().parseFromString(readFixture('retailer', 'walmart', file), 'text/html');
@@ -21,7 +22,12 @@ describe('startReviewController', () => {
 
   function start(overrides: Partial<ReviewControllerDeps> = {}) {
     // jsdom's origin is localhost, so route checks use the path only.
-    const adapter = { ...walmartAdapter, isCartRoute: (url: URL) => /^\/cart\/?$/.test(url.pathname) };
+    const adapter = {
+      ...walmartAdapter,
+      isCartRoute: (url: URL) => /^\/cart\/?$/.test(url.pathname),
+      // No live product-page reads in unit tests.
+      loadProductFacts: async () => ({}),
+    };
     const shown: CartReview[] = [];
     const mounted: string[] = [];
     const sent: ContentRequest[] = [];
@@ -149,5 +155,61 @@ describe('startReviewController', () => {
     expect(remove).toHaveBeenCalledOnce();
     expect(diagnose).not.toHaveBeenCalledWith({ review: 'delivered', error: 'none' });
     stop();
+  });
+
+  describe('product pages', () => {
+    const cartAdapter = (loadProductFacts: NonNullable<typeof walmartAdapter.loadProductFacts>) => ({
+      ...walmartAdapter,
+      isCartRoute: (url: URL) => /^\/cart\/?$/.test(url.pathname),
+      loadProductFacts,
+    });
+
+    it('reads the product page of every cart item and sends the facts with the review', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-normal.html');
+      const loadProductFacts = vi.fn(async (ids: readonly string[]) => ({ [ids[0]!]: factsFor({ ...PAGES.milk, id: ids[0]! }) }));
+      const { sent, stop } = start({ adapter: cartAdapter(loadProductFacts) });
+      await vi.advanceTimersByTimeAsync(50);
+      expect(loadProductFacts).toHaveBeenCalledWith(['10315798', '145051970', '10315395']);
+      const request = sent[0]!;
+      expect(request.type).toBe('cart/review');
+      expect(request.type === 'cart/review' && Object.keys(request.facts ?? {})).toEqual(['10315798']);
+      stop();
+    });
+
+    it('still reviews the cart, without facts, when product pages cannot be read', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-normal.html');
+      const { sent, shown, stop } = start({ adapter: cartAdapter(async () => Promise.reject(new Error('blocked'))) });
+      await vi.advanceTimersByTimeAsync(50);
+      expect(sent).toHaveLength(1);
+      expect(sent[0]).not.toHaveProperty('facts');
+      expect(shown).toHaveLength(1);
+      stop();
+    });
+
+    it('drops a slow, older review when a newer cart read has replaced it', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-normal.html');
+      let release!: () => void;
+      let calls = 0;
+      const loadProductFacts = vi.fn(async () => {
+        if (calls++ === 0) await new Promise<void>((resolve) => { release = resolve; });
+        return {};
+      });
+      const { sent, shown, stop } = start({ adapter: cartAdapter(loadProductFacts) });
+      await vi.advanceTimersByTimeAsync(50);
+      document.querySelector('[data-testid="line-price"]')!.textContent = '$9.00';
+      await vi.advanceTimersByTimeAsync(50);
+      expect(sent).toHaveLength(1); // the newer read finished first
+      release();
+      await vi.advanceTimersByTimeAsync(50);
+      expect(sent).toHaveLength(1); // the older one never sends
+      expect(shown).toHaveLength(1);
+      stop();
+    });
   });
 });

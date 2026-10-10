@@ -114,7 +114,7 @@ function ItemAnalysis({ item }: { item: ItemAssessment }) {
                   <ul className="wi-evidence">
                     {criterion.evidence.map((evidence, index) => (
                       <li key={index}>
-                        {evidence.label}: {evidence.value} <span className="wi-muted">({sourceLabel(evidence.source, criterion === storeBrand ? alternative?.url : undefined)})</span>
+                        {evidence.label}: {evidence.value} <span className="wi-muted">({sourceLabel(evidence.source, evidenceUrl(evidence.source, criterion === storeBrand, alternative?.url, item.retailerItemId))})</span>
                       </li>
                     ))}
                   </ul>
@@ -126,6 +126,12 @@ function ItemAnalysis({ item }: { item: ItemAssessment }) {
       </table>
     </li>
   );
+}
+
+/** Live cart prices link to the cart, label facts to the product's own page, store-brand facts to the alternative. */
+function evidenceUrl(id: keyof typeof SOURCES, isStoreBrand: boolean, alternativeUrl: string | undefined, itemId: string | null): string | undefined {
+  if (id === 'walmart_product_page' && itemId) return `https://www.walmart.com/ip/${itemId}`;
+  return isStoreBrand && id === 'walmart_reference' ? alternativeUrl : undefined;
 }
 
 function sourceLabel(id: keyof typeof SOURCES, url?: string) {
@@ -146,6 +152,7 @@ function suggestionLabel(kind: string): string {
       skip_redundant: 'Consider skipping (recent similar purchase)',
       skip_novelty: 'Consider skipping (novelty item)',
       reduce_added_sugar: 'Skip or reduce (added sugar)',
+      reduce_food_concern: 'Skip or reduce (ingredients or nutrition label)',
       cheaper_alternative: 'Cheaper alternative',
       store_brand_note: 'Store-brand note',
     } as Record<string, string>

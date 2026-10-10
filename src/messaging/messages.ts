@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { cartSnapshotSchema, merchantSchema } from '../domain/cart';
 import { clarificationAnswerSchema, purchaseInputSchema } from '../domain/history';
 import { observedOrderItemSchema } from '../domain/orders';
+import { productFactsMapSchema } from '../domain/product-facts';
 
 /**
  * Typed messages from content scripts to the service worker. Every payload is
@@ -11,7 +12,12 @@ import { observedOrderItemSchema } from '../domain/orders';
 const findingIdSchema = z.string().min(1).max(400);
 
 export const contentRequestSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('cart/review'), snapshot: cartSnapshotSchema }),
+  z.object({
+    type: z.literal('cart/review'),
+    snapshot: cartSnapshotSchema,
+    /** Ingredients, Nutrition Facts, and category read from each cart item's own product page. */
+    facts: productFactsMapSchema.refine((facts) => Object.keys(facts).length <= 100).optional(),
+  }),
   z.object({ type: z.literal('panel/dismiss'), findingIds: z.array(findingIdSchema).max(500) }),
   /** The shopper answered a clarification question (stored locally, reused next time). */
   z.object({

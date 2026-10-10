@@ -59,8 +59,7 @@ describe('animated recap', () => {
 
   it('can be paused, moved, replayed, and captioned', async () => {
     const { user } = setup(mixed(), { fakeTimers: true });
-    await user.click(screen.getByRole('button', { name: 'Next scene' }));
-    await user.click(screen.getByRole('button', { name: 'Next scene' }));
+    for (let i = 0; i < 3; i++) await user.click(screen.getByRole('button', { name: 'Next scene' }));
     expect(screen.getByText('Squishmallows FuzzAMallow 5 inch Plush', { selector: '.wi-scene-item' })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Pause recap' }));
     await act(() => vi.advanceTimersByTimeAsync(SCENE_MS.highlight * 2));
@@ -70,9 +69,9 @@ describe('animated recap', () => {
     const captions = screen.getByRole('button', { name: 'Captions' });
     expect(captions.getAttribute('aria-pressed')).toBe('true');
     await user.click(captions);
-    expect(screen.queryByText(/This is a collectible without a practical use/, { selector: '.wi-finding-text' })).toBeNull();
+    expect(screen.queryByText(/probably not worth it/, { selector: '.wi-finding-text' })).toBeNull();
     // Screen readers still get the caption through the live region.
-    expect(screen.getByText(/This is a collectible without a practical use/, { selector: '.wi-sr-only' })).toBeTruthy();
+    expect(screen.getByText(/probably not worth it/, { selector: '.wi-sr-only' })).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Replay recap' }));
     expect(screen.getByText('Before you check out, 3 things are worth a second thought.', { selector: '.wi-scene-title' })).toBeTruthy();
@@ -81,7 +80,7 @@ describe('animated recap', () => {
   it('ends with the savings total, the investment sentence, and a hand-back', async () => {
     const { user } = setup(mixed(), { fakeTimers: true });
     for (let i = 0; i < 4; i++) await user.click(screen.getByRole('button', { name: 'Next scene' }));
-    expect(screen.getByText('Also: 3 store-brand swaps could save $4.81', { selector: '.wi-scene-title' })).toBeTruthy();
+    expect(screen.getByText('You also had 3 other items you could reconsider or swap for a different one, worth about $4.81 more.', { selector: '.wi-scene-title' })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Next scene' }));
     expect(screen.getByText('$38.72', { selector: '.wi-amount-chip' })).toBeTruthy();
     expect(
@@ -111,8 +110,8 @@ describe('static view (reduced motion)', () => {
     const highlights = within(screen.getByRole('list', { name: 'Worth a second thought' })).getAllByRole('listitem');
     expect(highlights.map((item) => item.querySelector('.wi-item-name')?.textContent)).toEqual([
       'Stanley Quencher H2.0 FlowState Tumbler, 30 oz',
-      'Squishmallows FuzzAMallow 5 inch Plush',
       'Skittles Original Fruity Candy, Sharing Size, 15.6 oz',
+      'Squishmallows FuzzAMallow 5 inch Plush',
     ]);
     expect(screen.queryByRole('button', { name: 'Replay recap' })).toBeNull();
   });
@@ -120,7 +119,7 @@ describe('static view (reduced motion)', () => {
   it('groups the rest behind one line, including the no-savings paper-towel note', async () => {
     const { user } = setup(mixed(), { reducedMotion: true });
     expect(screen.queryByText(/Bounty Essentials/)).toBeNull();
-    const toggle = screen.getByRole('button', { name: /Also: 3 store-brand swaps could save \$4\.81/ });
+    const toggle = screen.getByRole('button', { name: /You also had 3 other items you could reconsider or swap for a different one, worth about \$4\.81 more/ });
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     await user.click(toggle);
     expect(screen.getByText('Bounty Essentials Select-A-Size Paper Towels, 6 Double Rolls')).toBeTruthy();

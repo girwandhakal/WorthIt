@@ -47,8 +47,8 @@ describe('summarizeCart', () => {
   it('matches the walkthrough: three highlights, grouped swaps, $38.72 → about $1,752.44', () => {
     const summary = summaryFor();
     expect(summary.opening).toBe('Before you check out, 3 things are worth a second thought.');
-    expect(summary.highlights.map((h) => h.itemName.split(' ')[0])).toEqual(['Stanley', 'Squishmallows', 'Skittles']);
-    expect(summary.grouped?.label).toBe('Also: 3 store-brand swaps could save $4.81');
+    expect(summary.highlights.map((h) => h.itemName.split(' ')[0])).toEqual(['Stanley', 'Skittles', 'Squishmallows']);
+    expect(summary.grouped).toMatchObject({ label: 'You also had 3 other items you could reconsider or swap for a different one, worth about $4.81 more.', itemCount: 3, amountCents: 481 });
     expect(summary.grouped?.findings.map((f) => f.kind)).toEqual([
       'cheaper_alternative',
       'cheaper_alternative',
@@ -65,7 +65,7 @@ describe('summarizeCart', () => {
     const summary = summaryFor(walkthroughSnapshot(), { history: [tumblerReceipt()], clarifications: [answer('18256507800', 'replacement')] });
     expect(summary.totals.combinedCents).toBe(2575);
     expect(summary.investment?.sentence).toContain('could grow to about $1,165.43 in 40 years');
-    expect(summary.highlights.map((h) => h.itemName.split(' ')[0])).toEqual(['Squishmallows', 'Skittles', 'Stanley']);
+    expect(summary.highlights.map((h) => h.itemName.split(' ')[0])).toEqual(['Stanley', 'Skittles', 'Squishmallows']);
   });
 
   it('counts each item once even when it has two options (skip and cheaper)', () => {
