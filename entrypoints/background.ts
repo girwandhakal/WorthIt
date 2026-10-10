@@ -15,15 +15,18 @@ export default defineBackground({
     let repositories: Promise<Repositories> | null = null;
     const getRepositories = () => (repositories ??= openWorthItDb().then((db) => createRepositories(db)));
 
-    browser.runtime.onMessage.addListener((message, sender) =>
-      handleContentMessage(message, sender, {
+    browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      // WXT exposes the native API. Older Chrome does not accept a Promise
+      // response here: keep the channel open synchronously, then respond.
+      void handleContentMessage(message, sender, {
         extensionId: browser.runtime.id,
         session,
         local,
         repositories: getRepositories,
         post: (url, init) => fetch(url, init),
-      }),
-    );
+      }).then(sendResponse, () => sendResponse({ ok: false, error: 'Worth It could not complete that request.' }));
+      return true;
+    });
 
     browser.tabs.onRemoved.addListener((tabId) => {
       void clearDismissed(session, tabId);

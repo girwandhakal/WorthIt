@@ -56,6 +56,8 @@ console.log(JSON.parse(document.documentElement.getAttribute('data-worth-it-debu
 
 The report is a current snapshot, not a history, and is cleared by a page reload. It is local diagnostic text; the shared page can read the status codes and aggregate item counts.
 
+The background listener uses `sendResponse` with a synchronous `return true`, so cart reviews also work on Chrome versions that do not support Promise-returning message listeners. WXT's native browser API has not included the Promise-listener polyfill since v0.20. An older Worth It build using a Promise listener can mount an empty panel container without receiving a review on those Chrome versions. See [WXT's migration guide](https://wxt.dev/guide/resources/upgrading#webextension-polyfill-removed).
+
 Account-specific build settings (the stable extension key and Gmail OAuth client) are read from `.env.local`; see [.env.example](.env.example) and [Gmail setup](docs/GMAIL_SETUP.md). Never commit real values. Synthetic test receipts are described in [docs/SYNTHETIC_RECEIPTS.md](docs/SYNTHETIC_RECEIPTS.md).
 
 ## Permissions and why they are needed
