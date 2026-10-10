@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Cart - Walmart.com (fixture modeled on live markup, 2026-10-10)</title>
+<style>.ld_Ec { position: absolute; clip: rect(1px, 1px, 1px, 1px); width: 1px; height: 1px; overflow: hidden; }</style>
+</head>
+<body>
+<!-- Structure transcribed from walmart.com/cart on 2026-10-10 (class names and
+     data-testids); product data is from docs/WALMART_REFERENCE_PRODUCTS.md. -->
+<main>
+  <div data-testid="full-page-cart">
+    <div><h1>Cart</h1><span>(3 items)</span></div>
+    <div data-testid="fulfillment-details-container">
+      <div data-testid="horizontal-scroller-slots"><button>8am-10am</button><button>9am-11am</button></div>
+    </div>
+    <div class="flex flex-column sans-serif pt1 relative" data-testid="product-tile-container">
+      <div class="flex flex-row w-100">
+        <a class="no-underline" href="/ip/seort/10309701" aria-label="Horizon Organic Vitamin D Whole Milk, Vitamin D Whole, 64 fl oz Carton">
+          <div data-testid="productName"><span>Horizon Organic Vitamin D Whole Milk, Vitamin D Whole, 64 fl oz Carton</span></div>
+        </a>
+        <div><span>2K+ bought since yesterday</span><span>Best seller</span></div>
+        <div class="ml2"><span class="ld_Ec">$5.96</span><div class="b lh-solid dib"><span><span>$</span><span>5</span><span>96</span></span></div></div>
+      </div>
+      <button type="button" class="retailer-control">Remove</button><button type="button" class="retailer-control">Save for later</button>
+      <div data-testid="quantity-stepper">
+        <button data-testid="quantity-stepper-dec-button" class="retailer-control" aria-label="Decrease quantity Horizon Organic Vitamin D Whole Milk, Vitamin D Whole, 64 fl oz Carton, Current Quantity 1"></button>
+        <span data-testid="quantity-label"> 1 </span>
+        <button data-testid="quantity-stepper-inc-button" class="retailer-control" aria-label="Increase quantity Horizon Organic Vitamin D Whole Milk, Vitamin D Whole, 64 fl oz Carton, Current Quantity 1"></button>
+      </div>
+    </div>
+    <div class="flex flex-column sans-serif pt1 relative" data-testid="product-tile-container">
+      <a class="no-underline" href="/ip/seort/18256507800"><div data-testid="productName"><span>Stanley Quencher H2.0 FlowState Tumbler, 30 oz</span></div></a>
+      <div class="ml2"><span class="ld_Ec">$49.94</span><div class="b lh-solid dib"><span><span>$</span><span>49</span><span>94</span></span></div></div>
+      <div>$24.97/ea</div>
+      <div data-testid="quantity-stepper">
+        <button class="retailer-control" aria-label="Decrease quantity Stanley Quencher H2.0 FlowState Tumbler, 30 oz, Current Quantity 2"></button>
+        <span data-testid="quantity-label"> 2 </span>
+        <button class="retailer-control" aria-label="Increase quantity Stanley Quencher H2.0 FlowState Tumbler, 30 oz, Current Quantity 2"></button>
+      </div>
+    </div>
+    <h2>Don't forget your usuals</h2>
+    <div data-testid="carousel-container">
+      <div data-testid="horizontal-scroller-previous"></div>
+      <div data-testid="product-tile-container"><a href="/ip/Great-Value-Large-White-Eggs/145051970"><div data-testid="productName">Great Value Large White Eggs, 12 Count</div></a><span class="ld_Ec">$1.67</span><button class="retailer-control">Add to cart</button></div>
+      <div data-testid="product-tile-container"><a href="/ip/Skittles/656700117"><div data-testid="productName">Skittles Original</div></a><span class="ld_Ec">$4.97</span><button class="retailer-control">Add to cart</button></div>
+      <div data-testid="horizontal-scroller-next"></div>
+    </div>
+  </div>
+  <button type="button" class="retailer-control" data-automation-id="checkout">Continue to checkout</button>
+</main>
+<script>
+  window.__retailerClicks = 0;
+  document.addEventListener('click', (event) => {
+    if (event.target.closest('.retailer-control')) window.__retailerClicks += 1;
+  }, true);
+</script>
+</body>
+</html>

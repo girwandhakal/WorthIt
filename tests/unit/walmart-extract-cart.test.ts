@@ -132,3 +132,25 @@ describe('extractWalmartCart', () => {
     expect(doc.documentElement.outerHTML).toBe(before);
   });
 });
+
+describe('live walmart.com cart markup (transcribed 2026-10-10)', () => {
+  const snapshot = () => extract('cart-live-2026-10.html');
+
+  it('reads product tiles with quantity steppers and ignores recommendation carousels', () => {
+    const items = snapshot().items;
+    expect(items.map((item) => [item.retailerItemId, item.title, item.quantity, item.linePriceCents, item.unitPriceCents])).toEqual([
+      ['10309701', 'Horizon Organic Vitamin D Whole Milk, Vitamin D Whole, 64 fl oz Carton', 1, 596, 596],
+      ['18256507800', 'Stanley Quencher H2.0 FlowState Tumbler, 30 oz', 2, 4994, 2497],
+    ]);
+    expect(items.every((item) => item.issues.length === 0 && item.confidence === 'high')).toBe(true);
+  });
+
+  it('reads the item count shown beside the heading', () => {
+    expect(snapshot().displayedItemCount).toBe(3);
+  });
+
+  it('matches what Walmart says (2 lines, 3 units), so no unread-lines warning', async () => {
+    const { unreadLinesFinding } = await import('../../src/background/review-cart');
+    expect(unreadLinesFinding(snapshot())).toBeNull();
+  });
+});

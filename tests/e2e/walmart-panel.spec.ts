@@ -126,3 +126,19 @@ test('a cart layout Worth It cannot read is reported, not guessed', async ({ con
   await expect(panel.getByText(/Walmart shows 3 items in your cart, but Worth It couldn't read any of them/)).toBeVisible();
   await expect(panel.getByText(/would save/)).toHaveCount(0);
 });
+
+test('live walmart.com markup: reviews the 2 cart lines, not the recommendation carousel', async ({ context }) => {
+  await serveWalmart(context, { '/cart': 'cart-live-2026-10.html' });
+  const page = await context.newPage();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('https://www.walmart.com/cart');
+  const before = await retailerMarkup(page);
+  const panel = page.getByRole('region', { name: 'Worth It' });
+  await expect(panel).toBeVisible();
+  await panel.getByRole('button', { name: 'See full analysis' }).click();
+  await expect(panel.getByRole('table')).toHaveCount(2);
+  await expect(panel.getByText('Great Value Large White Eggs, 12 Count')).toHaveCount(0);
+  await panel.getByRole('button', { name: 'Continue' }).click();
+  expect(await retailerClicks(page)).toBe(0);
+  expect(await retailerMarkup(page)).toBe(before);
+});
