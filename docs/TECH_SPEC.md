@@ -24,7 +24,7 @@ This document turns the current PRD into a buildable plan. It recommends a narro
 | Summary language | The OpenAI API phrases a deterministic, validated cart summary naturally; it cannot score items, calculate values, add claims, or alter evidence |
 | Remote services | No backend for the hackathon. The extension calls the OpenAI API directly with an API key the owner enters in settings, and works without it by using reviewed templates. Gmail API remains a separate direct, read-only OAuth flow. A server-side proxy for the OpenAI key is required only before public release |
 | Personal finance | No account connection, balance, budget, or cash-flow data |
-| Investment illustration | One optional aggregate-cart projection, using 10% assumed yearly return, annual compounding, 40 years, before inflation |
+| Investment illustration | One aggregate-cart projection, on by default (can be turned off in settings), using 10% assumed yearly return, annual compounding, 40 years, before inflation |
 | Cart control | Read-only. Never add, remove, replace, or purchase an item |
 | Animation | Short, skippable animated recap with captions and equivalent text |
 | Release | Load unpacked for the hackathon; Chrome Web Store publication is a later step requiring listing assets and Google OAuth review for Gmail scope |
@@ -42,7 +42,10 @@ Recorded 2026-10-09:
 5. **Language model:** OpenAI API. For the single-user hackathon build, the owner pastes their own OpenAI API key into Worth It's settings; there is no hosted gateway.
 6. **Observed purchases:** In scope. With opt-in consent, Worth It records purchases from the retailer's order confirmation page and, on request, from the purchase-history page, after the shopper reviews them.
 
-Still open in issue #4: the exact health triggers and wording, whether the investment illustration is on by default, and the owner's Gmail OAuth setup.
+7. **Added sugar:** The only MVP health rule. Any food or drink whose label lists more than 0 g of added sugars per serving gets a short health note (no Daily Value percentages). Worth It never endorses a product with added sugar: it never suggests one as a store-brand switch or cheaper alternative. Details in section 7.
+8. **Investment illustration:** On by default; the shopper can turn it off in settings. It appears once, after the total, as: “By following these suggestions, you would save $X. If you invested that $X at an assumed 10% annual return, compounded annually, it could grow to about $Y in 40 years (before inflation; returns are not guaranteed).”
+
+Still open in issue #4: only the owner's Gmail OAuth and OpenAI key setup.
 
 ## 2. MVP boundary
 
@@ -56,7 +59,7 @@ The first usable slice should prove one complete journey:
 4. If nothing merits attention, Worth It shows only a small collapsed “Reviewed N items” indicator; no recap plays and no panel opens on its own.
 5. Otherwise, a compact panel summarizes only meaningful, supported observations and says when data is missing.
 6. The panel may show store-brand savings, a recent similar purchase, or a qualifying nutrition note with its source.
-7. It totals supported potential savings for the current cart and may show one optional projection at the end.
+7. It totals supported potential savings for the current cart and, by default, shows one investment projection at the end.
 8. The shopper dismisses the panel, reviews evidence, or continues. They make all cart changes themselves.
 
 Purchase history comes from manual entry, optional Gmail receipt import, and opt-in recording of purchases observed on the retailer's order confirmation and purchase-history pages. For the hackathon walkthrough, synthetic receipt emails sent to the owner's Gmail account go through the same Gmail API search, fetch, parse, and review pipeline as real receipts.
@@ -66,15 +69,15 @@ Purchase history comes from manual entry, optional Gmail receipt import, and opt
 Use items from [Walmart reference products](WALMART_REFERENCE_PRODUCTS.md), quantity 1 each, and recheck prices first; the amounts below use the 2026-10-09 prices.
 
 1. **Setup:** Load the unpacked extension in Chrome, complete onboarding, opt in to purchase recording, and paste the OpenAI key in settings. Connect Gmail and import the synthetic receipts, which include a 30 oz tumbler bought 20 days ago. Review the records and save them; they show as synthetic.
-2. **Normal cart:** A cart with only store-brand staples (for example Great Value milk, eggs, and bread) shows the collapsed “Reviewed 3 items” indicator. No recap plays.
-3. **Mixed cart:** Horizon Organic milk, Cheerios, Heinz ketchup, Bounty Essentials paper towels, a Stanley 30 oz tumbler, a 5-inch Squishmallows plush, Skittles, and Diet Coke. The recap plays and shows:
-   - Store-brand savings: milk $1.99, Cheerios about $1.75 for the same 8.9 oz (estimate), ketchup $2.61, Diet Coke $1.81.
+2. **Normal cart:** A cart with only store-brand staples that have no added sugar (for example Great Value milk, eggs, and long-grain rice) shows the collapsed “Reviewed 3 items” indicator. No recap plays.
+3. **Mixed cart:** Horizon Organic milk, Kraft shredded mild cheddar, Bounty Essentials paper towels, Diet Coke, a Stanley 30 oz tumbler, a 5-inch Squishmallows plush, and Skittles. The recap plays and shows:
+   - Store-brand savings: milk $1.99, cheddar $1.01, Diet Coke $1.81. These assume the recorded labels show 0 g added sugar for each store-brand item; a store brand with added sugar is never suggested.
    - Paper towels: the Great Value option is named but costs more per sheet, so no savings are claimed.
    - Tumbler: a similar tumbler was bought 20 days ago, so Worth It suggests skipping it ($24.97) and asks whether it replaces the earlier one.
    - Plush: a novelty item, so Worth It suggests skipping it ($3.97).
-   - Skittles: no health note unless an approved added-sugar trigger and label data exist.
-   - Combined potential reduction: $37.10. If the illustration is enabled, it grows to about $1,679.12 in 40 years at an assumed 10% annual return, compounded annually, before inflation.
-4. **Clarification:** Answer “Replacing a worn one” for the tumbler. The skip suggestion is withdrawn and the Ozark Trail tumbler is suggested instead ($12.00 less). The total becomes $24.13, and the illustration becomes about $1,092.11.
+   - Skittles: the label lists added sugar, so Worth It shows the added-sugar note and suggests skipping it or choosing a smaller amount ($4.97).
+   - Combined potential reduction and illustration: “By following these suggestions, you would save $38.72. If you invested that $38.72 at an assumed 10% annual return, compounded annually, it could grow to about $1,752.44 in 40 years (before inflation; returns are not guaranteed).”
+4. **Clarification:** Answer “Replacing a worn one” for the tumbler. The skip suggestion is withdrawn and the Ozark Trail tumbler is suggested instead ($12.00 less). The total becomes $25.75, and the illustration becomes about $1,165.43.
 5. **Control:** Pause, replay, and skip the recap, then press Continue. The panel closes; the Walmart cart is unchanged and checkout still works normally.
 6. **Purchase recording:** Open the Walmart purchase-history page, choose “Record these purchases,” review the parsed items, and save them as observed purchases.
 
@@ -306,14 +309,14 @@ A deterministic summary builder groups applicable results and computes all stati
   | Unknown | No reference category | No purpose-based prompt |
 
   The dollar limits and lookback windows are named constants in `src/assessment/reference/categories.ts` so they can be tuned.
-- **Store brand:** Prefer an available store-brand suggestion as requested by the PRD. State the real per-unit and basket price difference. Claim “similar ingredients” only when retrieved labels support it. If the store brand is not cheaper, or its unit price is less than 5% lower, do not claim savings; say the prices are about the same or that the store brand costs more. Expose a material package, ingredient, or dietary mismatch.
+- **Store brand:** Prefer an available store-brand suggestion as requested by the PRD. State the real per-unit and basket price difference. Claim “similar ingredients” only when retrieved labels support it. Never suggest a food or drink whose label lists added sugar, or whose added-sugar value is unknown; in that case suggest no switch. If the store brand is not cheaper, or its unit price is less than 5% lower, do not claim savings; say the prices are about the same or that the store brand costs more. Expose a material package, ingredient, or dietary mismatch.
 - **Past grocery savings:** Use recorded quantities and either recorded historical prices or clearly labeled present-day price differences applied to historical quantities. Keep this hypothetical estimate separate from current-cart savings.
 - **Repeat purchases:** Match normalized names/brands and cautiously compare category/purpose. A prior receipt proves purchase, not current ownership or use. Consumables can be routine restocking. Ask one brief question when the context would change the advice.
 - **Clarification:** At most one question per item per checkout, chosen deterministically from a fixed question set (for example replacement / additional / different purpose for a non-consumable repeat). Answers are simple choices, skippable, stored locally with the matched item and date, reused instead of asking again, and re-run the affected criteria. A stated purpose never overrides separate redundancy, nutrition, or value evidence.
-- **Health note:** Trigger only for a narrow, reviewed category/threshold and reliable item evidence. Use a credible source, describe population-level evidence carefully, and offer a short optional suggestion. Do not diagnose, claim one serving causes a disease, or give warnings for routine items. If nutrition data is missing, do not infer it from a title alone.
-- **Skip suggestion:** An item is skip-eligible when (a) a similar non-consumable or discretionary item was bought within its lookback window and no clarification answer says it is a replacement or for a different purpose, or (b) its purpose class is discretionary novelty. An approved health trigger produces a separate “skip or reduce” suggestion. Essential consumables are never skip-eligible on redundancy grounds.
-- **Cart summary:** Separate (1) lower-priced alternative savings and (2) the amount the user might avoid by skipping a flagged item. Label both as potential, not realized, savings. Each item contributes exactly one amount to the combined total, chosen by its primary suggestion: a skip suggestion (redundancy or novelty) counts the full line price; otherwise an approved health “skip or reduce” suggestion counts the full line price; otherwise a cheaper alternative counts the price difference for the current quantity. The item card may still show the other option, but it is not added to the total.
-- **Investment illustration:** Only once at the end and only from aggregate current-cart potential savings. With principal (P), annual rate (r=0.10), yearly compounding, and (n=40), calculate (FV=P(1+r)^n). Compute the growth factor in double precision and round the result once to whole cents (display may round to whole dollars). For $5, this is about $226.30 before inflation, fees, taxes, and uncertainty; for $10, about $452.59. State the assumed rate and term. This is an illustration, not a forecast or promise. Do not show item-level projections or use personal finances.
+- **Health note (added sugar only):** Trigger when the item's reference label data lists more than 0 g of added sugars per serving. Show the approved note: “This has added sugar. Too much added sugar over time can contribute to health problems, including type 2 diabetes and heart disease. Consider skipping it, choosing a smaller amount, or having it less often.” Cite the CDC added-sugars page. Do not quote Daily Value percentages, diagnose, or claim one serving causes disease. Items with 0 g added sugar get no note. If the added-sugar value is missing, the result is `unknown` and no note is shown; never infer it from a title or category. No other health trigger (ultra-processed, sweeteners, other nutrients) is approved for the MVP.
+- **Skip suggestion:** An item is skip-eligible when (a) a similar non-consumable or discretionary item was bought within its lookback window and no clarification answer says it is a replacement or for a different purpose, or (b) its purpose class is discretionary novelty. An added-sugar finding produces a separate “skip or reduce” suggestion. Essential consumables are never skip-eligible on redundancy grounds.
+- **Cart summary:** Separate (1) lower-priced alternative savings and (2) the amount the user might avoid by skipping a flagged item. Label both as potential, not realized, savings. Each item contributes exactly one amount to the combined total, chosen by its primary suggestion: a skip suggestion (redundancy or novelty) counts the full line price; otherwise an added-sugar “skip or reduce” suggestion counts the full line price; otherwise a cheaper alternative counts the price difference for the current quantity. The item card may still show the other option, but it is not added to the total.
+- **Investment illustration:** On by default (the `investmentIllustration` setting, default `true`); shown only once at the end, only when the aggregate current-cart potential savings are above $0, and only from that aggregate. Use exactly this sentence with code-calculated amounts: “By following these suggestions, you would save $X. If you invested that $X at an assumed 10% annual return, compounded annually, it could grow to about $Y in 40 years (before inflation; returns are not guaranteed).” With principal (P), annual rate (r=0.10), yearly compounding, and (n=40), calculate (FV=P(1+r)^n). Compute the growth factor in double precision and round the result once to whole cents (display may round to whole dollars). For $5, this is about $226.30 before inflation, fees, taxes, and uncertainty; for $10, about $452.59. State the assumed rate and term. This is an illustration, not a forecast or promise. Do not show item-level projections or use personal finances.
 
 Prices and savings must use decimal-safe currency arithmetic (integer minor units such as cents), not floating point for money totals. Group counts and percentages must use documented denominators and deterministic rounding. An item's share of the cart is its line price divided by the sum of readable line prices (before tax, shipping, and fees), and is omitted when any line price is unknown; when the denominator or underlying data is unavailable, omit the statistic rather than ask the LLM to estimate it.
 
@@ -330,9 +333,9 @@ On the cart page, when at least one finding or material uncertainty exists, pres
 3. Each flagged item shows its name, plain-language reason, evidence, and certainty. The LLM may phrase explanations naturally, but criterion labels, numbers, sources, and links come from validated structured data.
 4. Store-brand suggestions show the actual unit and cart price difference where available.
 5. Repeat-purchase notes acknowledge uncertainty and ask one useful question only if needed.
-6. Qualifying health notes include a concise source and practical phrasing.
+6. Added-sugar notes use the approved wording and cite the CDC source.
 7. Total potential current-cart reduction is clearly distinct from estimated historical savings.
-8. One optional aggregate investment illustration appears at the end.
+8. One aggregate investment illustration appears at the end, unless the shopper turned it off in settings.
 9. Controls let the shopper pause, replay, read captions/details, dismiss, or continue. Continue and dismiss only close Worth It's panel; a dismissed panel stays collapsed for that cart unless a new finding appears.
 
 Never say “bad choice,” shame the shopper, or imply that an item is forbidden. “Consider skipping or reducing this item” can be offered for a qualifying concern; the shopper remains in charge. The recap must not block the retailer’s checkout. If animation is unavailable, reduced, or skipped, show the same information in a readable static panel. Keyboard navigation and screen-reader labels are required.
@@ -384,7 +387,7 @@ Complete work in this order:
 7. [#10 — Add Amazon as the second retailer adapter](https://github.com/girwandhakal/WorthIt/issues/10), after the Walmart vertical slice is stable.
 8. [#11 — Prepare optional public Chrome Web Store and Google OAuth release](https://github.com/girwandhakal/WorthIt/issues/11), only if the owner chooses public distribution.
 
-Decisions recorded from issue #4 are listed in section 1. Issue #4 remains a gate only for the exact health triggers and wording, the investment default, and the owner's Gmail OAuth setup. The assessment approach is decided: criteria, scores, calculations, and grouped statistics are deterministic; the LLM may only phrase the validated summary. Do not begin blocked implementation work until the remaining relevant decisions and setup are recorded. Implement one issue at a time on a focused branch from the latest `main`; each PR must link its issue and report the exact tests/checks run and their results.
+Decisions recorded from issue #4 are listed in section 1. Issue #4 remains open only for the owner's Gmail OAuth and OpenAI key setup. The assessment approach is decided: criteria, scores, calculations, and grouped statistics are deterministic; the LLM may only phrase the validated summary. Do not begin blocked implementation work until the remaining relevant decisions and setup are recorded. Implement one issue at a time on a focused branch from the latest `main`; each PR must link its issue and report the exact tests/checks run and their results.
 
 ## 12. Packaging and release
 
@@ -407,8 +410,8 @@ The plan can proceed with defaults except where these choices alter user-visible
 1. Done: Walmart US first, Amazon second (section 1).
 2. Done: OpenAI API with the owner's own key entered in settings. Create an OpenAI API key, set a low monthly spending limit, and paste the key into Worth It's settings; never commit or share it. No model may change assessments or numeric results.
 3. Provide a Google Cloud project with Gmail API enabled, configure the OAuth consent screen in testing, add your own Google account as a test user, and provide the extension OAuth client ID. Generate the extension key pair for a stable extension ID. No password, API secret, or personal receipt sample needs to be shared. Observed-purchase recording is in scope with opt-in consent (section 1).
-4. Approve the specific health triggers, numeric thresholds, source wording, and reviewed claims. Do not ship a health rule based only on an example such as “candy” or “chips.”
-5. Confirm whether aggregate investment illustration is enabled by default or is an opt-in setting. The combined-savings rule is decided (section 7).
+4. Done: the added-sugar rule is the only MVP health rule (section 7).
+5. Done: the investment illustration is on by default and can be turned off; the combined-savings rule is decided (section 7).
 6. Done: product reference list in [Walmart reference products](WALMART_REFERENCE_PRODUCTS.md); recheck prices before the walkthrough.
 7. Done: category-to-purpose map (section 7).
 8. Provide a Chrome profile where you can authorize your Google account and access your Gmail test inbox, plus a retailer test cart or local retailer fixtures. Do not share your password or payment details.
@@ -423,7 +426,7 @@ Gmail API uses an OAuth extension client ID and your consent, not an API key. Ba
 | Retailer markup changes | Isolate selectors in adapters; fixture tests; fail visibly and safely |
 | Product false match | Require conservative match confidence; show evidence; ask one question |
 | Unsupported savings claim | Compute only from observed prices/quantity; use integer cents; disclose estimate basis |
-| Health overclaim | Narrow reviewed triggers, authoritative sources, qualified wording, no inference from title |
+| Health overclaim | One label-based added-sugar rule, CDC source, fixed reviewed wording, no Daily Value claims, no inference from title |
 | Broad extension access | One retailer permission at a time; explain and request only required host access |
 | Animation obscures details | Captions, text equivalent, reduced motion, pause/skip, accessible focus order |
 | LLM wording changes or invents facts | Keep criteria and calculations deterministic, validate wording against structured findings, render numeric/source fields from code, and fall back to reviewed templates |

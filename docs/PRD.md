@@ -20,7 +20,7 @@ Right before checkout, the Chrome extension reviews every item in the cart, incl
 
 Worth It evaluates the purchase itself rather than a shopper's personal finances: affordability or income does not determine whether a product is useful, suitable, redundant, or good value.
 
-The product aims to encourage intentional spending rather than simply restricting spending. Its assessment should not treat a low price as proof that an item is suitable. When enabled, the checkout summary may total supported potential savings across the current cart and show one clearly stated long-term investment illustration based on that aggregate. It does not show investment projections for individual items or use the shopper's personal financial information.
+The product aims to encourage intentional spending rather than simply restricting spending. Its assessment should not treat a low price as proof that an item is suitable. By default, the checkout summary totals supported potential savings across the current cart and shows one clearly stated long-term investment illustration based on that aggregate; the shopper can turn the illustration off in settings. It does not show investment projections for individual items or use the shopper's personal financial information.
 
 Worth It should work automatically during online shopping, requiring minimal interaction and only interrupting users when it identifies a meaningful reason to reconsider a purchase.
 When it intervenes, its role is to add a brief pause and offer evidence-based suggestions that encourage the user to review the purchase. Worth It is not a cart builder: it must never add, remove, replace, or purchase items. The user makes any changes directly on the retailer's website.
@@ -429,7 +429,7 @@ The panel may include:
 - A concise explanation of what, if anything, is concerning about each item and the cart overall.
 - The item's share of the cart total, where prices and quantities are known.
 - Relevant product, nutrition, or purchase-history evidence, with source links when applicable.
-- One optional, clearly labeled cart-level opportunity-cost illustration based on aggregate potential savings, shown after the item summaries.
+- One clearly labeled cart-level opportunity-cost illustration based on aggregate potential savings, shown after the item summaries (on by default; can be turned off in settings).
 
 The intervention should occur before the final purchase is completed.
 
@@ -571,13 +571,21 @@ The extension should not collect payment card details, passwords, or unrelated s
 
 **Priority: Must Have**
 
-When reliable product information and relevant evidence are available, Worth It should assess grocery items for price and product characteristics as well as purchase history. When a store-brand version is available, it should be the default brand recommendation, including when it is not cheaper or when the products are not established as equivalent. Worth It should concisely state actual price differences and material ingredient, nutrition, or package differences; describe ingredients as similar only when the labels support that claim. Quantify potential savings for the current quantity only when the store brand costs less. If purchase history contains comparable records, it may also estimate how much less the user might have spent by choosing the store brand for those past purchases. Historical savings are hypothetical and must be labeled as an estimate, especially when past prices are unavailable; use recorded historical price differences when available, otherwise state that the estimate applies today's price difference to recorded quantities. Do not present hypothetical savings as money actually saved.
+When reliable product information and relevant evidence are available, Worth It should assess grocery items for price and product characteristics as well as purchase history. When a store-brand version is available, it should be the default brand recommendation, including when it is not cheaper or when the products are not established as equivalent, except that Worth It never recommends a food or drink with added sugar (see the added-sugar rule below). Worth It should concisely state actual price differences and material ingredient, nutrition, or package differences; describe ingredients as similar only when the labels support that claim. Quantify potential savings for the current quantity only when the store brand costs less. If purchase history contains comparable records, it may also estimate how much less the user might have spent by choosing the store brand for those past purchases. Historical savings are hypothetical and must be labeled as an estimate, especially when past prices are unavailable; use recorded historical price differences when available, otherwise state that the estimate applies today's price difference to recorded quantities. Do not present hypothetical savings as money actually saved.
 
-Health is a selective supporting lens in the purchase review, not a separate health score, diagnosis, or health-management feature. Most foods should receive no health advice. Worth It should surface a short health prompt only when item-specific label or ingredient data meets a defined trigger and credible evidence supports a useful concern. Examples of triggers include added sugars at 20% or more of the FDA Daily Value per serving (a high amount on the label), and other nutrients at a high label value when relevant. It may also flag an item confidently classified as ultra-processed when the supporting evidence is relevant, or note a named sweetener when evidence specific to that sweetener warrants attention. It should not flag an item only because it belongs to a broad category such as chips or candy. If evidence is mixed, indirect, or about a whole dietary pattern rather than an individual food, say so plainly and avoid implying that one item causes disease. For triggered items, give a concise suggestion to skip it, choose a smaller amount, or have it less often, and state how removing it would reduce the current cart total. The user decides whether to act; the extension never removes the item.
+Health is a supporting lens in the purchase review, not a separate health score, diagnosis, or health-management feature. The MVP has one approved health rule, the **added-sugar rule**:
 
-Health notes must cite credible sources, distinguish established findings from emerging research, and must not diagnose the shopper or use personal health information. For example, FDA label guidance treats 20% Daily Value or more as high for nutrients such as added sugars ([FDA label guidance](https://www.fda.gov/media/135299/download)). A small, controlled NIH inpatient study found higher calorie intake and short-term weight gain during a diet composed of ultra-processed foods, but this is evidence about a dietary pattern, not proof that one bag of chips causes disease ([NIH study summary](https://www.nih.gov/news-events/news-releases/nih-study-finds-heavily-processed-foods-cause-overeating-weight-gain)). For non-sugar sweeteners, identify the specific sweetener shown on the label and keep claims calibrated at the sweetener level: WHO's recommendation against using them for long-term weight control is conditional and is not a safety assessment of each sweetener or evidence that one drink causes disease ([WHO guideline](https://www.who.int/publications/i/item/9789240073616)); evidence on human gut microbiota and glucose effects remains mixed, with limitations in the available human studies ([review of clinical trials and cross-sectional studies](https://pubmed.ncbi.nlm.nih.gov/37897982/)).
+- Any food or drink whose label lists more than 0 g of added sugars per serving gets a short health note. The note does not quote a Daily Value percentage or rank how much sugar the item has.
+- Worth It never endorses a product with added sugar: it never suggests one as a store-brand switch, cheaper alternative, or better choice. When the store-brand version also lists added sugar, Worth It suggests no switch for that item and shows the added-sugar note instead.
+- Foods and drinks with no added sugar get no health note.
+- The added-sugar value must come from reliable label data. If it is unknown, the item gets no health note, and an unknown food or drink is never suggested as an alternative.
+- Worth It does not flag an item only because it belongs to a category such as candy; the label decides.
 
-The store-brand preference must not be presented as proof that two products are equivalent. Worth It should not warn solely because an item is candy or another particular food category. For example, when a candy label meets the approved added-sugar trigger, a concise tip may say: “Too much added sugar over time can contribute to health problems, including type 2 diabetes. Consider a smaller portion or having it less often.” The exact triggers, thresholds, sources, and wording used by the MVP must be approved before implementation (issue #4); the examples above are not approved rules by themselves. The user can dismiss a message and continue with the purchase.
+For a flagged item, give a concise suggestion to skip it, choose a smaller amount, or have it less often, and state how removing it would reduce the current cart total. The user decides whether to act; the extension never removes the item.
+
+Health notes must cite credible sources and must not diagnose the shopper or use personal health information. The added-sugar note cites the [CDC's guidance on added sugars](https://www.cdc.gov/nutrition/php/data-research/added-sugars.html). Other health triggers, such as ultra-processed classification or specific non-sugar sweeteners, are not approved for the MVP; any future trigger needs owner approval and calibrated evidence. For example, a small, controlled NIH inpatient study found higher calorie intake and short-term weight gain during a diet composed of ultra-processed foods, but this is evidence about a dietary pattern, not proof that one bag of chips causes disease ([NIH study summary](https://www.nih.gov/news-events/news-releases/nih-study-finds-heavily-processed-foods-cause-overeating-weight-gain)). For non-sugar sweeteners, identify the specific sweetener shown on the label and keep claims calibrated at the sweetener level: WHO's recommendation against using them for long-term weight control is conditional and is not a safety assessment of each sweetener or evidence that one drink causes disease ([WHO guideline](https://www.who.int/publications/i/item/9789240073616)); evidence on human gut microbiota and glucose effects remains mixed, with limitations in the available human studies ([review of clinical trials and cross-sectional studies](https://pubmed.ncbi.nlm.nih.gov/37897982/)).
+
+The store-brand preference must not be presented as proof that two products are equivalent. The approved added-sugar note reads: “This has added sugar. Too much added sugar over time can contribute to health problems, including type 2 diabetes and heart disease. Consider skipping it, choosing a smaller amount, or having it less often.” The user can dismiss a message and continue with the purchase.
 
 ### PR-17: Pre-Checkout Concern Summary
 
@@ -585,13 +593,13 @@ The store-brand preference must not be presented as proof that two products are 
 
 Immediately before checkout, Worth It should provide a concise summary of cart items that merit attention. It should omit items with no meaningful concern instead of showing a status for every line. It should identify items that may deserve a second look and, when the uncertainty materially affects the review, items it could not assess reliably. For each concern, it should explain the specific reason and distinguish observed facts from estimates or uncertain inferences.
 
-Before checkout, the shopper sees a short, polished animated recap of the items that merit attention. The recap explains each finding, its evidence, and a suggestion, then shows the combined potential reduction to the cart. If enabled, one hypothetical investment illustration appears at the end, based on that combined amount. The shopper can pause, replay, skip, or continue checkout at any time, and can read the same concise information with captions and supporting details. The recap does not label the shopper or the cart as "bad," modify the cart, or place an order. For grocery suggestions, it states whether available label evidence supports similar ingredients, notes material differences, and shows the price difference. Health advice appears only for items that meet the defined triggers and have credible supporting evidence; routine items receive no health advice.
+Before checkout, the shopper sees a short, polished animated recap of the items that merit attention. The recap explains each finding, its evidence, and a suggestion, then shows the combined potential reduction to the cart. One hypothetical investment illustration then appears at the end, based on that combined amount, unless the shopper turned it off in settings. The shopper can pause, replay, skip, or continue checkout at any time, and can read the same concise information with captions and supporting details. The recap does not label the shopper or the cart as "bad," modify the cart, or place an order. For grocery suggestions, it states whether available label evidence supports similar ingredients, notes material differences, and shows the price difference. Health advice appears only for items whose labels list added sugar; items without added sugar receive no health advice.
 
 ### PR-18: Long-Term Opportunity-Cost Illustration
 
-**Priority: Should Have**
+**Priority: Must Have (on by default; the shopper can turn it off in settings)**
 
-At the end of the checkout summary, Worth It may show one illustration of what the total potential reduction in the current cart could grow to if invested over a stated period, such as 40 years. This total may combine supported savings from lower-priced alternatives and the prices of flagged items the shopper could choose to remove. For example: “Following these suggestions could reduce this cart by $5. If you invested that $5 at an assumed 10% annual return, compounded annually, it could grow to about $226 in 40 years before inflation.” Calculate the projection using only supported potential reductions in the current cart and the stated assumptions: future value = aggregate potential reduction × (1 + annual return) ^ years. Count each item only once, using its primary suggestion. Worth It suggests skipping an item only when it looks useless for this shopper (a similar non-consumable was bought recently and the shopper has not said it is a replacement, or it is a novelty item with no practical use) or when it meets an approved health trigger; such items count their full price. Otherwise, an item with a lower-priced alternative counts the price difference. Do not include estimated savings from past purchases, and do not show a separate investment projection for any individual item. This is an optional perspective on the cart, not a recommendation to invest or a promise of actual returns.
+At the end of the checkout summary, Worth It shows one illustration of what the total potential reduction in the current cart could grow to if invested for 40 years. It appears only when that total is above $0. This total may combine supported savings from lower-priced alternatives and the prices of flagged items the shopper could choose to remove. It uses this sentence, with both amounts calculated by code: “By following these suggestions, you would save $X. If you invested that $X at an assumed 10% annual return, compounded annually, it could grow to about $Y in 40 years (before inflation; returns are not guaranteed).” For example, with $5 in potential savings, $Y is about $226. Calculate the projection using only supported potential reductions in the current cart and the stated assumptions: future value = aggregate potential reduction × (1 + annual return) ^ years. Count each item only once, using its primary suggestion. Worth It suggests skipping an item only when it looks useless for this shopper (a similar non-consumable was bought recently and the shopper has not said it is a replacement, or it is a novelty item with no practical use) or when its label lists added sugar; such items count their full price. Otherwise, an item with a lower-priced alternative counts the price difference. Do not include estimated savings from past purchases, and do not show a separate investment projection for any individual item. This is a perspective on the cart, not a recommendation to invest or a promise of actual returns.
 
 The single cart-level illustration must appear after the total potential reduction and state that amount, time horizon, assumed annual return, compounding frequency, and whether the projected value is nominal or adjusted for inflation. It must calculate the projected amount from those assumptions and explain that returns are uncertain and the result is hypothetical, not guaranteed. Worth It must not call an amount "saved" unless the user actually makes the lower-priced choice or removes the item and the product can verify that change. This comparison should remain secondary to the direct assessment of the cart.
 
@@ -682,7 +690,7 @@ A user adds another pair of expensive headphones shortly after purchasing a simi
 
 ### Outcome F: Illustrate Cart-Level Opportunity Cost
 
-Shown once at the end of the checkout summary, if enabled, using the total supported potential savings across the current cart.
+Shown once at the end of the checkout summary by default (the shopper can turn it off), using the total supported potential savings across the current cart.
 
 **Product behavior:** Show the total potential savings, time horizon, assumed return, compounding frequency, and inflation basis. Label the result as uncertain and hypothetical; do not use personal account, income, budget, or obligation data. Do not show per-item investment projections.
 
@@ -785,13 +793,13 @@ Available for every recommendation.
 - Purchase history shows a recent receipt for a similar candy purchase, but does not show whether the food was consumed or who used it.
 
 **Expected behavior:**
-1. Worth It assesses every cart item for purchase context and applicable evidence. Health prompts appear only for items that meet a defined trigger; routine items receive no health advice.
-2. It recommends the store-brand cereal by default, directly states whether label and ingredient data support similarity, and gives the actual price difference. If it costs less, it quantifies the potential savings for the current quantity; it does not require the user to open a separate comparison view.
-3. It does not give routine health advice for the milk or cereal. It summarizes the candy label and flags it only if it meets the added-sugar trigger, without assuming the user has a health condition or declaring all candy categorically harmful.
+1. Worth It assesses every cart item for purchase context and applicable evidence. Health prompts appear only for items whose labels list added sugar; items without added sugar receive no health advice.
+2. For the milk, it recommends the store brand by default, directly states whether label data supports similarity, and gives the actual price difference. If it costs less, it quantifies the potential savings for the current quantity; it does not require the user to open a separate comparison view. For the cereal, it suggests a store-brand switch only if the store-brand cereal lists no added sugar; otherwise it suggests no switch.
+3. It gives no health advice for the milk, which has no added sugar. It flags the cereal and candy if their labels list added sugar, without assuming the user has a health condition.
 4. For a triggered candy item, it offers a quick, practical suggestion to skip it, choose a smaller amount, or have it less often; accurately explains that too much added sugar over time can contribute to health problems including type 2 diabetes; and states how removing it would reduce the cart total. It cites credible general guidance; for example, the [CDC explains the health risks associated with consuming too much added sugar](https://www.cdc.gov/nutrition/php/data-research/added-sugars.html).
 5. It reports the prior similar purchase as history, not proof that the user still has unused candy, and lets the user decide whether it matters.
-6. For diet soda, it flags the product only when the named sweetener and applicable evidence meet the health-note criteria. It describes possible gut or glucose effects as mixed or emerging where appropriate. It may mention WHO's conditional recommendation against using non-sugar sweeteners for long-term weight control, while clarifying that this is not evidence that one drink causes metabolic dysfunction or gut disease.
-7. Chips may be flagged when reliable product data supports an ultra-processed classification and relevant evidence supports a useful prompt. The product explains that study findings concern ultra-processed diets or dietary patterns, not proof that one bag causes disease, and may suggest skipping or reducing the item while showing the potential cart reduction.
+6. Diet soda with 0 g added sugar gets no health note in the MVP; sweetener-specific notes are not an approved trigger.
+7. Chips are flagged only if their label lists added sugar; ultra-processed classification is not an approved trigger in the MVP.
 8. Items that do not meet a health trigger receive no health advice; missing or uncertain data must not be used to invent a risk.
 9. It presents the item-specific findings and each item's share of the basket where the data is available. The user can keep all items and continue checkout.
 10. When purchase history contains comparable grocery purchases, it may estimate the cumulative amount the user might have spent less by choosing the store brand each time, clearly labeling this as hypothetical and explaining whether it uses historical prices or today's price difference applied to recorded quantities. This past-purchase estimate is separate from current-cart potential reduction and is not included in the investment projection.
@@ -804,7 +812,7 @@ Available for every recommendation.
 **Expected behavior:**
 1. Worth It assesses each item's purpose, price, alternatives, product evidence, and purchase history; it does not request or use personal financial data.
 2. The cart summary totals the supported potential reduction from lower-priced alternatives and flagged items the user could remove; potential savings from past purchases are reported separately and excluded from this current-cart total.
-3. After the item summaries, if the opportunity-cost feature is enabled, Worth It shows one 40-year hypothetical investment illustration based on the $5 aggregate potential savings, together with the return assumption, compounding frequency, and inflation basis.
+3. After the item summaries, Worth It shows one 40-year hypothetical investment illustration based on the $5 aggregate potential savings (on by default; the shopper can turn it off), together with the return assumption, compounding frequency, and inflation basis.
 4. The illustration states the assumed return and time horizon, makes clear that the result is uncertain, and does not imply that potential savings or investment growth are guaranteed.
 5. The user may dismiss the insight and complete the purchase.
 
@@ -834,8 +842,8 @@ It should provide:
 1. On the supported cart page, before the shopper proceeds to checkout, the shopper sees a short animated recap of only the cart items that merit attention. If nothing merits attention, no recap plays.
 2. Each item has been assessed against defined criteria; the recap shows only applicable findings and groups related points into a concise cart-level explanation.
 3. The recap explains what Worth It noticed and why. For example, it may show the price difference for a store-brand suggestion or remind the shopper about a similar recent purchase.
-4. For a supported health concern, it gives a brief, evidence-based tip. Ordinary items receive no health warning.
-5. The recap totals the potential reduction if the shopper follows its suggestions. If enabled, it then shows one hypothetical investment illustration based on that combined amount.
+4. For an item whose label lists added sugar, it gives a brief, evidence-based tip. Items without added sugar receive no health warning.
+5. The recap totals the potential reduction if the shopper follows its suggestions. It then shows one hypothetical investment illustration based on that combined amount, for example: “By following these suggestions, you would save $X. If you invested that $X at an assumed 10% annual return, compounded annually, it could grow to about $Y in 40 years (before inflation; returns are not guaranteed).” The shopper can turn this off in settings.
 6. The shopper may pause, replay, read captions, review supporting details, skip the recap, or continue checkout. "Continue" closes Worth It's panel; it never clicks the retailer's checkout or cart controls. A dismissed panel does not reopen on its own for the same cart unless a new finding appears. The shopper decides whether to make any changes. The recap is an animated presentation inside the checkout panel, populated with the current review's findings rather than an AI-generated video.
 
 ### 10.2 Purchase Insight Panel
@@ -865,7 +873,7 @@ A lightweight dashboard may allow users to view:
 - Saved items.
 - Past recommendations.
 - Potential or verified savings.
-- Investment projection assumptions, when the optional illustration is enabled.
+- Investment projection assumptions and the setting to turn the illustration off.
 
 The dashboard is secondary to the checkout experience.
 
@@ -889,6 +897,7 @@ The Hacklanta MVP should demonstrate the product's primary capabilities without 
 8. A functional, evidence-backed lower-cost alternative recommendation for at least one supported product category.
 9. A short, polished animated pre-checkout recap that explains flagged items and potential cart reduction, with captions and controls to pause, replay, skip, or continue checkout.
 10. A clear, user-controlled checkout recommendation panel with source details and uncertainty available.
+11. One cart-level investment illustration, on by default, that states the total potential savings and what it could grow to under the stated assumptions.
 
 ### Optional MVP Capabilities
 
@@ -902,7 +911,6 @@ The Hacklanta MVP should demonstrate the product's primary capabilities without 
 - A spending insights dashboard.
 - Return and refund reconciliation.
 - Notifications about delayed purchases.
-- A long-term investment opportunity-cost illustration with explicit assumptions and uncertainty.
 
 ### Out of Scope for the Hackathon
 
@@ -963,7 +971,7 @@ A user checks out with branded and store-brand groceries, plus multiple candy it
 
 A user has several flagged items, such as a branded grocery with a lower-priced store-brand option and a possible repeat purchase from history.
 
-**Expected result:** Before checkout, Worth It presents a short animated recap populated with the current cart's applicable findings and verified evidence. Related findings are grouped, supported potential cart savings are totaled, and captions and a readable text summary provide the same facts. The shopper can pause, replay, skip, or continue immediately; the recap never modifies the cart. If enabled, one investment illustration appears at the end based on the aggregate potential reduction.
+**Expected result:** Before checkout, Worth It presents a short animated recap populated with the current cart's applicable findings and verified evidence. Related findings are grouped, supported potential cart savings are totaled, and captions and a readable text summary provide the same facts. The shopper can pause, replay, skip, or continue immediately; the recap never modifies the cart. One investment illustration appears at the end based on the aggregate potential reduction (on by default).
 
 ---
 
@@ -983,7 +991,7 @@ The hackathon MVP should be considered successful when it can demonstrate that:
 - A lower-cost alternative can be supported by relevant product information and evidence.
 - Grocery recommendations prefer an available store-brand version by default and accurately report its price and material product differences.
 - At least one grocery value or nutrition observation can be demonstrated from item-level price, package, or label data with a credible source where a health claim is made.
-- Purchase concerns are summarized with their evidence and uncertainty, and the long-term investment illustration (if included) states its assumptions and uncertainty.
+- Purchase concerns are summarized with their evidence and uncertainty, and the long-term investment illustration states its assumptions and uncertainty.
 - The user can accept, dismiss, or override recommendations.
 - The main user experience can be demonstrated without relying on unverified claims about model accuracy.
 
