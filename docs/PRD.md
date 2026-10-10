@@ -12,7 +12,7 @@
 
 ## 1. Product Overview
 
-Worth It is an AI-powered Chrome extension designed to help consumers reduce impulsive, unnecessary, redundant, and excessively expensive purchases while shopping online. It is an advisor that makes shoppers think twice before buying, not an analysis tool: it highlights the few things worth a second thought and asks a short question or gives one clear suggestion, while the analysis behind it stays out of the way.
+Worth It is an AI-powered Chrome extension designed to help consumers reduce impulsive, unnecessary, redundant, and excessively expensive purchases while shopping online. It is an advisor that makes shoppers think twice before buying, not an analysis tool: it highlights the few things worth a second thought and asks a short question or gives one clear suggestion. The full analysis behind it is available on request but never shown by default.
 
 The hackathon MVP centers on one polished experience: a deterministic pre-checkout review of the shopper’s cart, followed by a clear animated recap. Purchase history, savings comparisons, and optional wording assistance all support that checkout moment.
 
@@ -102,7 +102,7 @@ Worth It's job is to create a brief moment of reflection before purchase, the wa
 
 - **Highlight the few things that matter.** The checkout panel leads with at most three highlighted items, the ones most worth a second thought. Smaller suggestions are grouped into one line that the shopper can expand.
 - **Speak as an advisor.** Each highlight is one or two short sentences in plain, second-person language and ends with either a question ("Do you need another one?") or one clear suggested action ("Consider skipping it").
-- **Keep the analysis behind the scenes.** Scores, purpose classes (such as essential or discretionary), criterion names, per-item tables, and charts are internal; they never appear in the checkout panel. Evidence and sources are one tap away under "Why?".
+- **Keep the analysis one step away.** The default view shows no scores, purpose classes (such as essential or discretionary), criterion names, per-item tables, or charts. Evidence for a highlight is one tap away under "Why?", and a "See full analysis" option opens the deeper view for shoppers who want it: every reviewed item, including ones with nothing to flag, with its checks and results, purpose class, prices and unit prices, store-brand comparison, purchase-history match, added-sugar status, evidence, sources, price check dates, and certainty. Opening it is always the shopper's choice.
 - **End with a nudge, not a report.** The recap closes with the savings sentence and the investment illustration, then leaves the decision to the shopper.
 
 ---
@@ -870,7 +870,7 @@ A short explanation grounded in available evidence.
 **What could the user do instead?**  
 Continue, clarify purpose, choose a cheaper alternative, or postpone.
 
-The panel should avoid overwhelming users with investment calculations, technical details, scores, category labels, item-by-item tables, or long AI-generated explanations.
+The panel's default view should avoid overwhelming users with investment calculations, technical details, scores, category labels, item-by-item tables, or long AI-generated explanations; those belong in the optional "See full analysis" view.
 
 ### 10.3 Optional Dashboard
 

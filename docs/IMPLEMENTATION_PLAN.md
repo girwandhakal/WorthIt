@@ -61,7 +61,7 @@ flowchart TD
 
 ## Product constraints carried through every ticket
 
-- Worth It is an advisor that makes shoppers think twice, not an analysis tool. It may add a pause, highlight at most three items with short advice or a question, and suggest alternatives, but the shopper performs every cart change and decides whether to buy. Scores, categories, tables, and charts stay out of the checkout panel.
+- Worth It is an advisor that makes shoppers think twice, not an analysis tool. It may add a pause, highlight at most three items with short advice or a question, and suggest alternatives, but the shopper performs every cart change and decides whether to buy. Scores, categories, tables, and charts stay out of the default view; the shopper can open “See full analysis” for the full per-item breakdown.
 - Assess all readable cart lines on the supported cart page. With opt-in consent, read only item rows on order confirmation and purchase-history pages to record purchases; never read payment, address, or sign-in fields. Surface concise findings for meaningful concerns and say when an item cannot be assessed reliably. A cart with no findings gets only a collapsed indicator, not a recap.
 - Prefer an available store brand for groceries. Claim similar ingredients/labels only when the product evidence supports that statement, and calculate savings only from known prices and quantities.
 - Use purchase history as evidence of a prior purchase, not proof that an item is still owned or has been consumed. Treat ordinary consumables as restocking unless evidence supports a different concern.
