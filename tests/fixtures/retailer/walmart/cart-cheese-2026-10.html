@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Walmart cart fixture</title>
+<style>.ld_Ec { position: absolute; clip: rect(1px, 1px, 1px, 1px); width: 1px; height: 1px; overflow: hidden; }</style>
+</head>
+<body>
+<!-- Sanitized structure of the reported cart row: tracking attributes and
+     images omitted; product facts are public reviewed reference data. -->
+<main>
+  <h1>Cart (2 items)</h1>
+  <div class="flex flex-column sans-serif pv2" data-testid="product-tile-container">
+    <div class="ph3 ph4-l"><ul><li>
+      <div class="flex flex-column sans-serif pt1 relative">
+        <span class="ld_Ec"><h4>Kraft Natural Mild Cheddar Shredded Cheese, 16 oz Bag</h4></span>
+        <div class="flex flex-row w-100">
+          <a aria-label="Kraft Natural Mild Cheddar Shredded Cheese, 16 oz Bag, 1 in cart" aria-hidden="true" tabindex="-1" href="/ip/seort/43981978"></a>
+          <div class="w-100"><div class="flex flex-column column2">
+            <div><span class="ld_Ec">$5.64</span><div class="ml2" aria-hidden="true"><div class="b lh-solid dib"><span class="f3"></span><span class="f6 f5-l" style="vertical-align: 1ex">$</span><span class="f1">5</span><span class="f6 f5-l" style="vertical-align: 1.2ex">64</span></div><span class="f7 f6-l gray"></span></div></div>
+            <div data-usitemid="43981978"><a href="/ip/seort/43981978"><div data-testid="productName"><span>Kraft Natural Mild Cheddar Shredded Cheese, 16 oz Bag</span></div></a></div>
+          </div></div>
+        </div>
+      </div>
+      <button type="button" class="retailer-control">Remove</button>
+      <button type="button" class="retailer-control">Save for later</button>
+      <div data-testid="quantity-stepper">
+        <button class="retailer-control" aria-label="Decrease quantity Kraft Natural Mild Cheddar Shredded Cheese, 16 oz Bag, Current Quantity 1"></button>
+        <span data-testid="quantity-label">1</span>
+        <button class="retailer-control" aria-label="Increase quantity Kraft Natural Mild Cheddar Shredded Cheese, 16 oz Bag, Current Quantity 1"></button>
+      </div>
+    </li><li>
+      <div class="flex flex-column sans-serif pt1 relative">
+        <span class="ld_Ec"><h4>Horizon Organic Vitamin D Whole Milk, Vitamin D Whole, 64 fl oz Carton</h4></span>
+        <a aria-hidden="true" tabindex="-1" href="/ip/seort/10309701"></a>
+        <div class="flex flex-column column2">
+          <div><span class="ld_Ec">$5.96</span><div class="ml2" aria-hidden="true"><div class="b lh-solid dib"><span class="f3"></span><span class="f6 f5-l">$</span><span class="f1">5</span><span class="f6 f5-l">96</span></div></div></div>
+          <a href="/ip/seort/10309701"><div data-testid="productName">Horizon Organic Vitamin D Whole Milk, Vitamin D Whole, 64 fl oz Carton</div></a>
+        </div>
+      </div>
+      <button type="button" class="retailer-control">Remove</button>
+      <button type="button" class="retailer-control">Save for later</button>
+      <div data-testid="quantity-stepper">
+        <button class="retailer-control" aria-label="Decrease quantity Horizon Organic Vitamin D Whole Milk, Current Quantity 1"></button>
+        <span data-testid="quantity-label">1</span>
+        <button class="retailer-control" aria-label="Increase quantity Horizon Organic Vitamin D Whole Milk, Current Quantity 1"></button>
+      </div>
+    </li></ul></div>
+  </div>
+</main>
+<script>
+  window.__retailerClicks = 0;
+  document.addEventListener('click', (event) => {
+    if (event.target.closest('.retailer-control')) window.__retailerClicks += 1;
+  }, true);
+</script>
+</body>
+</html>

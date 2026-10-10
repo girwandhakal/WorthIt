@@ -59,7 +59,7 @@ Recheck reference prices first; the amounts below use the 2026-10-09 prices in [
 
 ## 6. Known limitations
 
-- Walmart selectors are verified only against synthetic fixtures; live markup may differ. Worth It reports unread lines instead of guessing.
+- Walmart fixtures include sanitized markup reported from the live cart on 2026-10-10, including a shared tile container holding separate cheese and milk rows. Other live layouts may differ; verify the rebuilt extension in the owner's cart. Worth It reports unread lines instead of guessing.
 - Product-page facts (ingredients, Nutrition Facts, category) are read from each cart item's own Walmart page. The parser was checked against live page data on 2026-10-10 (Skittles, Diet Coke, Horizon milk, bananas, hot dogs, bread, a collectible plush, a tumbler); the full decision tree has not yet been run against a large live sample because Walmart's bot check answered a rapid test with "Robot or human?". Worth It therefore reads pages slowly, caps them per review, and stops at the first bot check; those items are reported as unknown.
 - Ultra-processed is identified from the ingredient list (NOVA-style markers such as flavorings, emulsifiers, modified starch). It is deliberately broad, so many packaged foods will get that note; it cites a study about whole diets and says so.
 - Amazon has no product-page reader, so Amazon food items are not label-checked yet.

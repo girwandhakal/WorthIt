@@ -42,6 +42,16 @@
 | Clothing basics | Essential if at most $25 and no similar clothing bought in the last 60 days | Hanes Men's Value Pack Crew T-Shirts, 6 pk (`697314670`) | 6 ea | $23.98 | George Men's Crew T-Shirts, 6 pk (`251574590`) | 6 ea | $16.98 | $4.00 vs $2.83 per ea | Store brand saves $7.00 per package <br>_Walmart's apparel store brand is George._ |
 | Drinkware | Discretionary, trend premium | Stanley Quencher FlowState Tumbler, 30 oz (`18256507800`) | 1 ea | $24.97 | Ozark Trail Insulated Tumbler with Handle, 30 oz (`14622112422`) | 1 ea | $12.97 | $24.97 vs $12.97 per ea | Store brand saves $12.00 per package <br>_Trend item: suggest the cheaper option, or skip if similar drinkware was bought in the last 90 days. Walmart's store brand is Ozark Trail._ |
 
+## Additional reviewed package variants
+
+The cart adapter reads prices independently of this limited reference list. Purpose, label, and store-brand checks require an exact reviewed item ID; another size or shred style is a separate product, even when its name is similar. Unreviewed items remain unknown.
+
+On 2026-10-10, the live [Kraft Natural Mild Cheddar Shredded Cheese, 16 oz Bag product page](https://www.walmart.com/ip/Kraft-Mild-Cheddar-Shredded-Cheese-16-oz-Bag/43981978) was checked directly. Item `43981978` lists a 16 oz bag, a displayed price of $5.64, 0 g added sugars, and cheddar cheese (pasteurized milk, cheese culture, salt, enzymes, annatto), modified cornstarch, and natamycin. Its milk ingredient is recorded; vegetarian status remains unknown because the enzymes are unspecified. This product's displayed price was checked separately from the Atlanta price table above and never replaces an unreadable cart price.
+
+Its reviewed counterpart is the existing Great Value Mild Cheddar **Finely** Shredded Cheese, **8 oz** (`10452370`), at the last-checked 2026-10-09 reference price of $1.97. Worth It states the package-size and shred-style differences, compares the same 16 oz amount (two 8 oz packages), and makes no similar-ingredients claim because the recorded ingredient lists differ. At a live cart price of $5.64, the estimated difference is $1.70 for the same amount. Shopper settings and the live cart price still determine whether a suggestion is shown.
+
+On 2026-10-10, the live [Hostess Donettes Frightfully Frosted Mini Donuts, 10 oz Bag product page](https://www.walmart.com/ip/16275314128) was checked directly. Item `16275314128` lists a 10 oz snack bag at $2.68 and 17 g **added sugars** per serving in its Nutrition Facts. This exact seasonal variant is recorded as a discretionary snack, with no reviewed store-brand pair. Ingredients, declared allergens, and vegetarian/vegan status are not recorded and remain `null`. The added-sugar rule uses the verified label; the extension never substitutes this published price for an unreadable cart price. This separately checked price does not change the 2026-10-09 dates on the original store-brand table.
+
 ## Unpaired items for the walkthrough
 
 | Item (ID) | Price | Category | Purpose class | Expected behavior |

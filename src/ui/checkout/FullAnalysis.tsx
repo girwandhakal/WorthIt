@@ -1,5 +1,7 @@
 import { PURPOSE_CLASS_LABELS } from '../../assessment/reference/categories';
+import { referenceUrl } from '../../assessment/reference/products';
 import { SOURCES } from '../../assessment/evidence/sources';
+import { MERCHANT_LABELS, type Merchant } from '../../domain/cart';
 import { CRITERION_LABELS, type CriterionStatus, type ItemAssessment } from '../../domain/finding';
 import { PURCHASE_STATUS_LABELS } from '../../domain/history';
 import type { CartReview } from '../../domain/review';
@@ -34,7 +36,7 @@ export function FullAnalysis({ review, onBack }: { review: CartReview; onBack: (
       </p>
       <ol className="wi-full-items">
         {assessment.items.map((item) => (
-          <ItemAnalysis key={item.itemKey} item={item} />
+          <ItemAnalysis key={item.itemKey} item={item} merchant={review.merchant} />
         ))}
       </ol>
       <section className="wi-full-savings" aria-label="Every possible saving">
@@ -80,9 +82,12 @@ export function FullAnalysis({ review, onBack }: { review: CartReview; onBack: (
   );
 }
 
-function ItemAnalysis({ item }: { item: ItemAssessment }) {
+function ItemAnalysis({ item, merchant }: { item: ItemAssessment; merchant: Merchant }) {
   const storeBrand = item.criteria.find((criterion) => criterion.criterion === 'store_brand');
   const alternative = [item.primary, ...item.secondary].find((suggestion) => suggestion?.alternative)?.alternative;
+  const cartUrl = merchant === 'walmart' ? 'https://www.walmart.com/cart' : 'https://www.amazon.com/gp/cart/view.html';
+  const productUrl = item.referenceId ? referenceUrl(item.referenceId) : undefined;
+  const ownPageUrl = merchant === 'walmart' && item.retailerItemId ? `https://www.walmart.com/ip/${item.retailerItemId}` : undefined;
   return (
     <li className="wi-full-item">
       <h4>{item.itemName}</h4>
@@ -134,7 +139,18 @@ function ItemAnalysis({ item }: { item: ItemAssessment }) {
                   <ul className="wi-evidence">
                     {criterion.evidence.map((evidence, index) => (
                       <li key={index}>
-                        {evidence.label}: {evidence.value} <span className="wi-muted">({sourceLabel(evidence.source, evidenceUrl(evidence.source, criterion === storeBrand, alternative?.url, item.retailerItemId))})</span>
+                        {evidence.label}: {evidence.value}{' '}
+                        <span className="wi-muted">({sourceLabel(
+                          evidence.source,
+                          evidence.source === 'cart_page'
+                            ? cartUrl
+                            : evidence.source === 'walmart_reference'
+                              ? criterion === storeBrand ? alternative?.url : productUrl
+                              : evidence.source === 'walmart_product_page'
+                                ? ownPageUrl
+                                : undefined,
+                          evidence.source === 'cart_page' ? `Your ${MERCHANT_LABELS[merchant]} cart page` : undefined,
+                        )})</span>
                       </li>
                     ))}
                   </ul>
@@ -148,21 +164,15 @@ function ItemAnalysis({ item }: { item: ItemAssessment }) {
   );
 }
 
-/** Live cart prices link to the cart, label facts to the product's own page, store-brand facts to the alternative. */
-function evidenceUrl(id: keyof typeof SOURCES, isStoreBrand: boolean, alternativeUrl: string | undefined, itemId: string | null): string | undefined {
-  if (id === 'walmart_product_page' && itemId) return `https://www.walmart.com/ip/${itemId}`;
-  return isStoreBrand && id === 'walmart_reference' ? alternativeUrl : undefined;
-}
-
-function sourceLabel(id: keyof typeof SOURCES, url?: string) {
+function sourceLabel(id: keyof typeof SOURCES, url?: string, label?: string) {
   const source = SOURCES[id];
   const href = url ?? source.url;
   return href ? (
     <a href={href} target="_blank" rel="noreferrer noopener">
-      {source.label}
+      {label ?? source.label}
     </a>
   ) : (
-    source.label
+    label ?? source.label
   );
 }
 

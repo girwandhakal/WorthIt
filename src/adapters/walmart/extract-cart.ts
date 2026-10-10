@@ -7,6 +7,7 @@ import {
   CART_HEADING_SELECTORS,
   CURRENT_QUANTITY_PATTERN,
   EXCLUDED_REGION_SELECTORS,
+  GROUPED_LINE_ROW_SELECTOR,
   ITEM_ID_FROM_URL,
   LINE_ITEM_SELECTORS,
   LINE_PRICE_SELECTORS,
@@ -57,9 +58,20 @@ function findLineContainers(doc: Document): Element[] {
     const found = Array.from(doc.querySelectorAll(selector)).filter(isActiveCartLine);
     // Keep only outermost matches so nested test ids do not double count.
     const outermost = found.filter((el) => !found.some((other) => other !== el && other.contains(el)));
-    if (outermost.length > 0) return outermost;
+    if (outermost.length > 0) return outermost.flatMap(splitGroupedLines);
   }
   return heuristicLineContainers(doc);
+}
+
+/** Walmart may use one tile hook for several list rows, each with its own price and quantity. */
+function splitGroupedLines(container: Element): Element[] {
+  const rows = Array.from(container.querySelectorAll(GROUPED_LINE_ROW_SELECTOR))
+    .filter((row) => isActiveCartLine(row) && row.querySelector(PRODUCT_LINK_SELECTOR));
+  const leaves = rows.filter((row) => !rows.some((other) => other !== row && row.contains(other)));
+  if (leaves.length < 2) return [container];
+  const links = Array.from(container.querySelectorAll(PRODUCT_LINK_SELECTOR)).filter(isActiveCartLine);
+  // Split only when every active product link belongs to one of the rows.
+  return links.every((link) => leaves.some((row) => row.contains(link))) ? leaves : [container];
 }
 
 /**

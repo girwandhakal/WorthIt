@@ -147,3 +147,49 @@ test('live walmart.com markup: reviews the 2 cart lines, not the recommendation 
   expect(await retailerClicks(page)).toBe(0);
   expect(await retailerMarkup(page)).toBe(before);
 });
+
+test('grouped Walmart tile: reviews cheese and milk independently with known prices and purpose', async ({ context }) => {
+  await serveWalmart(context, { '/cart': 'cart-cheese-2026-10.html' });
+  const page = await context.newPage();
+  await page.goto('https://www.walmart.com/cart');
+  const before = await retailerMarkup(page);
+  const panel = page.getByRole('region', { name: 'Worth It' });
+  await expect(panel).toBeVisible();
+  await panel.getByRole('button', { name: 'See full analysis' }).click();
+  await expect(panel.getByRole('table')).toHaveCount(2);
+  const cheese = panel.locator('.wi-full-item').filter({ hasText: 'Kraft Natural Mild Cheddar Shredded Cheese, 16 oz Bag' });
+  await expect(cheese.locator('.wi-full-facts').getByText('$5.64', { exact: true })).toHaveCount(2);
+  await expect(cheese.getByText('Essential (consumable)', { exact: true })).toBeVisible();
+  await expect(panel.getByRole('region', { name: 'Cart totals' }).getByText('$11.60', { exact: true })).toBeVisible();
+  await expect(panel.getByText('Unknown (a price wasn’t readable)', { exact: true })).toHaveCount(0);
+  const report = JSON.parse((await page.locator('html').getAttribute('data-worth-it-debug'))!);
+  expect(report).toMatchObject({ extractedItems: 2, readableItems: 2, displayedItems: 2, review: 'delivered' });
+  expect(await retailerClicks(page)).toBe(0);
+  expect(await retailerMarkup(page)).toBe(before);
+});
+
+test('three reviewed products: donut label finding, staple swaps, and correct source links', async ({ context }) => {
+  await serveWalmart(context, { '/cart': 'cart-three-reviewed-2026-10.html' });
+  const page = await context.newPage();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('https://www.walmart.com/cart');
+  const before = await retailerMarkup(page);
+  const panel = page.getByRole('region', { name: 'Worth It' });
+  await panel.getByRole('button', { name: 'See full analysis' }).click();
+  await expect(panel.getByRole('table')).toHaveCount(3);
+  const donuts = panel.locator('.wi-full-item').filter({ hasText: 'Hostess Donettes Frightfully Frosted Mini Donuts' });
+  await expect(donuts.getByText('Discretionary', { exact: true })).toBeVisible();
+  await expect(donuts.getByText('Skip or reduce (added sugar): $2.68', { exact: true })).toBeVisible();
+  await expect(donuts.getByRole('link', { name: 'CDC: Get the Facts: Added Sugars' })).toHaveAttribute('href', 'https://www.cdc.gov/nutrition/php/data-research/added-sugars.html');
+  const totals = panel.getByRole('region', { name: 'Cart totals' });
+  await expect(totals.getByText('$14.28', { exact: true })).toBeVisible();
+  await expect(totals.getByText('$3.69', { exact: true })).toBeVisible();
+  await expect(totals.getByText('$2.68', { exact: true })).toBeVisible();
+  await expect(totals.getByText('$6.37', { exact: true })).toBeVisible();
+  await expect(panel.getByRole('link', { name: 'Your Walmart cart page' })).toHaveCount(2);
+  for (const link of await panel.getByRole('link', { name: 'Your Walmart cart page' }).all()) {
+    await expect(link).toHaveAttribute('href', 'https://www.walmart.com/cart');
+  }
+  expect(await retailerClicks(page)).toBe(0);
+  expect(await retailerMarkup(page)).toBe(before);
+});
