@@ -59,7 +59,7 @@ describe('mixed walkthrough cart (TECH_SPEC section 2)', () => {
 
   it('asks one question about the tumbler and keeps the cheaper option as context only', () => {
     const tumbler = byId(result.items, '18256507800');
-    expect(tumbler.question?.prompt).toBe('You bought this 20 days ago. Is this one replacing it, an extra, or for something different?');
+    expect(tumbler.question?.prompt).toBe('Is this one replacing it, an extra, or for something different?');
     expect(tumbler.secondary.map((s) => [s.kind, s.amountCents])).toEqual([['cheaper_alternative', 1200]]);
     expect(result.items.filter((item) => item.question)).toHaveLength(1);
   });
@@ -215,7 +215,8 @@ describe('history matching', () => {
     const item = assess(snapshot([unknown]), { history: [purchase('Mystery Gadget', '2026-09-30')] }).items[0]!;
     expect(item.purposeClass).toBe('unknown');
     expect(item.primary).toBeNull();
-    expect(item.question?.prompt).toMatch(/^You bought this 10 days ago/);
+    expect(item.question).not.toBeNull();
+    expect(criterion(item, 'repeat_purchase').summary).toMatch(/^You bought this 10 days ago/);
     expect(criterion(item, 'repeat_purchase').confidence).toBe('low');
   });
 });

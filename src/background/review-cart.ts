@@ -1,5 +1,6 @@
 import { assessCart } from '../assessment/assess-cart';
 import { panelFindings } from '../assessment/describe';
+import { summarizeCart } from '../assessment/summarize-cart';
 import { isFullyReadable, type CartSnapshot } from '../domain/cart';
 import type { ClarificationRecord, PurchaseRecord } from '../domain/history';
 import type { CartReview } from '../domain/review';
@@ -13,6 +14,8 @@ export interface ReviewContext {
   dismissedIds: ReadonlySet<string>;
   /** Questions the shopper skipped in this tab: `${questionId}:${itemMatchKey}`. */
   skippedQuestions: ReadonlySet<string>;
+  /** The single cart-level investment illustration (default on). */
+  investmentIllustration: boolean;
 }
 
 /**
@@ -38,6 +41,7 @@ export function reviewCart(snapshot: CartSnapshot, context: ReviewContext): Cart
     itemCount: snapshot.items.length,
     readableCount: snapshot.items.filter(isFullyReadable).length,
     findings,
+    summary: summarizeCart(assessment, findings, { investmentIllustration: context.investmentIllustration }),
     assessment,
     autoOpen: findings.some((finding) => !context.dismissedIds.has(finding.id)),
   };

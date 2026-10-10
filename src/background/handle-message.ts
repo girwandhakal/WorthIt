@@ -4,7 +4,9 @@ import { buildImportReview } from '../ingestion/review-import';
 import type { ContentRequest } from '../messaging/messages';
 import { validateContentRequest } from '../messaging/validate-message';
 import { localIsoDate } from '../shared/dates';
-import { getPreferences, type LocalArea } from '../storage/preferences';
+import type { WordingResponse } from '../summary/openai-client';
+import { phraseSummary, type PhraseDeps } from '../summary/phrase-summary';
+import { getOpenAiKey, getPreferences, type LocalArea } from '../storage/preferences';
 import type { Repositories } from '../storage/repositories';
 import { addDismissed, addSkippedQuestion, getDismissed, getSkippedQuestions, type SessionArea } from './dismissals';
 import { reviewCart } from './review-cart';
@@ -14,6 +16,8 @@ export interface BackgroundDeps {
   session: SessionArea;
   local: LocalArea;
   repositories: () => Promise<Repositories>;
+  /** HTTP POST used only for the optional OpenAI wording request. */
+  post?: PhraseDeps['post'];
   now?: () => Date;
 }
 
@@ -61,8 +65,16 @@ async function dispatch(request: ContentRequest, tabId: number, deps: Background
         today: localIsoDate(now),
         dismissedIds,
         skippedQuestions,
+        investmentIllustration: preferences.investmentIllustration,
       });
-      return { ok: true, review: { ...review, autoOpen: review.autoOpen && preferences.promptsEnabled } };
+      const summary = deps.post
+        ? await phraseSummary(review.summary, {
+            getApiKey: () => getOpenAiKey(deps.local),
+            post: deps.post,
+            cache: sessionWordingCache(deps.session),
+          })
+        : review.summary;
+      return { ok: true, review: { ...review, summary, autoOpen: review.autoOpen && preferences.promptsEnabled } };
     }
     case 'panel/dismiss': {
       await addDismissed(deps.session, tabId, request.findingIds);
@@ -103,4 +115,13 @@ async function dispatch(request: ContentRequest, tabId: number, deps: Background
       return { ok: true, saved: result.saved.length, duplicates: result.duplicates };
     }
   }
+}
+
+/** Accepted wording, keyed by request hash, for this browser session only. */
+function sessionWordingCache(session: SessionArea): PhraseDeps['cache'] {
+  const key = (hash: string) => `wording:${hash}`;
+  return {
+    get: async (hash) => ((await session.get(key(hash)))[key(hash)] as WordingResponse | undefined) ?? null,
+    set: (hash, value) => session.set({ [key(hash)]: value }),
+  };
 }

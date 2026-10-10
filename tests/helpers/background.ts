@@ -49,6 +49,7 @@ export function reviewContext(overrides: Partial<ReviewContext> = {}): ReviewCon
     today: '2026-10-10',
     dismissedIds: new Set(),
     skippedQuestions: new Set(),
+    investmentIllustration: true,
     ...overrides,
   };
 }

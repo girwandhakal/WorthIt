@@ -33,10 +33,8 @@ export function assessPurpose(reference: ReferenceProduct | null, unitPriceCents
   }
   const category = CATEGORIES[reference.category];
   const purposeClass = purposeClassFor(reference.category, unitPriceCents);
-  const evidence = [
-    { label: 'Category', value: category.label, source: 'walmart_reference' as const },
-    { label: 'Purpose class', value: PURPOSE_CLASS_LABELS[purposeClass], source: 'walmart_reference' as const },
-  ];
+  // The purpose class itself is shown only in the full analysis, not as evidence.
+  const evidence = [{ label: 'Product type', value: category.label, source: 'walmart_reference' as const }];
 
   if (purposeClass === 'discretionary_novelty') {
     return {

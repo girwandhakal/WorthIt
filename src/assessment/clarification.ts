@@ -23,12 +23,12 @@ export function clarificationId(questionId: string, matchKey: string): string {
   return `${questionId}:${matchKey}`;
 }
 
-export function repeatPurposeQuestion(matchKey: string, daysAgo: number, exact: boolean): ClarificationQuestion {
-  const when = daysAgo <= 1 ? (daysAgo === 0 ? 'today' : 'yesterday') : `${daysAgo} days ago`;
+/** The advice text above the question already says when; the prompt stays short. */
+export function repeatPurposeQuestion(matchKey: string): ClarificationQuestion {
   return {
     questionId: REPEAT_PURPOSE_QUESTION_ID,
     itemMatchKey: matchKey,
-    prompt: `You bought ${exact ? 'this' : 'something similar'} ${when}. Is this one replacing it, an extra, or for something different?`,
+    prompt: 'Is this one replacing it, an extra, or for something different?',
     options: (Object.keys(ANSWER_LABELS) as ClarificationAnswer[]).map((value) => ({ value, label: ANSWER_LABELS[value] })),
   };
 }

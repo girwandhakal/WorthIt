@@ -21,6 +21,7 @@ export default defineBackground({
         session,
         local,
         repositories: getRepositories,
+        post: (url, init) => fetch(url, init),
       }),
     );
 

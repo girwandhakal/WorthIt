@@ -1,26 +1,38 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import type { PanelHandlers } from '../../content/review-controller';
 import type { CartReview } from '../../domain/review';
+import { Recap } from '../animation/Recap';
 import type { ReviewStore } from '../shared/review-store';
-import { FindingCard } from './FindingCard';
+import { FullAnalysis } from './FullAnalysis';
+import { StaticSummary } from './StaticSummary';
 
 export interface CheckoutPanelProps extends PanelHandlers {
   store: ReviewStore;
+  /** Defaults to the shopper's `prefers-reduced-motion` setting. */
+  reducedMotion?: boolean;
+}
+
+type Mode = 'recap' | 'static' | 'full';
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 /**
  * Worth It's checkout panel. Every control acts only on this panel: nothing
  * here reads or clicks retailer controls or changes the cart.
  */
-export function CheckoutPanel({ store, ...handlers }: CheckoutPanelProps) {
+export function CheckoutPanel({ store, reducedMotion, ...handlers }: CheckoutPanelProps) {
   const review = useSyncExternalStore(store.subscribe, store.get);
   if (!review) return null;
-  return <PanelForReview key={review.merchant} review={review} handlers={handlers} />;
+  return <PanelForReview key={review.merchant} review={review} handlers={handlers} reducedMotion={reducedMotion ?? prefersReducedMotion()} />;
 }
 
-function PanelForReview({ review, handlers }: { review: CartReview; handlers: PanelHandlers }) {
+function PanelForReview({ review, handlers, reducedMotion }: { review: CartReview; handlers: PanelHandlers; reducedMotion: boolean }) {
   const { onDismiss } = handlers;
+  const initialMode = (): Mode => (reducedMotion || review.summary.highlights.length === 0 ? 'static' : 'recap');
   const [open, setOpen] = useState(review.autoOpen);
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [lastReview, setLastReview] = useState(review);
   const [closedIds, setClosedIds] = useState<ReadonlySet<string>>(new Set());
   const indicatorRef = useRef<HTMLButtonElement>(null);
@@ -31,7 +43,10 @@ function PanelForReview({ review, handlers }: { review: CartReview; handlers: Pa
   // has not already closed the panel on.
   if (review !== lastReview) {
     setLastReview(review);
-    if (review.autoOpen && review.findings.some((finding) => !closedIds.has(finding.id))) setOpen(true);
+    if (!open && review.autoOpen && review.findings.some((finding) => !closedIds.has(finding.id))) {
+      setOpen(true);
+      setMode(initialMode());
+    }
   }
 
   useEffect(() => {
@@ -44,7 +59,6 @@ function PanelForReview({ review, handlers }: { review: CartReview; handlers: Pa
     setClosedIds((previous) => new Set([...previous, ...ids]));
     openedByUser.current = false;
     onDismiss(ids);
-    // Return focus to the indicator only if focus was inside the panel.
     queueMicrotask(() => indicatorRef.current?.focus());
   };
 
@@ -60,6 +74,7 @@ function PanelForReview({ review, handlers }: { review: CartReview; handlers: Pa
         aria-label={`Worth It: ${reviewedLabel}. Open review`}
         onClick={() => {
           openedByUser.current = true;
+          setMode(initialMode());
           setOpen(true);
         }}
       >
@@ -89,27 +104,30 @@ function PanelForReview({ review, handlers }: { review: CartReview; handlers: Pa
           <span aria-hidden="true">×</span>
         </button>
       </header>
-      <div className="wi-body" aria-live="polite">
-        {review.findings.length === 0 ? (
-          <p className="wi-lead">{reviewedLabel}. Nothing here needs a second look.</p>
-        ) : (
-          <>
-            <p className="wi-lead">Before you check out, a quick note on your cart.</p>
-            <ul className="wi-findings">
-              {review.findings.map((finding) => (
-                <FindingCard
-                  key={finding.id}
-                  finding={finding}
-                  onAnswer={handlers.onAnswer}
-                  onSkipQuestion={handlers.onSkipQuestion}
-                />
-              ))}
-            </ul>
-          </>
+      <div className="wi-body">
+        {mode === 'recap' && (
+          <Recap summary={review.summary} onSkip={() => setMode('static')} onAnswer={handlers.onAnswer} onSkipQuestion={handlers.onSkipQuestion} />
         )}
+        {mode === 'static' && (
+          <div aria-live="polite">
+            <StaticSummary
+              review={review}
+              onAnswer={handlers.onAnswer}
+              onSkipQuestion={handlers.onSkipQuestion}
+              onReplay={!reducedMotion && review.summary.highlights.length > 0 ? () => setMode('recap') : undefined}
+            />
+          </div>
+        )}
+        {mode === 'full' && <FullAnalysis review={review} onBack={() => setMode('static')} />}
       </div>
       <footer className="wi-footer">
-        <p className="wi-handback">It&apos;s your call. Worth It never changes your cart.</p>
+        {mode !== 'full' ? (
+          <button type="button" className="wi-link" onClick={() => setMode('full')}>
+            See full analysis
+          </button>
+        ) : (
+          <span className="wi-handback">Worth It never changes your cart.</span>
+        )}
         <button type="button" className="wi-primary" onClick={close}>
           Continue
         </button>
