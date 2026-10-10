@@ -14,7 +14,9 @@
 
 Worth It is an AI-powered Chrome extension designed to help consumers reduce impulsive, unnecessary, redundant, and excessively expensive purchases while shopping online.
 
-Right before checkout, the Chrome extension reviews every item in the cart, including ordinary groceries, and assesses the item itself as well as its cost. It considers the item's likely purpose and usefulness, whether purchase history suggests the user may already have enough, whether a lower-cost comparable product exists, and relevant quality or nutrition information. The checkout panel gives a concise summary of items that merit attention, such as a store-brand alternative or a possible repeat purchase. Ordinary items with no relevant concern are omitted from the user-facing summary. A review is not a restriction: the user always controls whether to buy or change the cart. Worth It checks each item against fixed assessment criteria, records applicable findings and scores, and leaves non-applicable checks out of the recap. Related findings can be grouped into a cart summary. Criterion scores, group statistics, price comparisons, and savings come from product and cart evidence and are calculated consistently. Language AI phrases the verified summary naturally, but cannot change its findings, evidence, or numbers.
+The hackathon MVP centers on one polished experience: a deterministic pre-checkout review of the shopper’s cart, followed by a clear animated recap. Purchase history, savings comparisons, and optional wording assistance all support that checkout moment.
+
+Right before checkout, the Chrome extension reviews every item in the cart, including ordinary groceries, and assesses the item itself as well as its cost. It considers the item's likely purpose and usefulness, whether purchase history suggests the user may already have enough, whether a lower-cost comparable product exists, and relevant quality or nutrition information. The checkout panel gives a concise summary of items that merit attention, such as a store-brand alternative or a possible repeat purchase. Ordinary items with no relevant concern are omitted from the user-facing summary. A review is not a restriction: the user always controls whether to buy or change the cart. Worth It checks each item against fixed assessment criteria, records applicable findings and scores, and leaves non-applicable checks out of the recap. Related findings can be grouped into a cart summary. Criterion scores, group statistics, price comparisons, and savings come from product and cart evidence and are calculated deterministically. Language AI phrases the verified summary naturally, but cannot change its findings, evidence, or numbers.
 
 Worth It evaluates the purchase itself rather than a shopper's personal finances: affordability or income does not determine whether a product is useful, suitable, redundant, or good value.
 
@@ -157,7 +159,7 @@ At checkout, the extension should show a concise summary of items that merit att
 
 **Priority: Must Have**
 
-Worth It must recognize products that users are considering purchasing on supported shopping websites.
+Worth It must recognize products that users are considering purchasing on supported shopping websites. On a supported cart or checkout page, it reads the displayed cart rows and their visible product fields; it does not crawl other pages or continuously scrape the retailer in the background. A retailer-specific reader maps the page’s product name, displayed price, and quantity into Worth It’s standard item record. If a field is absent or the page structure is not recognized, Worth It marks that information unknown and avoids calculations that depend on it.
 
 The product should identify:
 
@@ -827,7 +829,7 @@ It should provide:
 2. Each item has been assessed against defined criteria; the recap shows only applicable findings and groups related points into a concise cart-level explanation.
 3. The recap explains what Worth It noticed and why. For example, it may show the price difference for a store-brand suggestion or remind the shopper about a similar recent purchase.
 4. For a supported health concern, it gives a brief, evidence-based tip. Ordinary items receive no health warning.
-4. The recap totals the potential reduction if the shopper follows its suggestions. If enabled, it then shows one hypothetical investment illustration based on that combined amount.
+5. The recap totals the potential reduction if the shopper follows its suggestions. If enabled, it then shows one hypothetical investment illustration based on that combined amount.
 5. The shopper may pause, replay, read captions, review supporting details, skip the recap, or continue checkout. The shopper decides whether to make any changes. The recap is an animated presentation inside the checkout panel, populated with the current review's findings rather than an AI-generated video.
 
 ### 10.2 Purchase Insight Panel
