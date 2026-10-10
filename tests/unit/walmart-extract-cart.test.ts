@@ -55,7 +55,7 @@ describe('extractWalmartCart', () => {
     ]);
     expect(snapshot.items.map((item) => item.linePriceCents)).toEqual([596, 298, 797, 297, 2497, 397, 497]);
     expect(snapshot.items.every((item) => item.quantity === 1 && item.confidence === 'high')).toBe(true);
-    expect(snapshot.subtotalCents).toBe(5479);
+    expect(snapshot.subtotalCents).toBe(5379);
     expect(snapshot.items[0]).toMatchObject({
       key: 'walmart:10309701',
       title: 'Horizon Organic Vitamin D Whole Milk, 64 fl oz',

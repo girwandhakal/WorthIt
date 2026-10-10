@@ -1,24 +1,25 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import type { PanelHandlers } from '../../content/review-controller';
 import type { CartReview } from '../../domain/review';
 import type { ReviewStore } from '../shared/review-store';
+import { FindingCard } from './FindingCard';
 
-export interface CheckoutPanelProps {
+export interface CheckoutPanelProps extends PanelHandlers {
   store: ReviewStore;
-  /** Records that the shopper closed the panel for these findings. */
-  onDismiss: (findingIds: string[]) => void;
 }
 
 /**
  * Worth It's checkout panel. Every control acts only on this panel: nothing
  * here reads or clicks retailer controls or changes the cart.
  */
-export function CheckoutPanel({ store, onDismiss }: CheckoutPanelProps) {
+export function CheckoutPanel({ store, ...handlers }: CheckoutPanelProps) {
   const review = useSyncExternalStore(store.subscribe, store.get);
   if (!review) return null;
-  return <PanelForReview key={review.merchant} review={review} onDismiss={onDismiss} />;
+  return <PanelForReview key={review.merchant} review={review} handlers={handlers} />;
 }
 
-function PanelForReview({ review, onDismiss }: { review: CartReview; onDismiss: (ids: string[]) => void }) {
+function PanelForReview({ review, handlers }: { review: CartReview; handlers: PanelHandlers }) {
+  const { onDismiss } = handlers;
   const [open, setOpen] = useState(review.autoOpen);
   const [lastReview, setLastReview] = useState(review);
   const [closedIds, setClosedIds] = useState<ReadonlySet<string>>(new Set());
@@ -96,10 +97,12 @@ function PanelForReview({ review, onDismiss }: { review: CartReview; onDismiss: 
             <p className="wi-lead">Before you check out, a quick note on your cart.</p>
             <ul className="wi-findings">
               {review.findings.map((finding) => (
-                <li key={finding.id} className="wi-finding">
-                  <strong className="wi-item-name">{finding.itemName}</strong>
-                  <span>{finding.text}</span>
-                </li>
+                <FindingCard
+                  key={finding.id}
+                  finding={finding}
+                  onAnswer={handlers.onAnswer}
+                  onSkipQuestion={handlers.onSkipQuestion}
+                />
               ))}
             </ul>
           </>

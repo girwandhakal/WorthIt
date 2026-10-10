@@ -5,7 +5,17 @@ import type { CartReview } from '../../src/domain/review';
 import { CheckoutPanel } from '../../src/ui/checkout/CheckoutPanel';
 import { createReviewStore } from '../../src/ui/shared/review-store';
 
-const noFindings: CartReview = { version: 1, merchant: 'walmart', itemCount: 3, readableCount: 3, findings: [], autoOpen: false };
+const emptyAssessment = { criteriaVersion: 1, referenceVersion: 'test', assessedOn: '2026-10-10', items: [], readableTotalCents: 0 };
+
+const noFindings: CartReview = {
+  version: 1,
+  merchant: 'walmart',
+  itemCount: 3,
+  readableCount: 3,
+  findings: [],
+  assessment: emptyAssessment,
+  autoOpen: false,
+};
 
 const withFinding: CartReview = {
   version: 1,
@@ -18,9 +28,15 @@ const withFinding: CartReview = {
       itemKey: 'walmart:15529427',
       kind: 'uncertain',
       itemName: 'Heinz Tomato Ketchup, 32 oz',
-      text: "Couldn't read this item's price reliably, so Worth It didn't assess it.",
+      text: "Couldn't read this item's price reliably, so Worth It couldn't fully check it.",
+      amountCents: null,
+      question: null,
+      why: [],
+      sources: [],
+      confidence: 'low',
     },
   ],
+  assessment: emptyAssessment,
   autoOpen: true,
 };
 
@@ -28,7 +44,7 @@ function setup(review: CartReview) {
   const store = createReviewStore();
   store.set(review);
   const onDismiss = vi.fn();
-  render(<CheckoutPanel store={store} onDismiss={onDismiss} />);
+  render(<CheckoutPanel store={store} onDismiss={onDismiss} onAnswer={vi.fn()} onSkipQuestion={vi.fn()} />);
   return { store, onDismiss, user: userEvent.setup() };
 }
 

@@ -32,9 +32,9 @@ export default defineContentScript({
       win: window,
       adapter: walmartAdapter,
       send,
-      mountPanel: async (onDismiss) => {
+      mountPanel: async (handlers) => {
         const store = createReviewStore();
-        const remove = await mountShadow(ctx, <CheckoutPanel store={store} onDismiss={onDismiss} />);
+        const remove = await mountShadow(ctx, <CheckoutPanel store={store} {...handlers} />);
         return { show: (review) => store.set(review), remove };
       },
     });
