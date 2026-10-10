@@ -11,6 +11,8 @@ export interface OptionsServices {
   identity: IdentityApi;
   fetch: FetchLike;
   gmailConfigured: boolean;
+  /** True in public builds that use the wording proxy (no key in the browser). */
+  wordingProxy?: boolean;
   now: () => Date;
 }
 

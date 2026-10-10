@@ -182,11 +182,14 @@ WorthIt/
 ├── tsconfig.json
 ├── .gitignore
 ├── .env.example                 # Empty placeholders only; never store provider credentials here
+├── server/
+│   └── wording-proxy/           # Reference key-holding OpenAI proxy for a public release (issue #11)
 ├── docs/
 │   ├── PRD.md
 │   ├── TECH_SPEC.md
 │   ├── IMPLEMENTATION_PLAN.md
-│   └── WALMART_REFERENCE_PRODUCTS.md
+│   ├── WALMART_REFERENCE_PRODUCTS.md
+│   └── release/                 # Draft privacy policy, listing, reviewer guide (issue #11)
 ├── public/
 │   ├── icon/                    # Extension sizes required for browser surfaces
 │   └── sources/                 # Optional bundled evidence metadata, no executable code

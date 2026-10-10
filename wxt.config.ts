@@ -20,6 +20,15 @@ for (const file of ['.env.local', '.env']) {
 
 const publicKey = process.env.WXT_EXTENSION_PUBLIC_KEY?.trim();
 const oauthClientId = process.env.WXT_GOOGLE_OAUTH_CLIENT_ID?.trim();
+/** Public builds route wording through a key-holding proxy instead of api.openai.com. */
+const wordingProxyOrigin = (() => {
+  try {
+    const url = new URL(process.env.WXT_WORDING_PROXY_URL?.trim() ?? '');
+    return url.protocol === 'https:' ? `${url.origin}/*` : null;
+  } catch {
+    return null;
+  }
+})();
 
 export const GMAIL_READONLY_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
 
@@ -45,7 +54,7 @@ export default defineConfig({
         'https://www.walmart.com/*',
         'https://www.amazon.com/*',
         'https://gmail.googleapis.com/*',
-        'https://api.openai.com/*',
+        wordingProxyOrigin ?? 'https://api.openai.com/*',
       ],
       content_security_policy: {
         extension_pages: "script-src 'self'; object-src 'self'",
