@@ -1,0 +1,37 @@
+From: Test Owner <owner@example.com>
+To: Test Owner <owner@example.com>
+Subject: [Worth It Test Receipt] Walmart order WI-TEST-0001
+Date: Sun, 20 Sep 2026 10:00:00 -0400
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary="wi-boundary"
+
+--wi-boundary
+Content-Type: text/plain; charset="UTF-8"
+
+WORTH IT TEST RECEIPT (synthetic, fictional)
+Merchant: Walmart
+Order number: WI-TEST-0001
+Order date: 2026-09-20
+Order status: Delivered
+
+Item ID | Item | Qty | Price | Status
+18256507800 | Stanley Quencher H2.0 FlowState Tumbler, 30 oz | 1 | $24.97 | Delivered
+656700117 | Skittles Original Fruity Candy, Sharing Size, 15.6 oz | 2 | $9.94 | Delivered
+
+Note to self: BODY-ONLY-SENTINEL this line must never be stored.
+--wi-boundary
+Content-Type: text/html; charset="UTF-8"
+
+<html><body>
+<p>WORTH IT TEST RECEIPT (synthetic, fictional)</p>
+<p>Merchant: Walmart</p>
+<p>Order number: WI-TEST-0001</p>
+<p>Order date: 2026-09-20</p>
+<table>
+  <tr><th>Item ID</th><th>Item</th><th>Qty</th><th>Price</th><th>Status</th></tr>
+  <tr><td>18256507800</td><td>Stanley Quencher H2.0 FlowState Tumbler, 30 oz</td><td>1</td><td>$24.97</td><td>Delivered</td></tr>
+  <tr><td>656700117</td><td>Skittles Original Fruity Candy, Sharing Size, 15.6 oz</td><td>2</td><td>$9.94</td><td>Delivered</td></tr>
+</table>
+<p>Note to self: BODY-ONLY-SENTINEL this line must never be stored.</p>
+</body></html>
+--wi-boundary--

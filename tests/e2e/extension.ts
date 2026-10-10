@@ -2,7 +2,8 @@ import { test as base, chromium, type BrowserContext, type Page, type Worker } f
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-const EXTENSION_PATH = path.join(process.cwd(), '.output', 'chrome-mv3');
+// Built by `wxt build --mode e2e` (placeholder OAuth client; see wxt.config.ts).
+const EXTENSION_PATH = path.join(process.cwd(), '.output', 'chrome-mv3-e2e');
 const FIXTURES = path.join(process.cwd(), 'tests', 'fixtures', 'retailer');
 
 export interface ExtensionFixtures {
@@ -24,6 +25,12 @@ export const test = base.extend<ExtensionFixtures>({
     });
     // No test may reach a real retailer, Google, or OpenAI.
     await context.route(/^https?:\/\/(?!localhost)/, (route) => route.abort('blockedbyclient'));
+    // On first install the worker opens onboarding, and Chrome may reuse a blank
+    // tab for it. Let that settle so it can't hijack a test's navigation.
+    const deadline = Date.now() + 10_000;
+    while (!context.pages().some((page) => page.url().includes('/options.html')) && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
     await provide(context);
     await context.close();
   },
@@ -63,4 +70,19 @@ export function retailerMarkup(page: Page): Promise<string> {
 
 export function retailerClicks(page: Page): Promise<number> {
   return page.evaluate(() => (window as unknown as { __retailerClicks?: number }).__retailerClicks ?? 0);
+}
+
+/** Opens a Worth It extension page, e.g. `options.html#history`. */
+export async function openExtensionPage(context: BrowserContext, extensionId: string, pagePath: string): Promise<Page> {
+  const page = await context.newPage();
+  await page.goto(`chrome-extension://${extensionId}/${pagePath}`);
+  return page;
+}
+
+/** Writes preferences directly, as if the shopper had set them in settings. */
+export async function setPreferences(serviceWorker: Worker, preferences: Record<string, unknown>) {
+  await serviceWorker.evaluate(async (changes) => {
+    const current = (await chrome.storage.local.get('preferences')).preferences ?? {};
+    await chrome.storage.local.set({ preferences: { onboardingComplete: true, ...current, ...changes } });
+  }, preferences);
 }

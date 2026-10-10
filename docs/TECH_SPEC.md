@@ -205,8 +205,10 @@ WorthIt/
 │   │   ├── cart.ts
 │   │   ├── product.ts
 │   │   ├── finding.ts
-│   │   └── history.ts
+│   │   ├── history.ts
+│   │   └── orders.ts             # Observed order-page rows
 │   ├── ingestion/
+│   │   ├── review-import.ts      # Shared review step for Gmail imports and observed purchases
 │   │   └── gmail/
 │   │       ├── oauth.ts
 │   │       ├── search-orders.ts
@@ -242,13 +244,16 @@ WorthIt/
 │   ├── storage/
 │   │   ├── database.ts
 │   │   ├── migrations.ts
-│   │   └── repositories.ts
+│   │   ├── repositories.ts
+│   │   └── preferences.ts        # chrome.storage.local settings and the OpenAI key
 │   ├── messaging/
 │   │   ├── messages.ts
 │   │   └── validate-message.ts
 │   ├── background/              # Service-worker message handlers and per-tab dismissal state
 │   ├── content/                 # Retailer-agnostic controller: activates only on the cart route
 │   ├── ui/
+│   │   ├── options/              # Onboarding, preferences, history, Gmail import, OpenAI key, privacy
+│   │   ├── orders/               # Opt-in purchase recorder panel
 │   │   ├── checkout/
 │   │   ├── animation/
 │   │   └── shared/

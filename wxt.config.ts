@@ -8,30 +8,49 @@ import { defineConfig } from 'wxt';
  * - WXT_GOOGLE_OAUTH_CLIENT_ID: the Chrome extension OAuth client for Gmail.
  * Neither is a secret, but both are account-specific, so they stay out of source.
  */
+// WXT does not expose .env files to this config file, so load them here.
+// Values already set in the real environment take precedence.
+for (const file of ['.env.local', '.env']) {
+  try {
+    process.loadEnvFile(file);
+  } catch {
+    // Optional file.
+  }
+}
+
 const publicKey = process.env.WXT_EXTENSION_PUBLIC_KEY?.trim();
 const oauthClientId = process.env.WXT_GOOGLE_OAUTH_CLIENT_ID?.trim();
 
 export const GMAIL_READONLY_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
 
+/**
+ * `wxt build --mode e2e` (used by `npm run test:e2e`) writes to .output/chrome-mv3-e2e with a
+ * placeholder OAuth client so the Gmail flow can run against stubbed identity and Gmail
+ * responses. It never reaches Google. Normal builds are unaffected.
+ */
+const E2E_OAUTH_CLIENT_ID = 'e2e-placeholder.apps.googleusercontent.com';
+
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifestVersion: 3,
-  manifest: {
-    name: 'Worth It',
-    description:
-      'A read-only pre-checkout advisor: highlights a few cart items worth a second thought. You make every cart change.',
-    permissions: ['storage', 'identity'],
-    host_permissions: [
-      'https://www.walmart.com/*',
-      'https://gmail.googleapis.com/*',
-      'https://api.openai.com/*',
-    ],
-    content_security_policy: {
-      extension_pages: "script-src 'self'; object-src 'self'",
-    },
-    ...(publicKey ? { key: publicKey } : {}),
-    ...(oauthClientId
-      ? { oauth2: { client_id: oauthClientId, scopes: [GMAIL_READONLY_SCOPE] } }
-      : {}),
+  outDirTemplate: '{{browser}}-mv{{manifestVersion}}{{modeSuffix}}',
+  manifest: ({ mode }) => {
+    const clientId = mode === 'e2e' ? E2E_OAUTH_CLIENT_ID : oauthClientId;
+    return {
+      name: 'Worth It',
+      description:
+        'A read-only pre-checkout advisor: highlights a few cart items worth a second thought. You make every cart change.',
+      permissions: ['storage', 'identity'],
+      host_permissions: [
+        'https://www.walmart.com/*',
+        'https://gmail.googleapis.com/*',
+        'https://api.openai.com/*',
+      ],
+      content_security_policy: {
+        extension_pages: "script-src 'self'; object-src 'self'",
+      },
+      ...(publicKey ? { key: publicKey } : {}),
+      ...(clientId ? { oauth2: { client_id: clientId, scopes: [GMAIL_READONLY_SCOPE] } } : {}),
+    };
   },
 });

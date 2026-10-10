@@ -12,6 +12,31 @@ export const WALMART_ORIGIN = 'https://www.walmart.com';
 /** The only route where the cart review runs. Checkout and payment are excluded. */
 export const CART_PATH = /^\/cart\/?$/;
 
+/**
+ * Opt-in purchase recording pages. Only item rows are read here; payment,
+ * address, and account sections are excluded (see ORDER_EXCLUDED_REGIONS).
+ */
+export const ORDER_CONFIRMATION_PATH = /^\/checkout\/thankyou\/?$/;
+export const PURCHASE_HISTORY_PATH = /^\/orders\/?$/;
+export const ORDER_DETAILS_PATH = /^\/orders\/[A-Za-z0-9-]{4,40}\/?$/;
+
+export const ORDER_CONTAINER_SELECTORS = ['[data-testid="order-card"]', '[data-testid="order-details"]'] as const;
+export const ORDER_ITEM_SELECTORS = ['[data-testid="order-item"]', '[data-testid="item-row"]'] as const;
+export const ORDER_NUMBER_SELECTORS = ['[data-testid="order-number"]'] as const;
+export const ORDER_DATE_SELECTORS = ['[data-testid="order-date"]'] as const;
+export const ORDER_STATUS_SELECTORS = ['[data-testid="order-status"]'] as const;
+export const ORDER_ITEM_QUANTITY_SELECTORS = ['[data-testid="item-quantity"]'] as const;
+export const ORDER_ITEM_PRICE_SELECTORS = ['[data-testid="item-price"]'] as const;
+export const ORDER_EXCLUDED_REGIONS = [
+  '[data-testid*="payment" i]',
+  '[data-testid*="address" i]',
+  '[data-testid*="billing" i]',
+  '[data-testid*="account" i]',
+  '[aria-label*="payment" i]',
+  '[aria-label*="address" i]',
+  'form',
+] as const;
+
 /** Product links look like `/ip/<slug>/<itemId>` or `/ip/<itemId>`. */
 export const ITEM_ID_FROM_URL = /\/ip\/(?:[^/?#]+\/)?(\d{5,15})(?:[/?#]|$)/;
 

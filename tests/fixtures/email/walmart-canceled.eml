@@ -1,0 +1,11 @@
+From: Walmart.com <help@walmart.com>
+To: Fictional Shopper <shopper@example.com>
+Subject: Your order has been canceled - Order# 2000999-11111
+Content-Type: text/html; charset="UTF-8"
+
+<html><body>
+<p>FICTIONAL TEST FIXTURE - not a real Walmart email.</p>
+<p>Order date: Aug 30, 2026</p>
+<div>Monster 16.4 ft LED Strip Lights</div>
+<div>Qty: 1 $14.88</div>
+</body></html>

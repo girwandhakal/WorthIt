@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { cartSnapshotSchema } from '../domain/cart';
-import type { CartReview } from '../domain/review';
+import { cartSnapshotSchema, merchantSchema } from '../domain/cart';
+import { purchaseInputSchema } from '../domain/history';
+import { observedOrderItemSchema } from '../domain/orders';
 
 /**
  * Typed messages from content scripts to the service worker. Every payload is
@@ -12,9 +13,18 @@ const findingIdSchema = z.string().min(1).max(400);
 export const contentRequestSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('cart/review'), snapshot: cartSnapshotSchema }),
   z.object({ type: z.literal('panel/dismiss'), findingIds: z.array(findingIdSchema).max(500) }),
+  /** Is opt-in purchase recording on? */
+  z.object({ type: z.literal('orders/settings') }),
+  /** Build the review proposals for item rows read from an order page. */
+  z.object({
+    type: z.literal('orders/review'),
+    merchant: merchantSchema,
+    items: z.array(observedOrderItemSchema).max(200),
+  }),
+  /** Save the rows the shopper approved. Only `observed_purchase` records are accepted from pages. */
+  z.object({
+    type: z.literal('orders/save'),
+    inputs: z.array(purchaseInputSchema.extend({ source: z.literal('observed_purchase') })).max(200),
+  }),
 ]);
 export type ContentRequest = z.infer<typeof contentRequestSchema>;
-
-export type ContentResponse<T extends ContentRequest['type']> = T extends 'cart/review'
-  ? { ok: true; review: CartReview } | { ok: false; error: string }
-  : { ok: true } | { ok: false; error: string };
