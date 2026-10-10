@@ -12,9 +12,9 @@
 
 ## 1. Product Overview
 
-Worth It is an AI-powered Chrome extension designed to help consumers reduce impulsive, unnecessary, redundant, and excessively expensive purchases while shopping online. The hackathon project focuses on one standout capability: a polished, evidence-based review of the shopper's cart immediately before checkout. Item criteria, purchase history, value comparisons, and applicable health evidence all support this single experience rather than appearing as separate product features.
+Worth It is an AI-powered Chrome extension designed to help consumers reduce impulsive, unnecessary, redundant, and excessively expensive purchases while shopping online.
 
-Right before checkout, the Chrome extension reviews every item in the cart, including ordinary groceries, and assesses the item itself as well as its cost. It considers the item's likely purpose and usefulness, whether purchase history suggests the user may already have enough, whether a lower-cost comparable product exists, and relevant quality or nutrition information. The checkout panel gives a concise summary of items that merit attention, such as a store-brand alternative or a possible repeat purchase. Ordinary items with no relevant concern are omitted from the user-facing summary. A review is not a restriction: the user always controls whether to buy or change the cart. Worth It checks each item against fixed assessment criteria, records applicable findings and scores, and leaves non-applicable checks out of the recap. Related findings can be grouped into a cart summary. Criterion scores, group statistics, price comparisons, and savings come from product and cart evidence and are calculated deterministically. Language AI phrases the verified summary naturally, but cannot change its findings, evidence, or numbers.
+Right before checkout, the Chrome extension reviews every item in the cart, including ordinary groceries, and assesses the item itself as well as its cost. It considers the item's likely purpose and usefulness, whether purchase history suggests the user may already have enough, whether a lower-cost comparable product exists, and relevant quality or nutrition information. The checkout panel gives a concise summary of items that merit attention, such as a store-brand alternative or a possible repeat purchase. Ordinary items with no relevant concern are omitted from the user-facing summary. A review is not a restriction: the user always controls whether to buy or change the cart. Worth It checks each item against fixed assessment criteria, records applicable findings and scores, and leaves non-applicable checks out of the recap. Related findings can be grouped into a cart summary. Criterion scores, group statistics, price comparisons, and savings come from product and cart evidence and are calculated consistently. Language AI phrases the verified summary naturally, but cannot change its findings, evidence, or numbers.
 
 Worth It evaluates the purchase itself rather than a shopper's personal finances: affordability or income does not determine whether a product is useful, suitable, redundant, or good value.
 
@@ -867,7 +867,7 @@ The product should deliver its primary value without requiring users to open the
 
 ## 11. Hackathon MVP Scope
 
-The Hacklanta MVP should make one capability excellent: the pre-checkout cart review and animated recap. Cart recognition, a small set of high-confidence assessment criteria, purchase-history context, supported savings, and clear presentation are parts of this one end-to-end experience, not separate features. Favor a reliable, polished Walmart flow over breadth across retailers or criteria.
+The Hacklanta MVP should demonstrate the product's primary capabilities without attempting to become a full commercial shopping platform.
 
 ### Required MVP Capabilities
 
