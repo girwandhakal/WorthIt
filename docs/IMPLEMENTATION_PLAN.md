@@ -25,7 +25,7 @@ Work through the issues in order, one issue at a time. Before coding, read the i
 | 7 | Follow-up retailer | [#10 — Add Amazon as the second retailer adapter](https://github.com/girwandhakal/WorthIt/issues/10) | Add Amazon support through the shared cart and assessment interfaces after the Walmart flow is stable. | #4, #9 | Open |
 | 8 | Conditional public release | [#11 — Prepare optional public Chrome Web Store and Google OAuth release](https://github.com/girwandhakal/WorthIt/issues/11) | Prepare listing, privacy disclosures, and required Google/Chrome review if public distribution is approved. | #9; #10 only if Amazon is in public launch scope; owner approval | Open / deferred |
 
-There are eight implementation issues (#4–#11), which keeps the working roadmap under ten issues. Issue #3 tracks this planning document and closes when its PR merges. The first six tickets after the decision gate deliver the hackathon-ready Walmart experience. Amazon and public-store publication are later work; public distribution remains conditional on the owner's decision and external review.
+There are eight implementation issues (#4–#11), which keeps the working roadmap under ten issues. Issue #3 tracks this planning document and closes when its PR merges. Tickets #5–#9 deliver the hackathon-ready Walmart experience. Amazon and public-store publication are later work; public distribution remains conditional on the owner's decision and external review.
 
 ## Dependency flow
 
