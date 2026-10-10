@@ -70,7 +70,7 @@ Use items from [Walmart reference products](WALMART_REFERENCE_PRODUCTS.md), quan
 
 1. **Setup:** Load the unpacked extension in Chrome, complete onboarding, opt in to purchase recording, and paste the OpenAI key in settings. Connect Gmail and import the synthetic receipts, which include a 30 oz tumbler bought 20 days ago. Review the records and save them; they show as synthetic.
 2. **Normal cart:** A cart with only store-brand staples that have no added sugar (for example Great Value milk, eggs, and long-grain rice) shows the collapsed “Reviewed 3 items” indicator. No recap plays.
-3. **Mixed cart:** Horizon Organic milk, Kraft shredded mild cheddar, Bounty Essentials paper towels, Diet Coke, a Stanley 30 oz tumbler, a 5-inch Squishmallows plush, and Skittles. The recap opens with “Before you check out, 3 things are worth a second thought,” highlights the tumbler, the plush, and the Skittles in that order, and groups the three store-brand swaps into one line (“Also: 3 store-brand swaps could save $4.81”). The paper towels appear only in the expanded details. The underlying findings are:
+3. **Mixed cart:** Horizon Organic milk, Kraft shredded mild cheddar, Bounty Essentials paper towels, Diet Coke, a Stanley 30 oz tumbler, a 5-inch Squishmallows plush, and Skittles. The recap opens with “Before you check out, 3 things are worth a second thought,” highlights the tumbler, the plush, and the Skittles in that order, and groups the three store-brand swaps into one line (“Also: 3 store-brand swaps could save $4.81”). The paper towels appear only in the expanded details. Choosing “See full analysis” lists all seven items with their checks, prices, and sources. The underlying findings are:
    - Store-brand savings: milk $1.99, cheddar $1.01, Diet Coke $1.81. These assume the recorded labels show 0 g added sugar for each store-brand item; a store brand with added sugar is never suggested.
    - Paper towels: the Great Value option is named but costs more per sheet, so no savings are claimed.
    - Tumbler: a similar tumbler was bought 20 days ago, so Worth It suggests skipping it ($24.97) and asks whether it replaces the earlier one.
@@ -326,7 +326,7 @@ The LLM API is a wording assistant, not an evaluator. Send only the minimum vali
 
 ## 8. User interface behavior
 
-Worth It is an advisor, not an analysis tool (PRD principle 3.6). The panel's job is to make the shopper think twice about a few items, so it highlights and advises; the assessment detail stays internal.
+Worth It is an advisor, not an analysis tool (PRD principle 3.6). The panel's job is to make the shopper think twice about a few items, so its default view highlights and advises; the full assessment is available on request through “See full analysis.”
 
 On the cart page, when at least one finding or material uncertainty exists, present a short visual sequence. With no findings, show only the collapsed “Reviewed N items” indicator and no animation.
 
@@ -335,12 +335,13 @@ On the cart page, when at least one finding or material uncertainty exists, pres
 3. **Everything else, grouped:** remaining findings collapse into one expandable line, for example “Also: 3 store-brand swaps could save $4.81.” Store-brand notes with no savings and material uncertainty appear only inside the expanded list or “Why?” details.
 4. **Why?:** every highlight has a “Why?” control that reveals its evidence, source link, price check date, and certainty. Evidence is never shown by default.
 5. **Closing nudge:** the savings sentence and the investment illustration (unless turned off), then a short hand-back such as “It's your call.” with Continue.
-6. **Controls:** pause, replay, captions, dismiss, and continue. Continue and dismiss only close Worth It's panel; a dismissed panel stays collapsed for that cart unless a new finding appears.
+6. **See full analysis (on request):** a secondary “See full analysis” control, available from the recap and the static view, opens the deeper view inside the panel without leaving the cart. It lists every reviewed item, including no-concern and unknown items, with each criterion's result (finding, no concern, not applicable, unknown), purpose class, price, quantity, unit price, store-brand comparison and price check date, purchase-history match, added-sugar status, evidence and source links, certainty, and the item's share of the cart, plus the cart totals and the investment assumptions. It is rendered from the same deterministic assessment results; the LLM does not write it. A “Back to highlights” control returns to the default view. It never opens automatically.
+7. **Controls:** pause, replay, captions, dismiss, and continue. Continue and dismiss only close Worth It's panel; a dismissed panel stays collapsed for that cart unless a new finding appears.
 
 Wording rules:
 
 - Speak as an advisor: second person, plain language, short sentences, questions where they help the shopper reflect. The LLM may phrase highlights in this voice; reviewed templates use the same voice. Names, numbers, sources, and links still come from validated structured data.
-- Never show scores, purpose classes, criterion names, confidence percentages, per-item price tables, or charts in the checkout panel. These stay internal (they may appear in a debug view or the optional dashboard).
+- Never show scores, purpose classes, criterion names, confidence percentages, per-item price tables, or charts in the default view. They appear only in “See full analysis,” which the shopper opens on purpose.
 - Added-sugar notes use the approved wording and cite the CDC source. Repeat-purchase notes acknowledge that a past purchase doesn't prove the shopper still has the item.
 - Total potential current-cart reduction stays distinct from estimated historical savings, which never appear in the checkout panel.
 
@@ -370,7 +371,7 @@ Do not begin with live retailer automation. Build confidence in layers:
 2. **Adapter tests:** sanitized HTML fixtures for cart rows, quantity changes, discounts, missing prices, multi-quantity lines, and page rerenders, plus order confirmation and purchase-history pages (proving payment and address fields are never read).
 3. **Assessment tests:** each criterion’s positive, negative, not-applicable, unknown, and boundary cases; ensure missing data never becomes a health or savings claim.
 4. **Summary/LLM tests:** verify deterministic grouping and calculations, no double counting, stable text fallback, response validation, and that model output cannot alter scores, numbers, sources, or add a finding.
-5. **UI tests:** opening prompt, at most three highlights in ranking order, grouped remainder line, “Why?” details hidden by default, no scores/classes/tables in the panel, captions, keyboard controls, reduced motion, dismiss/continue, no-findings collapsed indicator, dismissal persistence, clarification question flow, and no cart-edit actions.
+5. **UI tests:** opening prompt, at most three highlights in ranking order, grouped remainder line, “Why?” details hidden by default, no scores/classes/tables in the default view, “See full analysis” opening only on request and listing every reviewed item with its criterion results, captions, keyboard controls, reduced motion, dismiss/continue, no-findings collapsed indicator, dismissal persistence, clarification question flow, and no cart-edit actions.
 6. **End-to-end:** load the unpacked extension in Chromium with a persistent context and local test fixture pages that mimic the supported retailer DOM.
 7. **Email parsing tests:** use fictional `.eml`/MIME fixtures to test HTML and plain-text parsing, missing fields, duplicates, malformed payloads, and injection-like text. Tests must prove the email body is discarded after extraction and nothing is sent to a server.
 8. **Synthetic Gmail receipts:** send several fictional order-confirmation emails to the owner's own Gmail account, with a fixed subject prefix `[Worth It Test Receipt]` and varied purchase dates, products, quantities, prices, and return/cancel cases. The extension must find them through Gmail API and import them through the normal review flow, tagging them `synthetic_gmail`. Do not seed a local JSON history at runtime or put real email content into the repository.
