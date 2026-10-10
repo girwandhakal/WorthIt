@@ -298,14 +298,14 @@ Repository guidance requires issue-linked work units. Create or confirm one GitH
 4. **Local history:** IndexedDB schema, import/manual entry, opt-in recording, review/delete/export.
 5. **Assessment core:** store-brand prices, repeat detection, evidence templates, narrow nutrition triggers, savings aggregation.
 6. **Animated recap:** short timeline and visuals, captions, reduced motion, pause/replay/skip.
-7. **Integration and hackathon walkthrough:** connect the owner's Gmail test account when available, exercise real OAuth and receipt review, use the built-in sample history when no matching receipts exist, run the manual retailer check, and package the extension.
+8. **Integration and hackathon walkthrough:** connect the owner's Gmail test account, exercise OAuth and API receipt search, import synthetic receipt emails sent to that account through the same review flow as real order emails, run the manual retailer check, and package the extension.
 8. **Second retailer:** Amazon adapter only after first retailer is reliable and scope is confirmed.
 
 Do not parallelize issues unless their acceptance criteria are independent. Each PR should link its issue, state evidence/checks run, and document remaining limitations.
 
 ## 12. Packaging and release
 
-For the hackathon deliverable, build the actual extension package and load it through Chrome’s extension developer mode. Configure Gmail OAuth in testing state with your own Google account as the test user. Synthetic receipt emails in the owner's own Gmail provide deterministic purchase history for the hackathon and exercise the actual importer. They are not a separate demo mode or local JSON dataset. Never commit OAuth secrets or personal email samples.
+For the hackathon deliverable, build the actual extension package and load it through Chrome’s extension developer mode. Configure Gmail OAuth in testing state with your own Google account as the test user. Send the synthetic order emails to that same account and import them through the actual Gmail API path. The email subject marker identifies generated records; this is not a separate mode or local JSON dataset. Never commit OAuth secrets or personal email content.
 
 For public Chrome Web Store and Google OAuth release, the owner will need to provide or approve:
 
@@ -329,7 +329,7 @@ The plan can proceed with defaults except where these choices alter user-visible
 6. Provide a Chrome profile on which you can authorize your own test account and a retailer test cart, or use local retailer fixtures. Do not share your passwords or payment details.
 7. For public store release, supply the listing/support/privacy materials listed above.
 
-No Gmail API key is needed; OAuth uses the extension client ID and your consent. Bank connections, retailer logins, payment data, and personal financial analysis remain out of scope. If your mailbox has no matching retailer receipts, the synthetic emails we send to that same Gmail account provide known test cases through the exact Gmail API flow.
+Gmail API uses an OAuth extension client ID and your consent, not an API key. Bank connections, retailer logins, payment data, and personal financial analysis remain out of scope. Your own synthetic receipt emails supply repeat-purchase test cases through the same Gmail API path if you do not have real retailer receipts.
 
 ## 14. Risks and mitigations
 
@@ -348,7 +348,7 @@ No Gmail API key is needed; OAuth uses the extension client ID and your consent.
 
 Worth It should be a small Chrome add-on that reviews the supported shopping cart and gives the shopper a short, evidence-based pause before checkout. It can find likely order receipts in Gmail after you explicitly connect your account, show you parsed purchase records for confirmation, and keep approved history on your device. Synthetic receipt emails sent to your own Gmail account provide repeat-purchase test cases when your real mailbox has no matching receipts. The extension can point out a cheaper store brand, a recent similar purchase, or a well-supported nutrition concern; it totals potential savings and may show one aggregate investment illustration. It never edits the cart or uses bank information.
 
-For the hackathon build, use TypeScript/React/WXT, a local IndexedDB, Gmail API read-only OAuth for your own test account, and the built-in sample purchase history as a user-selectable fallback. Gmail read access is broad even though Worth It searches only likely receipts; keep processing local and require you to review each imported record. Walmart-first and the exact meaning of “AI-powered” remain product choices before implementation.
+For the hackathon build, use TypeScript/React/WXT, local IndexedDB, and Gmail API read-only OAuth for your own test account. Send synthetic receipt emails to that account and let Worth It find and parse them through the same receipt importer used for real messages. Gmail read access is broad even when searches are constrained; keep processing local and require review before saving each imported record. Walmart-first and the exact meaning of “AI-powered” remain product choices before implementation.
 
 ## 16. Primary documentation
 
