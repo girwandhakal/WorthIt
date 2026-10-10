@@ -16,7 +16,7 @@ This document turns the current PRD into a buildable plan. It recommends a narro
 | Language | TypeScript with strict checking |
 | Extension tooling | WXT with Vite build pipeline |
 | UI | React, TypeScript, CSS, and inline SVG/CSS animation |
-| Local history | IndexedDB, wrapped with the small `idb` library; includes Gmail-imported records and an optional labeled sample set |
+| Local history | IndexedDB, wrapped with the small `idb` library; stores user-approved Gmail imports and other history locally |
 | Cross-context messages | Typed browser runtime messages; validate all received payloads |
 | Assessment | Deterministic, explainable rules and explicit evidence; no remote AI service in the MVP |
 | Remote backend | None for the single-user hackathon build; Gmail API is called from the extension with user OAuth |
@@ -38,7 +38,7 @@ The first usable slice should prove one complete journey:
 4. A compact panel summarizes only meaningful, supported observations and says when data is missing.
 5. The panel may show store-brand savings, a recent similar purchase, or a qualifying nutrition note with its source.
 6. It totals supported potential savings for the current cart and may show one optional projection at the end.
-7. The shopper dismisses the panel, reviews evidence, or continues. They make all cart changes themselves. Purchase history can come from optional Gmail receipt import, manual entry, retailer purchases recorded with consent, or a built-in labeled sample set when the mailbox has no useful receipts.
+7. The shopper dismisses the panel, reviews evidence, or continues. They make all cart changes themselves. Purchase history can come from optional Gmail receipt import, manual entry, or retailer purchases recorded with consent. For the hackathon walkthrough, synthetic receipt emails sent to the owner's Gmail account go through the same Gmail API importer as real receipts.
 
 Start with one retailer and a small set of product categories that can be demonstrated reliably. The PRD names Amazon and Walmart; this specification recommends Walmart US first because the grocery examples depend on grocery data. Confirm this retailer order before coding. Add Amazon through a separate adapter after the first full flow works.
 
@@ -65,7 +65,7 @@ flowchart LR
 - **Service worker:** Coordinates extension messages and access to extension APIs. It is short-lived in Manifest V3, so it must not keep essential state only in memory.
 - **Assessment module:** Applies testable rules to normalized cart items, local user preferences, purchase records, and bundled evidence. Each finding carries its reason, source, confidence, and calculation inputs.
 - **Checkout panel:** Renders the findings and animated recap inside an isolated Shadow DOM root to reduce style collisions. All buttons are user-initiated and act only on Worth It’s interface.
-- **Gmail receipt importer:** After the user chooses Connect Gmail and grants Google consent, requests a short-lived OAuth token, searches a bounded set of likely order messages with Gmail API `messages.list`, fetches selected messages with `messages.get`, parses them locally, and shows a review step before saving item records. It never sends, modifies, or deletes email.
+- **Gmail receipt importer:** After the user chooses Connect Gmail and grants Google consent, requests a short-lived OAuth token, searches a bounded set of likely order messages with Gmail API `messages.list`, fetches selected messages with `messages.get`, parses them locally, and shows a review step before saving item records. It detects the fixed synthetic subject marker used by the hackathon receipt emails and marks those parsed records `synthetic_gmail`. It never sends, modifies, or deletes email.
 - **Local data layer:** Stores settings, user-approved parsed purchase history, and feedback locally. It offers review, correction, export, and deletion operations from settings.
 - **Bundled reference data:** Contains versioned health/evidence notes and conservative thresholds. Updates arrive only through a reviewed extension release; the extension does not execute remote code.
 
@@ -81,7 +81,7 @@ Use a versioned TypeScript type with fields equivalent to:
 - ingredients/nutrition fields only when actually present on the page;
 - observation time and extraction confidence.
 
-Keep raw page text only in memory for extraction. Do not persist full page HTML, unrelated page content, checkout credentials, payment details, or browsing history. A small synthetic sample history ships with the extension as an optional product feature. Label sample records clearly and keep them separate from real purchase records unless the user explicitly chooses to add them.
+Keep raw page text only in memory for extraction. Do not persist full page HTML, unrelated page content, checkout credentials, payment details, or browsing history. Do not ship a local synthetic history database or a separate demo mode. Create synthetic receipt emails in the owner's Gmail account; import them through the real Gmail API flow and retain an explicit `synthetic_gmail` provenance marker so the owner can distinguish test records from real purchases.
 
 ### Assessment result
 
@@ -112,11 +112,11 @@ Use CSS transitions and inline SVG for the short animated summary. Do not add a 
 
 Use **IndexedDB** for purchase history and any growing record set; wrap it with `idb` to keep transactions readable. Use `chrome.storage.local` for small extension preferences such as enabled retailers, whether the investment illustration is on, and reduced-motion preference. Do not put history in `storage.sync` or sync it to a server.
 
-Use schema versioning and an explicit migration path. Store the source of each history record (`gmail_import`, `manual`, `observed_purchase`, or `sample`) and the purchase date, merchant, item, quantity, and price when available. Provide review, correction, and deletion. A labeled sample history is available from onboarding or settings; it is never silently inserted into the user's real history. Disconnecting Gmail clears Worth It's cached OAuth token and does not delete already imported records unless the user chooses “remove imported records” too. Export is explicit and local; imports are schema- and size-validated.
+Use schema versioning and an explicit migration path. Store the source of each history record (`gmail_import`, `synthetic_gmail`, `manual`, or `observed_purchase`) and the purchase date, merchant, item, quantity, and price when available. Provide review, correction, and deletion. Synthetic Gmail records remain distinguishable from real Gmail imports. Disconnecting Gmail clears Worth It's cached OAuth token and does not delete already imported records unless the user chooses “remove imported records” too. Export is explicit and local; imports are schema- and size-validated.
 
 ### Gmail receipt import
 
-Use the Chrome `identity` permission and an extension OAuth client configured in the Manifest V3 `oauth2` key. Request only `https://www.googleapis.com/auth/gmail.readonly`, and launch consent only from the user's Connect Gmail action after showing what the app will search and save. This scope is restricted and can read mailbox content, so it is materially broader than “receipts only.” Reduce practical access by searching within a user-selected date range and known retailer senders, fetching only matching messages, extracting order fields locally, then asking the user to review and confirm each proposed purchase record. Never retain email bodies, message attachments, or unrelated messages. Handle empty results as normal and offer the labeled sample history or manual entry.
+Use the Chrome `identity` permission and an extension OAuth client configured in the Manifest V3 `oauth2` key. Request only `https://www.googleapis.com/auth/gmail.readonly`, and launch consent only from the user's Connect Gmail action after showing what the app will search and save. This scope is restricted and can read mailbox content, so it is materially broader than “receipts only.” Reduce practical access by searching within a user-selected date range and known retailer senders, fetching only matching messages, extracting order fields locally, then asking the user to review and confirm each proposed purchase record. Never retain email bodies, message attachments, or unrelated messages. Handle empty results as normal and offer manual entry. For the hackathon, seed the connected account with synthetic receipt emails sent to itself; query these by a fixed subject prefix such as `[Worth It Test Receipt]` and `from:me`, then parse them through the same importer as real order emails.
 
 The extension calls Gmail API directly from its trusted extension context: `users.messages.list` with a constrained `q` and pagination, then `users.messages.get` for candidate IDs. Do not send a Gmail token to retailer content scripts or a server. Store no refresh token or OAuth client secret in source. Let Chrome Identity manage its token cache; provide an explicit disconnect action that clears the cached token and explains how to revoke Worth It's access in Google Account settings.
 
@@ -157,6 +157,12 @@ WorthIt/
 │   │   ├── product.ts
 │   │   ├── finding.ts
 │   │   └── history.ts
+│   ├── ingestion/
+│   │   └── gmail/
+│   │       ├── oauth.ts
+│   │       ├── search-orders.ts
+│   │       ├── parse-message.ts
+│   │       └── review-import.ts
 │   ├── adapters/
 │   │   ├── retailer-adapter.ts
 │   │   └── walmart/
@@ -188,7 +194,9 @@ WorthIt/
 │       ├── calculations.ts
 │       └── validation.ts
 ├── tests/
-│   ├── fixtures/                # Sanitized, synthetic retailer DOM snapshots
+│   ├── fixtures/
+│   │   ├── retailer/             # Sanitized, synthetic retailer DOM snapshots
+│   │   └── email/                # Fictional MIME / .eml receipt parser cases
 │   ├── unit/
 │   ├── integration/
 │   └── e2e/
@@ -274,8 +282,8 @@ Do not begin with live retailer automation. Build confidence in layers:
 3. **Assessment tests:** each rule’s positive, negative, uncertain, and boundary cases; ensure missing data never becomes a health or savings claim.
 4. **UI tests:** captions, keyboard controls, reduced motion, dismiss/continue, and no cart-edit actions.
 5. **End-to-end:** load the unpacked extension in Chromium with a persistent context and local test fixture pages that mimic the supported retailer DOM.
-6. **Email parsing tests:** use fictional `.eml`/MIME fixtures from synthetic retailers to test sender/date search assumptions, HTML and plain-text parsing, missing fields, duplicates, malformed payloads, and injection-like text. Tests must prove the email body is discarded after extraction and nothing is sent to a server.
-7. **Built-in sample history:** include a small synthetic set (recent similar durable good, routine consumable restock, prior store-brand comparison, and uncertain/returned purchase) as a labeled sample users can choose in the real app. Use fictional products, dates, quantities, and prices only. Do not pretend sample records were imported from Gmail; allow users to remove sample records separately.
+6. **Email parsing tests:** use fictional `.eml`/MIME fixtures to test HTML and plain-text parsing, missing fields, duplicates, malformed payloads, and injection-like text. Tests must prove the email body is discarded after extraction and nothing is sent to a server.
+7. **Synthetic Gmail receipts:** send several fictional order-confirmation emails to the owner's own Gmail account, with a fixed subject prefix `[Worth It Test Receipt]` and varied purchase dates, products, quantities, prices, and return/cancel cases. The extension must find them through Gmail API and import them through the normal review flow, tagging them `synthetic_gmail`. Do not seed a local JSON history at runtime or put real email content into the repository.
 8. **Manual retailer smoke check:** use a developer’s test cart, check page changes and selectors, and verify no interactions modify the cart. Retailer HTML may change; handle extraction failure visibly.
 
 CI should install from the lockfile and run lint, typecheck, unit/integration tests, and production build. Keep screenshots and fixture data synthetic or scrubbed of account details. The user has asked for a spec, not implementation; checks begin when the code exists.
@@ -297,7 +305,7 @@ Do not parallelize issues unless their acceptance criteria are independent. Each
 
 ## 12. Packaging and release
 
-For the hackathon deliverable, build the actual extension package and load it through Chrome’s extension developer mode. Configure Gmail OAuth in testing state with your own Google account as the test user. Use the built-in sample history only when you choose it; it is a feature of the shipped app, not a separate app mode. Never commit OAuth secrets or personal email samples.
+For the hackathon deliverable, build the actual extension package and load it through Chrome’s extension developer mode. Configure Gmail OAuth in testing state with your own Google account as the test user. Synthetic receipt emails in the owner's own Gmail provide deterministic purchase history for the hackathon and exercise the actual importer. They are not a separate demo mode or local JSON dataset. Never commit OAuth secrets or personal email samples.
 
 For public Chrome Web Store and Google OAuth release, the owner will need to provide or approve:
 
@@ -321,7 +329,7 @@ The plan can proceed with defaults except where these choices alter user-visible
 6. Provide a Chrome profile on which you can authorize your own test account and a retailer test cart, or use local retailer fixtures. Do not share your passwords or payment details.
 7. For public store release, supply the listing/support/privacy materials listed above.
 
-No Gmail API key is needed; OAuth uses the extension client ID and your consent. Bank connections, retailer logins, payment data, and personal financial analysis remain out of scope. The built-in sample history keeps the product usable if your mailbox has no matching receipts.
+No Gmail API key is needed; OAuth uses the extension client ID and your consent. Bank connections, retailer logins, payment data, and personal financial analysis remain out of scope. If your mailbox has no matching retailer receipts, the synthetic emails we send to that same Gmail account provide known test cases through the exact Gmail API flow.
 
 ## 14. Risks and mitigations
 
@@ -338,7 +346,7 @@ No Gmail API key is needed; OAuth uses the extension client ID and your consent.
 
 ## 15. Plain-English summary
 
-Worth It should be a small Chrome add-on that reviews the supported shopping cart and gives the shopper a short, evidence-based pause before checkout. It can find likely order receipts in Gmail after you explicitly connect your account, show you parsed purchase records for confirmation, and keep approved history on your device. A labeled synthetic sample set makes the same history-based experience usable when no matching receipts exist. The extension can point out a cheaper store brand, a recent similar purchase, or a well-supported nutrition concern; it totals potential savings and may show one aggregate investment illustration. It never edits the cart or uses bank information.
+Worth It should be a small Chrome add-on that reviews the supported shopping cart and gives the shopper a short, evidence-based pause before checkout. It can find likely order receipts in Gmail after you explicitly connect your account, show you parsed purchase records for confirmation, and keep approved history on your device. Synthetic receipt emails sent to your own Gmail account provide repeat-purchase test cases when your real mailbox has no matching receipts. The extension can point out a cheaper store brand, a recent similar purchase, or a well-supported nutrition concern; it totals potential savings and may show one aggregate investment illustration. It never edits the cart or uses bank information.
 
 For the hackathon build, use TypeScript/React/WXT, a local IndexedDB, Gmail API read-only OAuth for your own test account, and the built-in sample purchase history as a user-selectable fallback. Gmail read access is broad even though Worth It searches only likely receipts; keep processing local and require you to review each imported record. Walmart-first and the exact meaning of “AI-powered” remain product choices before implementation.
 
