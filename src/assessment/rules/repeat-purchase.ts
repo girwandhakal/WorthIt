@@ -124,7 +124,7 @@ export function assessRepeatPurchase(input: {
         confidence: 'low',
       },
       skipEligible: false,
-      question: repeatPurposeQuestion(matchKey, exact.daysAgo, true),
+      question: repeatPurposeQuestion(matchKey),
     };
   }
 
@@ -142,7 +142,7 @@ export function assessRepeatPurchase(input: {
       confidence: recent.kind === 'exact' ? 'high' : 'medium',
     },
     skipEligible: true,
-    question: repeatPurposeQuestion(matchKey, recent.daysAgo, recent.kind === 'exact'),
+    question: repeatPurposeQuestion(matchKey),
   };
 }
 

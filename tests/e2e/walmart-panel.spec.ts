@@ -17,9 +17,11 @@ test.describe('Walmart cart panel', () => {
   test('reports unreadable items, closes on Continue, and stays closed on rerender and reload', async ({ context }) => {
     await serveWalmart(context, { '/cart': 'cart-missing-data.html' });
     const page = await context.newPage();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('https://www.walmart.com/cart');
     const panel = page.getByRole('region', { name: 'Worth It' });
     await expect(panel).toBeVisible();
+    await panel.getByRole('button', { name: /^Also:/ }).click();
     await expect(panel.getByText("Couldn't read this item's price reliably", { exact: false }).first()).toBeVisible();
     await expect(panel.getByText("Couldn't read this item's name reliably", { exact: false })).toBeVisible();
 
@@ -45,6 +47,7 @@ test.describe('Walmart cart panel', () => {
   test('reopens on its own only when a new finding appears', async ({ context }) => {
     await serveWalmart(context, { '/cart': 'cart-missing-data.html' });
     const page = await context.newPage();
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('https://www.walmart.com/cart');
     const panel = page.getByRole('region', { name: 'Worth It' });
     await panel.getByRole('button', { name: 'Dismiss Worth It panel' }).click();
@@ -55,6 +58,7 @@ test.describe('Walmart cart panel', () => {
       document.querySelector('[data-testid="line-price"]')!.textContent = 'Price unavailable';
     });
     await expect(panel).toBeVisible();
+    await panel.getByRole('button', { name: /^Also:/ }).click();
     await expect(panel.getByText('Barilla Classic Spaghetti Pasta, 16 oz')).toBeVisible();
   });
 
@@ -92,7 +96,7 @@ test.describe('Walmart cart panel', () => {
     await expect(page).toHaveURL('https://www.walmart.com/cart');
     const panel = page.getByRole('region', { name: 'Worth It' });
     await expect(panel).toBeVisible();
-    await expect(panel.getByText('Mystery Item')).toBeVisible();
+    await expect(panel.getByText('Mystery Item').first()).toBeVisible();
 
     await page.click('#go-checkout');
     await expect(page.locator('worth-it-panel')).toHaveCount(0);
