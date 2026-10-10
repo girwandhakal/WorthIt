@@ -5,7 +5,7 @@ import { handleContentMessage } from '../../src/background/handle-message';
 import { reviewCart } from '../../src/background/review-cart';
 import type { CartReview } from '../../src/domain/review';
 import { validateContentRequest } from '../../src/messaging/validate-message';
-import { EXTENSION_ID, testDeps } from '../helpers/background';
+import { EXTENSION_ID, reviewContext, testDeps } from '../helpers/background';
 import { loadRetailerDocument } from '../helpers/fixtures';
 
 const URL_CART = new URL('https://www.walmart.com/cart');
@@ -45,29 +45,31 @@ describe('validateContentRequest', () => {
 
 describe('reviewCart', () => {
   it('reviews every line and reports no findings for a fully readable cart', () => {
-    const review = reviewCart(snapshotOf('cart-normal.html'), new Set());
+    const review = reviewCart(snapshotOf('cart-normal.html'), reviewContext());
     expect(review).toMatchObject({ itemCount: 3, readableCount: 3, findings: [], autoOpen: false });
   });
 
   it('turns unreadable lines into uncertainty findings', () => {
-    const review = reviewCart(snapshotOf('cart-missing-data.html'), new Set());
+    const review = reviewCart(snapshotOf('cart-missing-data.html'), reviewContext());
     expect(review.itemCount).toBe(5);
     expect(review.readableCount).toBe(1);
     expect(review.autoOpen).toBe(true);
-    expect(review.findings.map((finding) => finding.text)).toEqual([
-      "Couldn't read this item's price reliably, so Worth It didn't assess it.",
-      "Couldn't read this item's name reliably, so Worth It didn't assess it.",
-      "Couldn't read this item's price reliably, so Worth It didn't assess it.",
-      "This item shows as unavailable, so it isn't part of the review.",
+    const uncertain = review.findings.filter((finding) => finding.kind === 'uncertain');
+    expect(uncertain.map((finding) => [finding.itemName, finding.text])).toEqual([
+      ['Heinz Tomato Ketchup, 32 oz', "Couldn't read this item's price reliably, so Worth It couldn't fully check it."],
+      ['Cart item 3', "Couldn't read this item's name reliably, so Worth It couldn't fully check it."],
+      ['Folgers Classic Roast Ground Coffee, 25.9 oz', "Couldn't read this item's price reliably, so Worth It couldn't fully check it."],
+      ['Wonder Classic White Sandwich Bread, 20 oz', "This item shows as unavailable, so it isn't part of the review."],
     ]);
-    expect(review.findings[1]!.itemName).toBe('Cart item 3');
+    // An unavailable item gets no suggestions.
+    expect(review.findings.filter((finding) => finding.itemName.startsWith('Wonder')).map((f) => f.kind)).toEqual(['uncertain']);
   });
 
   it('stays collapsed when every finding was dismissed and reopens for a new one', () => {
     const snapshot = snapshotOf('cart-missing-data.html');
-    const all = reviewCart(snapshot, new Set()).findings.map((finding) => finding.id);
-    expect(reviewCart(snapshot, new Set(all)).autoOpen).toBe(false);
-    expect(reviewCart(snapshot, new Set(all.slice(1))).autoOpen).toBe(true);
+    const all = reviewCart(snapshot, reviewContext()).findings.map((finding) => finding.id);
+    expect(reviewCart(snapshot, reviewContext({ dismissedIds: new Set(all) })).autoOpen).toBe(false);
+    expect(reviewCart(snapshot, reviewContext({ dismissedIds: new Set(all.slice(1)) })).autoOpen).toBe(true);
   });
 });
 

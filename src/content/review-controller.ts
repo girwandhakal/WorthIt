@@ -1,6 +1,8 @@
 import type { RetailerAdapter } from '../adapters/retailer-adapter';
 import { observeCart, watchRoute } from '../adapters/walmart/observe-cart';
 import type { CartSnapshot } from '../domain/cart';
+import type { ClarificationQuestion } from '../domain/finding';
+import type { ClarificationAnswer } from '../domain/history';
 import type { CartReview } from '../domain/review';
 import type { ContentRequest } from '../messaging/messages';
 
@@ -9,12 +11,19 @@ export interface PanelHandle {
   remove(): void;
 }
 
+/** Everything the panel can do. All of it acts on Worth It only, never on the retailer page. */
+export interface PanelHandlers {
+  onDismiss: (findingIds: string[]) => void;
+  onAnswer: (question: ClarificationQuestion, answer: ClarificationAnswer, itemName: string) => void;
+  onSkipQuestion: (question: ClarificationQuestion) => void;
+}
+
 export interface ReviewControllerDeps {
   win: Window;
   adapter: RetailerAdapter;
   send: (request: ContentRequest) => Promise<unknown>;
   /** Mounts Worth It's isolated panel. Called only on the cart route. */
-  mountPanel: (onDismiss: (ids: string[]) => void) => Promise<PanelHandle>;
+  mountPanel: (handlers: PanelHandlers) => Promise<PanelHandle>;
   debounceMs?: number;
   routePollMs?: number;
 }
@@ -24,22 +33,39 @@ export interface ReviewControllerDeps {
  * stays inert everywhere else (including checkout and payment pages).
  */
 export function startReviewController(deps: ReviewControllerDeps): () => void {
-  let active: { stop: () => void; panel: Promise<PanelHandle> } | null = null;
+  let active: { stop: () => void; refresh: () => void; panel: Promise<PanelHandle> } | null = null;
   let generation = 0;
 
-  const onDismiss = (ids: string[]) => {
-    void deps.send({ type: 'panel/dismiss', findingIds: ids }).catch(() => undefined);
+  const ignore = () => undefined;
+  const handlers: PanelHandlers = {
+    onDismiss: (ids) => void deps.send({ type: 'panel/dismiss', findingIds: ids }).catch(ignore),
+    onAnswer: (question, answer, itemName) =>
+      void deps
+        .send({
+          type: 'clarification/answer',
+          questionId: question.questionId,
+          itemMatchKey: question.itemMatchKey,
+          itemTitle: itemName.slice(0, 500),
+          answer,
+        })
+        .catch(ignore)
+        .then(() => active?.refresh()),
+    onSkipQuestion: (question) =>
+      void deps
+        .send({ type: 'clarification/skip', questionId: question.questionId, itemMatchKey: question.itemMatchKey })
+        .catch(ignore)
+        .then(() => active?.refresh()),
   };
 
   const activate = () => {
     const myGeneration = ++generation;
-    const panel = deps.mountPanel(onDismiss);
+    const panel = deps.mountPanel(handlers);
     const observer = observeCart(deps.win.document.body, {
       debounceMs: deps.debounceMs,
       read: () => deps.adapter.extractCart(deps.win.document, new URL(deps.win.location.href), new Date()),
       onChange: (snapshot) => void requestReview(snapshot, myGeneration, panel),
     });
-    active = { stop: observer.stop, panel };
+    active = { stop: observer.stop, refresh: observer.refresh, panel };
   };
 
   const deactivate = () => {

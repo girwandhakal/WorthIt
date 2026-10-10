@@ -235,3 +235,86 @@ button {
 .wi-orders input[type='checkbox'] {
   accent-color: var(--wi-accent);
 }
+
+.wi-finding-store_brand_note,
+.wi-finding-uncertain {
+  background: transparent;
+  border: 1px dashed var(--wi-border);
+}
+
+.wi-question {
+  display: grid;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.wi-question-prompt {
+  font-weight: 600;
+}
+
+.wi-question-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.wi-chip-button {
+  padding: 5px 12px;
+  border: 1px solid var(--wi-accent);
+  border-radius: 999px;
+  background: var(--wi-accent-soft);
+  color: var(--wi-accent-strong);
+  font-size: 13px;
+}
+
+.wi-chip-button:hover {
+  background: var(--wi-accent);
+  color: #fff;
+}
+
+.wi-why {
+  justify-self: start;
+  font-size: 13px;
+}
+
+.wi-why-details {
+  font-size: 13px;
+  color: var(--wi-muted);
+  border-left: 3px solid var(--wi-border);
+  padding-left: 10px;
+}
+
+.wi-why-details dl {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.wi-why-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 8px;
+}
+
+.wi-why-row dt {
+  font-weight: 600;
+}
+
+.wi-why-row dd {
+  margin: 0;
+  color: var(--wi-text);
+}
+
+.wi-why-meta {
+  margin: 6px 0 2px;
+}
+
+.wi-sources {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.wi-sources a {
+  color: var(--wi-accent-strong);
+}

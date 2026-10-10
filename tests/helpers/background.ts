@@ -1,3 +1,4 @@
+import type { ReviewContext } from '../../src/background/review-cart';
 import type { BackgroundDeps } from '../../src/background/handle-message';
 import { openWorthItDb } from '../../src/storage/database';
 import { createRepositories, type Repositories } from '../../src/storage/repositories';
@@ -35,6 +36,19 @@ export async function testDeps(overrides: Partial<BackgroundDeps> = {}): Promise
     local: memoryArea(),
     repositories: async () => repos,
     repos,
+    ...overrides,
+  };
+}
+
+/** A review context with empty history and no preferences, dated 2026-10-10. */
+export function reviewContext(overrides: Partial<ReviewContext> = {}): ReviewContext {
+  return {
+    history: [],
+    clarifications: [],
+    preferences: { allergens: [], dietaryPreferences: [] },
+    today: '2026-10-10',
+    dismissedIds: new Set(),
+    skippedQuestions: new Set(),
     ...overrides,
   };
 }

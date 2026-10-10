@@ -1,41 +1,44 @@
-import { itemDisplayName, isFullyReadable, type CartItem, type CartSnapshot } from '../domain/cart';
-import type { CartReview, ReviewFinding } from '../domain/review';
+import { assessCart } from '../assessment/assess-cart';
+import { panelFindings } from '../assessment/describe';
+import { isFullyReadable, type CartSnapshot } from '../domain/cart';
+import type { ClarificationRecord, PurchaseRecord } from '../domain/history';
+import type { CartReview } from '../domain/review';
+import type { ShopperPreferences } from '../assessment/rules/store-brand';
+
+export interface ReviewContext {
+  history: readonly PurchaseRecord[];
+  clarifications: readonly ClarificationRecord[];
+  preferences: ShopperPreferences;
+  today: string;
+  dismissedIds: ReadonlySet<string>;
+  /** Questions the shopper skipped in this tab: `${questionId}:${itemMatchKey}`. */
+  skippedQuestions: ReadonlySet<string>;
+}
 
 /**
- * Builds the panel review for a cart snapshot. Every line is considered; only
- * material uncertainty becomes a visible finding at this stage.
+ * Assesses every cart line, then keeps only meaningful findings and material
+ * uncertainty for the panel.
  */
-export function reviewCart(snapshot: CartSnapshot, dismissedIds: ReadonlySet<string>): CartReview {
-  const findings = snapshot.items.flatMap(uncertaintyFinding);
+export function reviewCart(snapshot: CartSnapshot, context: ReviewContext): CartReview {
+  const assessment = assessCart({
+    snapshot,
+    history: context.history,
+    clarifications: context.clarifications,
+    preferences: context.preferences,
+    today: context.today,
+  });
+  const findings = panelFindings(assessment, snapshot.items).map((finding) =>
+    finding.question && context.skippedQuestions.has(`${finding.question.questionId}:${finding.question.itemMatchKey}`)
+      ? { ...finding, question: null }
+      : finding,
+  );
   return {
     version: 1,
     merchant: snapshot.merchant,
     itemCount: snapshot.items.length,
     readableCount: snapshot.items.filter(isFullyReadable).length,
     findings,
-    autoOpen: findings.some((finding) => !dismissedIds.has(finding.id)),
+    assessment,
+    autoOpen: findings.some((finding) => !context.dismissedIds.has(finding.id)),
   };
-}
-
-function uncertaintyFinding(item: CartItem): ReviewFinding[] {
-  if (item.issues.length === 0) return [];
-  return [
-    {
-      id: `${item.key}:uncertain`,
-      itemKey: item.key,
-      kind: 'uncertain',
-      itemName: itemDisplayName(item),
-      text: uncertaintyText(item),
-    },
-  ];
-}
-
-function uncertaintyText(item: CartItem): string {
-  if (item.issues.includes('unavailable')) return "This item shows as unavailable, so it isn't part of the review.";
-  const missing: string[] = [];
-  if (item.issues.includes('missing_title')) missing.push('name');
-  if (item.issues.includes('missing_price') || item.issues.includes('ambiguous_price')) missing.push('price');
-  if (item.issues.includes('missing_quantity')) missing.push('quantity');
-  const list = missing.length > 1 ? `${missing.slice(0, -1).join(', ')} or ${missing.at(-1)}` : (missing[0] ?? 'details');
-  return `Couldn't read this item's ${list} reliably, so Worth It didn't assess it.`;
 }

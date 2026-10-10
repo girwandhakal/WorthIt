@@ -1,3 +1,4 @@
+import { clarificationId } from '../assessment/clarification';
 import { observedToInput } from '../domain/orders';
 import { buildImportReview } from '../ingestion/review-import';
 import type { ContentRequest } from '../messaging/messages';
@@ -5,7 +6,7 @@ import { validateContentRequest } from '../messaging/validate-message';
 import { localIsoDate } from '../shared/dates';
 import { getPreferences, type LocalArea } from '../storage/preferences';
 import type { Repositories } from '../storage/repositories';
-import { addDismissed, getDismissed, type SessionArea } from './dismissals';
+import { addDismissed, addSkippedQuestion, getDismissed, getSkippedQuestions, type SessionArea } from './dismissals';
 import { reviewCart } from './review-cart';
 
 export interface BackgroundDeps {
@@ -45,12 +46,42 @@ async function dispatch(request: ContentRequest, tabId: number, deps: Background
   const now = deps.now?.() ?? new Date();
   switch (request.type) {
     case 'cart/review': {
-      const [dismissed, preferences] = await Promise.all([getDismissed(deps.session, tabId), getPreferences(deps.local)]);
-      const review = reviewCart(request.snapshot, dismissed);
+      const { purchases, clarifications } = await deps.repositories();
+      const [dismissedIds, skippedQuestions, preferences, history, answers] = await Promise.all([
+        getDismissed(deps.session, tabId),
+        getSkippedQuestions(deps.session, tabId),
+        getPreferences(deps.local),
+        purchases.list(),
+        clarifications.list(),
+      ]);
+      const review = reviewCart(request.snapshot, {
+        history,
+        clarifications: answers,
+        preferences,
+        today: localIsoDate(now),
+        dismissedIds,
+        skippedQuestions,
+      });
       return { ok: true, review: { ...review, autoOpen: review.autoOpen && preferences.promptsEnabled } };
     }
     case 'panel/dismiss': {
       await addDismissed(deps.session, tabId, request.findingIds);
+      return { ok: true };
+    }
+    case 'clarification/answer': {
+      const { clarifications } = await deps.repositories();
+      await clarifications.put({
+        id: clarificationId(request.questionId, request.itemMatchKey),
+        questionId: request.questionId,
+        itemMatchKey: request.itemMatchKey,
+        itemTitle: request.itemTitle,
+        answer: request.answer,
+        answeredAt: now.toISOString(),
+      });
+      return { ok: true };
+    }
+    case 'clarification/skip': {
+      await addSkippedQuestion(deps.session, tabId, clarificationId(request.questionId, request.itemMatchKey));
       return { ok: true };
     }
     case 'orders/settings': {

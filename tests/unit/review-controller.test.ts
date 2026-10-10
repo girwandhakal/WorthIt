@@ -4,6 +4,7 @@ import { reviewCart } from '../../src/background/review-cart';
 import { startReviewController, type PanelHandle } from '../../src/content/review-controller';
 import type { CartReview } from '../../src/domain/review';
 import type { ContentRequest } from '../../src/messaging/messages';
+import { reviewContext } from '../helpers/background';
 import { readFixture } from '../helpers/fixtures';
 
 function loadIntoDocument(file: string) {
@@ -26,7 +27,7 @@ describe('startReviewController', () => {
     const sent: ContentRequest[] = [];
     const send = vi.fn(async (request: ContentRequest) => {
       sent.push(request);
-      return request.type === 'cart/review' ? { ok: true, review: reviewCart(request.snapshot, new Set()) } : { ok: true };
+      return request.type === 'cart/review' ? { ok: true, review: reviewCart(request.snapshot, reviewContext()) } : { ok: true };
     });
     const mountPanel = vi.fn(async (): Promise<PanelHandle> => {
       mounted.push('mount');

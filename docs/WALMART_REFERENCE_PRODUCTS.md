@@ -50,3 +50,37 @@
 | Monster 16.4 ft LED Strip Lights (`18110413708`) | $14.88 | Decor | Discretionary | Skip-eligible only if similar decor was bought in the last 90 days. |
 | Skittles Original, Sharing Size 15.6 oz (`656700117`) | $4.97 | Candy | Discretionary food | Gets the added-sugar note when its recorded label lists added sugar. |
 | Reese's Miniatures, Share Pack 9.6 oz (`17569970321`) | $5.97 | Candy | Discretionary food | Gets the added-sugar note when its recorded label lists added sugar. |
+
+## Label facts (added in issue #7)
+
+`src/assessment/reference/products.ts` records, for each food or drink, the grams of **added sugars** per serving, the declared major **allergens**, whether it is vegetarian/vegan when clear, and the **ingredient list** where Worth It compares labels. Worth It uses these only as follows:
+
+- **Added sugar > 0 g** → the approved added-sugar note; such a product is never suggested as a switch. Grams are never shown to the shopper.
+- **"Similar ingredients"** is claimed only when both ingredient lists are recorded and at least 80% overlap. Otherwise the message makes no similarity claim.
+- **Allergens / vegetarian / vegan** → a store brand that conflicts with the shopper's settings is flagged and not suggested.
+- Anything not recorded is `null` → the related check is `unknown`, never guessed.
+
+| Product (ID) | Added sugars | Allergens | Ingredients recorded |
+|---|---|---|---|
+| Horizon Organic whole milk (`10309701`) / Great Value organic whole milk (`10315798`) | 0 g / 0 g | milk | yes (organic milk, vitamin D3) |
+| Eggland's Best eggs (`10324125`) / Great Value eggs (`145051970`) | 0 g / 0 g | eggs | yes |
+| Kraft shredded mild cheddar (`47088920`) / Great Value (`10452370`) | 0 g / 0 g | milk | yes |
+| Land O Lakes butter (`10291058`) / Great Value (`132893363`) | 0 g / 0 g | milk | yes |
+| Wonder white bread (`37858875`) / Great Value (`10315752`) | 2 g / 2 g | wheat | no |
+| Cheerios (`10311408`) / Great Value Toasted O's (`17238466448`) | 2 g / 2 g | not recorded | no |
+| Frosted Flakes (`5014113090`) / Great Value (`264614057`) | 12 g / 12 g | not recorded | no |
+| Jif Natural (`25847552`) / Great Value Natural (`36267321`) | 2 g / 2 g | peanuts | no |
+| Barilla spaghetti (`10309153`) / Great Value (`10534115`) | 0 g / 0 g | wheat | no |
+| Bush's black beans (`10306800`) / Great Value (`10534038`) | 0 g / 0 g | none | no |
+| Mahatma rice (`15754607`) / Great Value (`10315395`) | 0 g / 0 g | none | no |
+| Heinz ketchup (`15529427`) / Great Value (`172196409`) | 4 g / 4 g | none | no |
+| Folgers coffee (`578550306`) / Great Value (`3400314469`) | 0 g / 0 g | none | yes (coffee) |
+| Tropicana OJ (`5512318310`) / Great Value OJ (`403284742`) | 0 g / 0 g | none | Tropicana only |
+| Coca-Cola (`16618684`) / Sam's Cola (`16785073`) | 39 g / 38 g | none | no |
+| Diet Coke (`15610624`) / Sam's Cola Diet (`16504559`) | 0 g / 0 g | none | no |
+| Skittles (`656700117`) | 34 g | none | no |
+| Reese's Miniatures (`17569970321`) | 19 g | milk, peanuts, soy | no |
+
+**Verification status:** these label values were transcribed on 2026-10-10 from the products' published Nutrition Facts, not read from the live Walmart product pages (which block automated access). Like prices, **recheck them on each product page before the walkthrough** and correct `products.ts` if a label differs. Only the zero / non-zero added-sugar distinction affects what the shopper sees.
+
+Paper-towel sizes are recorded as sheet counts derived from Walmart's listed unit prices ($1.23 and $1.50 per 100 sheets), so the comparison matches what Walmart shows.
