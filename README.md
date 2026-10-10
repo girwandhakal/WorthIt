@@ -30,7 +30,7 @@ npm run test:e2e       # builds, then runs Playwright against local fixture page
 1. Run `npm run build`.
 2. Open `chrome://extensions` in Google Chrome and turn on **Developer mode**.
 3. Choose **Load unpacked** and select the `.output/chrome-mv3` folder.
-4. Open `https://www.walmart.com/cart`. Worth It reviews the cart and shows a small "Reviewed N items" indicator, or opens its panel when something merits a second look.
+4. Open `https://www.walmart.com/cart` (or your Amazon cart). Worth It reviews the cart and shows a small "Reviewed N items" indicator, or opens its panel when something merits a second look.
 
 On first install Worth It opens a short onboarding page that explains what it reads and lets you choose settings. Everything else (purchase history, Gmail import, the OpenAI key, privacy and deletion) is in the extension's settings page.
 
@@ -41,6 +41,7 @@ Account-specific build settings (the stable extension key and Gmail OAuth client
 | Permission | Why |
 |---|---|
 | `https://www.walmart.com/*` | Read cart rows (name, item link, quantity, displayed prices) on the cart page. Walmart is a single-page app, so the script is present on the site but stays inert everywhere except `/cart` and, only if you opt in to purchase recording, the order confirmation and purchase-history pages, where it reads item rows when you click "Record these purchases". It never reads checkout, payment, address, or sign-in fields and never clicks retailer controls. |
+| `https://www.amazon.com/*` | Same as Walmart, for Amazon cart routes and (opt-in) order pages; inert on checkout and everywhere else. See [docs/AMAZON.md](docs/AMAZON.md). |
 | `storage` | Keep preferences and per-tab panel state on this device. |
 | `identity` | Optional, user-initiated Gmail connection (read-only) for importing receipts. |
 | `https://gmail.googleapis.com/*` | Search and read likely order emails after the shopper connects Gmail. Parsed locally; email bodies are not kept. |

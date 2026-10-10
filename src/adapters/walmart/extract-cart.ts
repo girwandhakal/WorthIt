@@ -1,6 +1,6 @@
 import { CART_SNAPSHOT_VERSION, type CartItem, type CartSnapshot, type ExtractionIssue } from '../../domain/cart';
 import { findAllPricesInCents, parsePriceToCents } from '../../shared/currency';
-import { cleanText } from '../retailer-adapter';
+import { WORTH_IT_HOST_TAG, cleanText } from '../retailer-adapter';
 import {
   BRAND_SELECTORS,
   CART_COUNT_PATTERN,
@@ -22,8 +22,6 @@ import {
   WAS_PRICE_TEXT,
 } from './selectors';
 
-/** Host element id of Worth It's own UI; never read as part of the cart. */
-export const WORTH_IT_HOST_TAG = 'worth-it-panel';
 
 /**
  * Reads the visible Walmart cart rows into a normalized snapshot. Read-only:

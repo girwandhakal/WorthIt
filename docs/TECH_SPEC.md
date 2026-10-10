@@ -199,7 +199,8 @@ WorthIt/
 │   ├── options/
 │   │   ├── index.html
 │   │   └── main.tsx
-│   └── walmart.content.tsx      # Walmart cart review panel and opt-in purchase recorder
+│   ├── walmart.content.tsx      # Walmart cart review panel and opt-in purchase recorder
+│   └── amazon.content.tsx       # Same, for Amazon
 ├── src/
 │   ├── domain/
 │   │   ├── cart.ts
@@ -216,6 +217,8 @@ WorthIt/
 │   │       └── review-import.ts
 │   ├── adapters/
 │   │   ├── retailer-adapter.ts
+│   │   ├── observe-page.ts       # Shared cart observer and SPA route watcher
+│   │   ├── amazon/               # Amazon cart and order-page adapter (issue #10)
 │   │   └── walmart/
 │   │       ├── selectors.ts
 │   │       ├── extract-cart.ts
@@ -250,7 +253,7 @@ WorthIt/
 │   │   ├── messages.ts
 │   │   └── validate-message.ts
 │   ├── background/              # Service-worker message handlers and per-tab dismissal state
-│   ├── content/                 # Retailer-agnostic controller: activates only on the cart route
+│   ├── content/                 # Retailer-agnostic controllers and shared content-script setup
 │   ├── ui/
 │   │   ├── options/              # Onboarding, preferences, history, Gmail import, OpenAI key, privacy
 │   │   ├── orders/               # Opt-in purchase recorder panel

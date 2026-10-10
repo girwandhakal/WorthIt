@@ -61,7 +61,7 @@ export function PreferencesForm({ preferences, update }: PreferencesFormProps) {
             onChange={(event) => void update({ recordPurchases: event.target.checked })}
           />
           <span>
-            <strong>Offer to record purchases from Walmart order pages</strong>
+            <strong>Offer to record purchases from Walmart and Amazon order pages</strong>
             <span className="wi-hint">
               On the order confirmation and purchase-history pages, Worth It offers to read item names, quantities, and
               prices so you can save them. It never reads payment, address, or account details, and you review every

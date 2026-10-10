@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Amazon.com Shopping Cart (fixture)</title></head>
+<body>
+<!-- Synthetic fixture modeled on Amazon's cart structure. ASINs are fictional. -->
+<div id="nav-belt"><span id="nav-link-accountList">Hello, ACCOUNT-SENTINEL</span></div>
+<div id="a-page">
+  <form id="activeCartViewForm" method="post" action="/cart/ref=ox_sc_update_quantity">
+    <div id="sc-active-cart" data-name="Active Items">
+      <h1>Shopping Cart</h1>
+      <div class="sc-list-item" data-asin="B0WITEST01" data-itemtype="active" data-price="27.99" data-quantity="1">
+        <a class="sc-product-link" href="/Owala-FreeSip-Insulated-Stainless-Steel/dp/B0WITEST01/ref=ox_sc_act_title_1">
+          <span class="sc-product-title"><span class="a-truncate-full">Owala FreeSip Insulated Stainless Steel Water Bottle, 24 oz</span></span>
+        </a>
+        <p class="sc-product-price">$27.99</p>
+        <span class="a-dropdown-prompt">1</span>
+        <input type="submit" class="retailer-control" value="Delete">
+      </div>
+      <div class="sc-list-item" data-asin="B0WITEST02" data-itemtype="active">
+        <a class="sc-product-link" href="/gp/product/B0WITEST02/ref=ox_sc_act_title_2">
+          <span class="sc-product-title"><span class="a-truncate-full">Amazon Basics AA Alkaline Batteries, 20 Count</span></span>
+        </a>
+        <div class="sc-item-price-block"><span class="a-price"><span class="a-offscreen">$12.49</span></span></div>
+        <span class="a-text-price"><span class="a-offscreen">$14.99</span></span>
+        <select name="quantity" class="retailer-control"><option value="1">1</option><option value="2" selected>2</option></select>
+      </div>
+      <div class="sc-list-item" data-asin="B0WITEST03" data-itemtype="active" data-quantity="1">
+        <a class="sc-product-link" href="/dp/B0WITEST03">
+          <span class="sc-product-title">Mystery Gadget Pro</span>
+        </a>
+        <p class="sc-product-price">$19.99</p>
+      </div>
+    </div>
+    <div id="sc-saved-cart" data-name="Saved items">
+      <div class="sc-list-item" data-asin="B0WITEST09" data-itemtype="saved" data-price="9.99" data-quantity="1">
+        <span class="sc-product-title">Saved Thing</span>
+      </div>
+    </div>
+  </form>
+  <div id="sc-buy-box">
+    <span id="sc-subtotal-label-activecart">Subtotal (4 items):</span>
+    <span id="sc-subtotal-amount-activecart">$72.96</span>
+    <input type="submit" class="retailer-control" value="Proceed to checkout">
+  </div>
+</div>
+<script>
+  window.__retailerClicks = 0;
+  document.addEventListener('click', (event) => {
+    if (event.target.closest('.retailer-control')) window.__retailerClicks += 1;
+  }, true);
+</script>
+</body>
+</html>

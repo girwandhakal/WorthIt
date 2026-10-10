@@ -18,7 +18,7 @@ export function App() {
     <main className="wi-page wi-popup">
       <h1>Worth It</h1>
       <p>
-        Open your Walmart cart and Worth It reviews it: a small “Reviewed N items” note, or a short recap when a few items
+        Open your Walmart or Amazon cart and Worth It reviews it: a small “Reviewed N items” note, or a short recap when a few items
         deserve a second thought. It never changes your cart.
       </p>
       <label className="wi-check">
