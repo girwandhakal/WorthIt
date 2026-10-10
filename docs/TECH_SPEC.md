@@ -80,7 +80,7 @@ Use a versioned TypeScript type with fields equivalent to:
 - ingredients/nutrition fields only when actually present on the page;
 - observation time and extraction confidence.
 
-Keep raw page text only in memory for extraction. Do not persist full page HTML, unrelated page content, checkout credentials, payment details, or browsing history.
+Keep raw page text only in memory for extraction. Do not persist full page HTML, unrelated page content, checkout credentials, payment details, or browsing history. The demo's synthetic history is a clearly labeled, separate fixture and must never be merged with or presented as a real shopper's purchases.
 
 ### Assessment result
 
@@ -268,7 +268,8 @@ Do not begin with live retailer automation. Build confidence in layers:
 3. **Assessment tests:** each rule’s positive, negative, uncertain, and boundary cases; ensure missing data never becomes a health or savings claim.
 4. **UI tests:** captions, keyboard controls, reduced motion, dismiss/continue, and no cart-edit actions.
 5. **End-to-end:** load the unpacked extension in Chromium with a persistent context and local test fixture pages that mimic the supported retailer DOM.
-6. **Manual retailer smoke check:** use a developer’s test cart, check page changes and selectors, and verify no interactions modify the cart. Retailer HTML may change; handle extraction failure visibly.
+6. **Synthetic purchase-history fixture:** bundle a small deterministic dataset under `tests/fixtures/history/` for the demo. Include examples of a recent similar durable good, routine consumable restocking, a prior store-brand comparison, and an uncertain or returned purchase. Use fictional products, dates, quantities, and prices; include no real names, addresses, email addresses, order IDs, account identifiers, or copied receipt content. Mark the fixture as demo data in the UI and keep it outside the user's editable real-history database.
+8. **Manual retailer smoke check:** use a developer’s test cart, check page changes and selectors, and verify no interactions modify the cart. Retailer HTML may change; handle extraction failure visibly.
 
 CI should install from the lockfile and run lint, typecheck, unit/integration tests, and production build. Keep screenshots and fixture data synthetic or scrubbed of account details. The user has asked for a spec, not implementation; checks begin when the code exists.
 
@@ -307,7 +308,7 @@ The plan can proceed with defaults except where these choices alter user-visible
 
 1. Confirm Walmart US is the first demo retailer, with Amazon second.
 2. Resolve “AI-powered”: approve transparent local rule-based assessment for MVP, or explicitly require a model and accept a separate privacy/backend decision.
-3. Confirm whether future-purchase recording is opt-in and whether the initial demo uses synthetic history, manually entered records, or a user-provided receipt.
+3. The demo will use a bundled synthetic purchase-history fixture; no receipt emails are required. Decide separately whether future-purchase recording is opt-in for real users.
 4. Approve the specific health triggers, numeric thresholds, source wording, and reviewed claims. Do not ship a health rule based only on an example such as “candy” or “chips.”
 5. Confirm whether aggregate investment illustration is enabled by default or is an opt-in setting.
 6. Provide a Chrome test profile or confirm a synthetic fixture-only demo; do not share passwords or payment details.
