@@ -1,0 +1,72 @@
+:root {
+  --wi-bg: #ffffff;
+  --wi-surface: #f4f7f5;
+  --wi-text: #1d2a24;
+  --wi-muted: #56645d;
+  --wi-border: #d5ded9;
+  --wi-accent: #1f7a5a;
+  --wi-accent-strong: #165c43;
+  --wi-danger: #a12c2c;
+  --wi-focus: #2563eb;
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--wi-text);
+  background: var(--wi-bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --wi-bg: #121a16;
+    --wi-surface: #1c2621;
+    --wi-text: #e8efeb;
+    --wi-muted: #a8b6af;
+    --wi-border: #33433b;
+    --wi-accent: #4cc596;
+    --wi-accent-strong: #7fdcb6;
+    --wi-danger: #ff8a8a;
+    --wi-focus: #8ab4ff;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--wi-bg);
+}
+
+:focus-visible {
+  outline: 3px solid var(--wi-focus);
+  outline-offset: 2px;
+}
+
+.wi-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+}
+
+.wi-popup {
+  width: 320px;
+  padding: 16px;
+}
+
+.wi-page h1 {
+  margin: 0 0 8px;
+  color: var(--wi-accent-strong);
+}
+
+.wi-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 999px;
+  background: var(--wi-accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wi-button:hover {
+  background: var(--wi-accent-strong);
+}
