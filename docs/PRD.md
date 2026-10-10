@@ -4,7 +4,7 @@
 **Product Name:** Worth It  
 **Product Type:** AI-Powered Shopping and Purchase Assessment Assistant  
 **Platform:** Chrome Browser Extension  
-**Primary Retailers:** Walmart and Amazon (the hackathon MVP ships one retailer first, Walmart US recommended; Amazon follows)  
+**Primary Retailers:** Walmart and Amazon (the hackathon MVP and walkthrough use Walmart US; Amazon follows through its own adapter)  
 **Project Context:** Hacklanta 2026 — Fintech Track  
 **Status:** Product Requirements — Hackathon MVP
 
@@ -161,7 +161,7 @@ Priority labels in this section describe the full product. Section 11 defines wh
 
 **Priority: Must Have**
 
-Worth It must recognize products that users are considering purchasing on supported shopping websites. On a supported cart page, it reads the displayed cart rows and their visible product fields; it does not crawl other pages or continuously scrape the retailer in the background. A retailer-specific reader maps the page’s product name, displayed price, and quantity into Worth It’s standard item record. If a field is absent or the page structure is not recognized, Worth It marks that information unknown and avoids calculations that depend on it. Cart rows usually do not show ingredients, nutrition facts, category, or a store-brand counterpart; those facts come from a reviewed product reference source approved for the MVP (see the technical specification). When no reference data exists for an item, checks that depend on it are reported as unknown rather than guessed.
+Worth It must recognize products that users are considering purchasing on supported shopping websites. On a supported cart page, it reads the displayed cart rows and their visible product fields; it does not crawl other pages or continuously scrape the retailer in the background. With the user's opt-in consent, it also reads only the item rows on the retailer's order confirmation and purchase-history pages to record purchases (PR-03); it never reads payment, address, or sign-in fields. A retailer-specific reader maps the page’s product name, displayed price, and quantity into Worth It’s standard item record. If a field is absent or the page structure is not recognized, Worth It marks that information unknown and avoids calculations that depend on it. Cart rows usually do not show ingredients, nutrition facts, category, or a store-brand counterpart; those facts come from a reviewed product reference source approved for the MVP (see the technical specification). When no reference data exists for an item, checks that depend on it are reported as unknown rather than guessed.
 
 The product should identify:
 
@@ -209,6 +209,8 @@ For example:
 - Additional running shoes may be discretionary if the user recently purchased a suitable pair.
 
 The product must not treat these classifications as definitive judgments about the user's needs.
+
+For the hackathon MVP, essential items are grocery staples and whole foods, basic household consumables, personal hygiene, over-the-counter medicine and first aid, baby care basics, pet food, and low-cost basic clothing or basic household items that have not been bought recently. Snacks, candy, soda, toys, decor, entertainment, and non-basic electronics are discretionary. Trend items sold at a premium and novelty items with no practical use are marked separately. The technical specification defines the exact categories, price limits, and lookback windows.
 
 ### PR-03: User-Controlled Purchase History
 
@@ -561,7 +563,7 @@ The product should access only information relevant to its functionality.
 
 Purchase-history records should come only from manual entry, receipts the user chooses to import through the optional read-only Gmail connection (PR-03), or purchases the user explicitly chooses to record through the extension. The product must not connect to bank or retailer accounts, and it must not access email except through that optional, user-initiated, read-only Gmail import.
 
-Dietary preferences and allergens are entered by the user, stored locally, and used only to flag conflicts with product labels; Worth It never infers health conditions. If the language-assistance service is used to phrase the checkout summary, the extension must disclose which minimized summary fields are sent, and it must never send purchase history records, email content, OAuth tokens, dietary or allergy settings, or personal financial data.
+Dietary preferences and allergens are entered by the user, stored locally, and used only to flag conflicts with product labels; Worth It never infers health conditions. If the language-assistance service (the OpenAI API) is used to phrase the checkout summary, the extension must disclose which minimized summary fields are sent, and it must never send purchase history records, email content, OAuth tokens, dietary or allergy settings, or personal financial data.
 
 The extension should not collect payment card details, passwords, or unrelated sensitive checkout information.
 
@@ -589,7 +591,7 @@ Before checkout, the shopper sees a short, polished animated recap of the items 
 
 **Priority: Should Have**
 
-At the end of the checkout summary, Worth It may show one illustration of what the total potential reduction in the current cart could grow to if invested over a stated period, such as 40 years. This total may combine supported savings from lower-priced alternatives and the prices of flagged items the shopper could choose to remove. For example: “Following these suggestions could reduce this cart by $5. If you invested that $5 at an assumed 10% annual return, compounded annually, it could grow to about $226 in 40 years before inflation.” Calculate the projection using only supported potential reductions in the current cart and the stated assumptions: future value = aggregate potential reduction × (1 + annual return) ^ years. Count each item only once: when an item has both a lower-priced alternative and a skip/remove suggestion, the aggregate uses a single, documented path for that item (the technical specification defines the rule). Do not include estimated savings from past purchases, and do not show a separate investment projection for any individual item. This is an optional perspective on the cart, not a recommendation to invest or a promise of actual returns.
+At the end of the checkout summary, Worth It may show one illustration of what the total potential reduction in the current cart could grow to if invested over a stated period, such as 40 years. This total may combine supported savings from lower-priced alternatives and the prices of flagged items the shopper could choose to remove. For example: “Following these suggestions could reduce this cart by $5. If you invested that $5 at an assumed 10% annual return, compounded annually, it could grow to about $226 in 40 years before inflation.” Calculate the projection using only supported potential reductions in the current cart and the stated assumptions: future value = aggregate potential reduction × (1 + annual return) ^ years. Count each item only once, using its primary suggestion. Worth It suggests skipping an item only when it looks useless for this shopper (a similar non-consumable was bought recently and the shopper has not said it is a replacement, or it is a novelty item with no practical use) or when it meets an approved health trigger; such items count their full price. Otherwise, an item with a lower-priced alternative counts the price difference. Do not include estimated savings from past purchases, and do not show a separate investment projection for any individual item. This is an optional perspective on the cart, not a recommendation to invest or a promise of actual returns.
 
 The single cart-level illustration must appear after the total potential reduction and state that amount, time horizon, assumed annual return, compounding frequency, and whether the projected value is nominal or adjusted for inflation. It must calculate the projected amount from those assumptions and explain that returns are uncertain and the result is hypothetical, not guaranteed. Worth It must not call an amount "saved" unless the user actually makes the lower-priced choice or removes the item and the product can verify that change. This comparison should remain secondary to the direct assessment of the cart.
 
@@ -880,7 +882,7 @@ The Hacklanta MVP should demonstrate the product's primary capabilities without 
 1. A functioning Chrome extension on at least one supported shopping flow.
 2. Automatic recognition of every product and relevant price in a supported checkout cart, with uncertainty shown for items the extension cannot read reliably.
 3. A concise pre-checkout summary of flagged items and meaningful concerns, including material uncertainty when an item could not be assessed reliably; ordinary items with no relevant concern are omitted.
-4. User-controlled purchase history using manual records and receipts the user chooses to import through the optional read-only Gmail flow.
+4. User-controlled purchase history using manual records, receipts the user chooses to import through the optional read-only Gmail flow, and purchases the extension records from order pages with the user's opt-in consent.
 5. Automatic purpose/necessity assessment and detection of potentially redundant purchases, while distinguishing food restocking, replacements, and additional items where possible.
 6. A single contextual clarification question when missing user context could change an assessment.
 7. At least one working, evidence-backed grocery value or nutrition insight based on actual product and label data, showing the store-brand recommendation, its actual price difference, and quantified potential savings when it costs less.
@@ -891,7 +893,6 @@ The Hacklanta MVP should demonstrate the product's primary capabilities without 
 ### Optional MVP Capabilities
 
 - Multiple retailer support.
-- Consent-based recording of purchases observed on supported retailer pages.
 - Impulsive purchase risk detection (PR-05) beyond the redundancy check.
 - Intervention-frequency settings beyond a simple on/off control.
 - Multiple product categories for alternatives.
