@@ -4,7 +4,7 @@
 **Product source:** [Product requirements](PRD.md)  
 **Issue:** [#1 — Document Worth It technical implementation plan](https://github.com/girwandhakal/WorthIt/issues/1)
 
-This document turns the current PRD into a buildable plan. It recommends a narrow, local-first Chrome extension that reads a supported checkout page, explains evidence-backed purchase concerns, and leaves every cart decision with the shopper.
+This document turns the current PRD into a buildable plan. It recommends a narrow, privacy-conscious Chrome extension that reads a supported checkout page deterministically from its visible cart structure, assesses each item using fixed criteria, summarizes applicable findings, and leaves every cart decision with the shopper.
 
 ## 1. Decisions at a glance
 
@@ -18,17 +18,20 @@ This document turns the current PRD into a buildable plan. It recommends a narro
 | UI | React, TypeScript, CSS, and inline SVG/CSS animation |
 | Local history | IndexedDB, wrapped with the small `idb` library; stores user-approved Gmail imports and other history locally |
 | Cross-context messages | Typed browser runtime messages; validate all received payloads |
-| Assessment | Deterministic, explainable rules and explicit evidence; no remote AI service in the MVP |
-| Remote backend | None for the single-user hackathon build; Gmail API is called from the extension with user OAuth |
+| Assessment | Fixed, versioned, deterministic criteria and calculations; each item produces structured criterion results with evidence and confidence |
+| Summary language | An LLM API phrases a deterministic, validated cart summary naturally; it cannot score items, calculate values, add claims, or alter evidence |
+| Remote services | No general application backend. A minimal server-side LLM gateway is required to protect provider credentials; Gmail API remains a separate direct, read-only OAuth flow |
 | Personal finance | No account connection, balance, budget, or cash-flow data |
 | Investment illustration | One optional aggregate-cart projection, using 10% assumed yearly return, annual compounding, 40 years, before inflation |
 | Cart control | Read-only. Never add, remove, replace, or purchase an item |
 | Animation | Short, skippable animated recap with captions and equivalent text |
 | Release | Load unpacked for the hackathon; Chrome Web Store publication is a later step requiring listing assets and Google OAuth review for Gmail scope |
 
-The PRD calls the product “AI-powered,” but its approved experience also requires evidence-backed, explainable statements. This baseline uses explicit rules and sources rather than a model that may invent claims. Before implementation, the owner should decide whether “AI-powered” means data-driven automated assessment (which these rules provide) or generative/model-based output. A model would add data sharing, cost, safety evaluation, and privacy decisions; it is not assumed here.
+Worth It uses deterministic, versioned criteria to assess each item and calculate scores, prices, savings, and grouped cart statistics. An LLM API is used only to phrase already-verified findings and summary text in natural language. It must not select or change criteria, assign scores, classify purchases, calculate or alter numbers, invent evidence or sources, or add unsupported advice. Item names, numeric values, findings, and citations remain code-controlled fields. If the LLM is unavailable or its response fails validation, Worth It uses reviewed deterministic text templates. The provider, secure gateway hosting, credential setup, and exact data disclosure remain owner setup decisions in issue #4.
 
 ## 2. MVP boundary
+
+The hackathon build should make one capability excellent: the pre-checkout cart review and animated recap. Assessment rules, history, savings, language assistance, and animation support that single user experience rather than becoming separate shallow features. Prioritize a complete, polished Walmart journey over more retailers or a long list of assessment categories.
 
 The first usable slice should prove one complete journey:
 
@@ -42,7 +45,7 @@ The first usable slice should prove one complete journey:
 
 Start with one retailer and a small set of product categories that can be demonstrated reliably. The PRD names Amazon and Walmart; this specification recommends Walmart US first because the grocery examples depend on grocery data. Confirm this retailer order before coding. Add Amazon through a separate adapter after the first full flow works.
 
-Do not make computer vision, receipt OCR, account linking, cloud synchronization, a universal product catalog, or a hosted LLM part of the first release. A retailer page’s accessible text and structured DOM are the primary data source. If product data cannot be read safely, show “Couldn’t assess this item” rather than guessing.
+Do not make computer vision, receipt OCR, account linking, cloud synchronization, or a universal product catalog part of the first release. A retailer page’s accessible text and structured DOM are the primary data source. The LLM is limited to wording a minimized, already-computed summary payload through the approved gateway; it is not the assessment engine or a video generator. Do not send raw page HTML, email bodies or attachments, Gmail tokens, or personal financial information to the LLM. Disclose any cart data sent to the selected provider. If product data cannot be read safely, show “Couldn’t assess this item” rather than guessing.
 
 ## 3. Architecture and data flow
 
@@ -51,20 +54,25 @@ flowchart LR
   Page[Retailer cart / checkout DOM] --> Adapter[Retailer content adapter]
   Adapter --> Normalize[Normalized cart snapshot]
   Normalize --> Worker[MV3 service worker]
-  Worker --> Rules[Local assessment rules]
+  Worker --> Rules[Local deterministic criteria]
   History[(Local IndexedDB)] --> Rules
   Catalog[(Bundled evidence and rule data)] --> Rules
-  Rules --> View[Isolated React checkout panel]
+  Rules --> Aggregate[Deterministic item and cart summary]
+  Aggregate --> Gateway[Secure LLM wording gateway]
+  Gateway --> View[Isolated React checkout panel]
+  Aggregate -->|validated template fallback| View
   View --> Choice[Dismiss / view details / continue]
   View --> History
 ```
 
 ### Responsibilities
 
-- **Retailer content adapter:** Reads only the supported retailer page, using stable accessible labels and narrowly scoped selectors. Converts the retailer-specific markup to a common cart shape. It observes page changes and debounces updates. It does not click retailer controls or alter cart state.
+- **Retailer content adapter:** Reads only the supported retailer’s visible cart rows, using stable accessible labels and narrowly scoped selectors. It copies available product names, displayed prices, and quantities into a common cart shape; it does not use an LLM or computer vision to identify cart values, crawl other pages, run background scraping, click retailer controls, or alter cart state. If expected fields are missing or markup changes, it reports unknown values rather than guessing. It observes cart-page changes and debounces updates.
 - **Service worker:** Coordinates extension messages and access to extension APIs. It is short-lived in Manifest V3, so it must not keep essential state only in memory.
-- **Assessment module:** Applies testable rules to normalized cart items, local user preferences, purchase records, and bundled evidence. Each finding carries its reason, source, confidence, and calculation inputs.
-- **Checkout panel:** Renders the findings and animated recap inside an isolated Shadow DOM root to reduce style collisions. All buttons are user-initiated and act only on Worth It’s interface.
+- **Assessment module:** Applies fixed, versioned rules to normalized cart items, local preferences, user-approved purchase records, and bundled evidence. Each item yields structured results for each criterion, including applicability/status, score where defined, evidence/source, confidence, and calculation inputs. “Not applicable” and “no concern” are distinct from “unknown.”
+- **Summary builder:** Deterministically groups applicable item findings, calculates counts and cart totals, keeps alternative savings separate from possible remove/skip amounts and historical estimates, and prevents double counting. It omits non-applicable/no-concern criteria from the visible recap while retaining relevant uncertainty.
+- **LLM wording gateway:** Receives only the minimum structured, already-verified summary fields needed to phrase the recap naturally, calls the selected provider server-side, and returns validated phrasing only. Fixed item names, criterion labels, scores, prices, savings, source details, and links come from validated code data. Validate size-limited requests and responses; use reviewed templates on errors or unsupported output, with timeouts and rate limits. Keep provider credentials on the server side, outside the extension. It does not receive raw page/email data or calculate assessments.
+- **Checkout panel:** Renders structured findings and the prebuilt animated recap inside an isolated Shadow DOM root to reduce style collisions. The visuals are populated from the recap data; no video is generated. All buttons are user-initiated and act only on Worth It’s interface.
 - **Gmail receipt importer:** After the user chooses Connect Gmail and grants Google consent, requests a short-lived OAuth token, searches a bounded set of likely order messages with Gmail API `messages.list`, fetches selected messages with `messages.get`, parses them locally, and shows a review step before saving item records. It detects the fixed synthetic subject marker used by the hackathon receipt emails and marks those parsed records `synthetic_gmail`. It never sends, modifies, or deletes email.
 - **Local data layer:** Stores settings, user-approved parsed purchase history, and feedback locally. It offers review, correction, export, and deletion operations from settings.
 - **Bundled reference data:** Contains versioned health/evidence notes and conservative thresholds. Updates arrive only through a reviewed extension release; the extension does not execute remote code.
@@ -85,18 +93,18 @@ Keep raw page text only in memory for extraction. Do not persist full page HTML,
 
 ### Assessment result
 
-Each finding should include:
+Each item should return one result for every fixed criterion. A criterion result should include:
 
-- rule identifier and rule-set version;
+- criterion identifier and version;
 - item identifier;
-- finding type (value, repeat purchase, health evidence, incomplete data, or no concern);
-- short plain-language explanation;
-- supporting values and source URL;
+- applicability/status (`finding`, `no_concern`, `not_applicable`, or `unknown`);
+- deterministic score and scale when that criterion uses one; do not convert not-applicable or unknown into zero;
+- verified evidence values and source identifiers/URLs;
 - confidence/data quality;
-- optional suggested action;
+- suggested action, when applicable;
 - current-cart potential reduction, if calculable.
 
-The UI copy is rendered from validated fields and reviewed templates. Never let a product title or page text become executable markup. Escape all retailer-provided strings.
+Only applicable findings and material uncertainty are presented to the shopper. The deterministic summary builder groups related findings and computes all cart-level statistics. UI facts, amounts, scores, and source links are rendered from validated structured fields. Never let product names or page text become executable markup; escape retailer-provided strings.
 
 ## 4. Technology choices
 
@@ -106,7 +114,7 @@ Use **TypeScript** for shared models and retailer adapters, with strict mode ena
 
 Use **WXT** to generate the MV3 extension structure and support content-script entrypoints and development reload. Use **React** for the small settings and checkout-panel interfaces. Keep the UI as one compact surface rather than building a large dashboard before the checkout path works.
 
-Use CSS transitions and inline SVG for the short animated summary. Do not add a video-generation service or a 3D engine for the MVP: the user needs an animated visual explanation, captions, and a readable summary; lightweight locally bundled animation is faster, accessible, and works offline. Respect reduced-motion settings and provide pause, replay, skip, and text alternatives.
+Use CSS transitions and inline SVG for the short animated summary. The extension renders a reusable sequence of visual scenes from the deterministic recap data; it does not generate or render a video file, and the LLM never creates the animation. Keep the assets and animation logic bundled with the extension. Respect reduced-motion settings and provide pause, replay, skip, captions, and an equivalent text/static view.
 
 ### Storage
 
@@ -120,7 +128,7 @@ Use the Chrome `identity` permission and an extension OAuth client configured in
 
 The extension calls Gmail API directly from its trusted extension context: `users.messages.list` with a constrained `q` and pagination, then `users.messages.get` for candidate IDs. Do not send a Gmail token to retailer content scripts or a server. Store no refresh token or OAuth client secret in source. Let Chrome Identity manage its token cache; provide an explicit disconnect action that clears the cached token and explains how to revoke Worth It's access in Google Account settings.
 
-For your single-user hackathon build, put your own Google account on the OAuth consent screen's test-user list and use an extension OAuth client tied to the stable extension ID. Public distribution is a separate release gate: `gmail.readonly` is a restricted scope and requires Google OAuth verification; Google's current policy says restricted-scope data stored or transmitted on servers also requires a security assessment. Keep email processing local to avoid introducing that server-side data path. No backend is needed for cart assessment, rules, or Gmail calls. Do not add analytics SDKs.
+For your single-user hackathon build, put your own Google account on the OAuth consent screen's test-user list and use an extension OAuth client tied to the stable extension ID. Public distribution is a separate release gate: `gmail.readonly` is a restricted scope and requires Google OAuth verification; Google's current policy says restricted-scope data stored or transmitted on servers also requires a security assessment. Keep email processing local to avoid introducing that server-side data path. No general application backend is needed for cart assessment, deterministic rules, or Gmail calls. The selected LLM API requires a minimal server-side gateway to protect provider credentials. Do not add analytics SDKs.
 
 ## 5. Repository layout
 
@@ -133,7 +141,7 @@ WorthIt/
 ├── wxt.config.ts
 ├── tsconfig.json
 ├── .gitignore
-├── .env.example                 # Empty placeholders only if a later approved service needs configuration
+├── .env.example                 # Empty placeholders only; never store provider credentials here
 ├── docs/
 │   ├── PRD.md
 │   ├── TECH_SPEC.md
@@ -171,6 +179,7 @@ WorthIt/
 │   │       └── observe-cart.ts
 │   ├── assessment/
 │   │   ├── assess-cart.ts
+│   │   ├── summarize-cart.ts
 │   │   ├── rules/
 │   │   │   ├── store-brand.ts
 │   │   │   ├── repeat-purchase.ts
@@ -178,6 +187,9 @@ WorthIt/
 │   │   │   └── investment.ts
 │   │   └── evidence/
 │   │       └── sources.ts
+│   ├── summary/
+│   │   ├── phrase-summary.ts
+│   │   └── validate-phrasing.ts
 │   ├── storage/
 │   │   ├── database.ts
 │   │   ├── migrations.ts
@@ -193,6 +205,10 @@ WorthIt/
 │       ├── currency.ts
 │       ├── calculations.ts
 │       └── validation.ts
+├── server/
+│   └── summary-gateway/           # Minimal server-side LLM proxy; provider key stored as deployment secret
+│       ├── handler.ts
+│       └── validate-request.ts
 ├── tests/
 │   ├── fixtures/
 │   │   ├── retailer/             # Sanitized, synthetic retailer DOM snapshots
@@ -231,7 +247,9 @@ Security requirements:
 
 ## 7. Assessment rules and calculation behavior
 
-Keep decision rules deterministic, versioned, and explainable. “No concern” is a valid result and should not generate a warning. If evidence is insufficient, return uncertainty rather than a speculative claim.
+Keep decision criteria deterministic, versioned, and explainable. Each item receives a structured result for every criterion: applicable finding, no concern, not applicable, or unknown due to insufficient evidence. Define a score and scoring scale only for criteria that use one. Do not treat not-applicable or unknown as a zero score. The recap omits non-applicable and no-concern results, but surfaces material uncertainty where it affects the shopper's decision.
+
+A deterministic summary builder groups applicable results and computes all statistics and money values from validated item data. It is the sole authority for scores, classifications, counts, percentages, savings, and investment calculations. The LLM receives this finalized summary payload only to phrase concise, natural-language explanations. It must not choose which findings apply or create, change, or calculate facts. Render numeric values, criterion labels, evidence, and citations from the validated payload rather than accepting replacements from generated wording. Reject invalid output and fall back to reviewed templates. Never count mutually exclusive savings paths twice.
 
 - **Store brand:** Prefer an available store-brand suggestion as requested by the PRD. State the real per-unit and basket price difference. Claim “similar ingredients” only when retrieved labels support it. If the store brand is not cheaper, do not claim savings. Expose a material package, ingredient, or dietary mismatch.
 - **Past grocery savings:** Use recorded quantities and either recorded historical prices or clearly labeled present-day price differences applied to historical quantities. Keep this hypothetical estimate separate from current-cart savings.
@@ -240,20 +258,25 @@ Keep decision rules deterministic, versioned, and explainable. “No concern” 
 - **Cart summary:** Separate (1) lower-priced alternative savings and (2) the amount the user might avoid by removing a flagged item. Label both as potential, not realized, savings. Do not count the same item twice.
 - **Investment illustration:** Only once at the end and only from aggregate current-cart potential savings. With principal (P), annual rate (r=0.10), yearly compounding, and (n=40), calculate (FV=P(1+r)^n). For $5, this is about $226.30 before inflation, fees, taxes, and uncertainty. State the assumed rate and term. This is an illustration, not a forecast or promise. Do not show item-level projections or use personal finances.
 
-Prices and savings must use decimal-safe currency arithmetic (integer minor units such as cents), not floating point for money totals.
+Prices and savings must use decimal-safe currency arithmetic (integer minor units such as cents), not floating point for money totals. Group counts and percentages must use documented denominators and deterministic rounding; when the denominator or underlying data is unavailable, omit the statistic rather than ask the LLM to estimate it.
+
+### LLM wording and data boundary
+
+The LLM API is a wording assistant, not an evaluator. Send only the minimum validated summary data needed for natural phrasing, such as applicable finding labels and explanations. Never send raw retailer-page content, raw Gmail messages or attachments, OAuth tokens, or personal financial data. Disclose the data transfer before use. Keep the provider API key in a server-side gateway secret store, never in extension code or configuration shipped to Chrome. Validate returned text against the supplied finding IDs and fixed numeric/source fields; provide deterministic reviewed wording if the service is unavailable, slow, or returns unsupported content.
 
 ## 8. User interface behavior
 
 At checkout, present a short visual sequence:
 
 1. “Worth It reviewed your cart” with the number of items assessed.
-2. Only items with a meaningful finding, each with item name, plain reason, actual evidence, and certainty level.
-3. Store-brand suggestions with actual unit/cart price difference where available.
-4. A repeat-purchase note that acknowledges uncertainty and asks a single useful question only if needed.
-5. Qualifying health note with a concise source and practical phrasing.
-6. Total potential current-cart reduction, clearly distinct from estimated historical savings.
-7. Optional aggregate investment illustration at the end.
-8. Controls to pause, replay, read captions/details, dismiss, or continue.
+2. The deterministic summary groups applicable findings by criterion or concern and omits non-applicable and no-concern checks.
+3. Each flagged item shows its name, plain-language reason, evidence, and certainty. The LLM may phrase explanations naturally, but criterion labels, numbers, sources, and links come from validated structured data.
+4. Store-brand suggestions show the actual unit and cart price difference where available.
+5. Repeat-purchase notes acknowledge uncertainty and ask one useful question only if needed.
+6. Qualifying health notes include a concise source and practical phrasing.
+7. Total potential current-cart reduction is clearly distinct from estimated historical savings.
+8. One optional aggregate investment illustration appears at the end.
+9. Controls let the shopper pause, replay, read captions/details, dismiss, or continue.
 
 Never say “bad choice,” shame the shopper, or imply that an item is forbidden. “Consider skipping or reducing this item” can be offered for a qualifying concern; the shopper remains in charge. The recap must not block the retailer’s checkout. If animation is unavailable, reduced, or skipped, show the same information in a readable static panel. Keyboard navigation and screen-reader labels are required.
 
@@ -277,14 +300,15 @@ Exact WXT command flags should be taken from the installed version’s generated
 
 Do not begin with live retailer automation. Build confidence in layers:
 
-1. **Unit tests:** currency rounding, aggregate savings, compound-growth math, item normalization, duplicate matching, nutrition threshold logic, and evidence/source rendering.
+1. **Unit tests:** currency rounding, aggregate savings, compound-growth math, item normalization, duplicate matching, nutrition threshold logic, criterion scores and applicability, grouped summary statistics, and evidence/source rendering.
 2. **Adapter tests:** sanitized HTML fixtures for cart rows, quantity changes, discounts, missing prices, multi-quantity lines, and page rerenders.
-3. **Assessment tests:** each rule’s positive, negative, uncertain, and boundary cases; ensure missing data never becomes a health or savings claim.
-4. **UI tests:** captions, keyboard controls, reduced motion, dismiss/continue, and no cart-edit actions.
-5. **End-to-end:** load the unpacked extension in Chromium with a persistent context and local test fixture pages that mimic the supported retailer DOM.
-6. **Email parsing tests:** use fictional `.eml`/MIME fixtures to test HTML and plain-text parsing, missing fields, duplicates, malformed payloads, and injection-like text. Tests must prove the email body is discarded after extraction and nothing is sent to a server.
-7. **Synthetic Gmail receipts:** send several fictional order-confirmation emails to the owner's own Gmail account, with a fixed subject prefix `[Worth It Test Receipt]` and varied purchase dates, products, quantities, prices, and return/cancel cases. The extension must find them through Gmail API and import them through the normal review flow, tagging them `synthetic_gmail`. Do not seed a local JSON history at runtime or put real email content into the repository.
-8. **Manual retailer smoke check:** use a developer’s test cart, check page changes and selectors, and verify no interactions modify the cart. Retailer HTML may change; handle extraction failure visibly.
+3. **Assessment tests:** each criterion’s positive, negative, not-applicable, unknown, and boundary cases; ensure missing data never becomes a health or savings claim.
+4. **Summary/LLM tests:** verify deterministic grouping and calculations, no double counting, stable text fallback, response validation, and that model output cannot alter scores, numbers, sources, or add a finding.
+5. **UI tests:** captions, keyboard controls, reduced motion, dismiss/continue, and no cart-edit actions.
+6. **End-to-end:** load the unpacked extension in Chromium with a persistent context and local test fixture pages that mimic the supported retailer DOM.
+7. **Email parsing tests:** use fictional `.eml`/MIME fixtures to test HTML and plain-text parsing, missing fields, duplicates, malformed payloads, and injection-like text. Tests must prove the email body is discarded after extraction and nothing is sent to a server.
+8. **Synthetic Gmail receipts:** send several fictional order-confirmation emails to the owner's own Gmail account, with a fixed subject prefix `[Worth It Test Receipt]` and varied purchase dates, products, quantities, prices, and return/cancel cases. The extension must find them through Gmail API and import them through the normal review flow, tagging them `synthetic_gmail`. Do not seed a local JSON history at runtime or put real email content into the repository.
+9. **Manual retailer smoke check:** use a developer’s test cart, check page changes and selectors, and verify no interactions modify the cart. Retailer HTML may change; handle extraction failure visibly.
 
 CI should install from the lockfile and run lint, typecheck, unit/integration tests, and production build. Keep screenshots and fixture data synthetic or scrubbed of account details. The user has asked for a spec, not implementation; checks begin when the code exists.
 
@@ -303,7 +327,7 @@ Complete work in this order:
 7. [#10 — Add Amazon as the second retailer adapter](https://github.com/girwandhakal/WorthIt/issues/10), after the Walmart vertical slice is stable.
 8. [#11 — Prepare optional public Chrome Web Store and Google OAuth release](https://github.com/girwandhakal/WorthIt/issues/11), only if the owner chooses public distribution.
 
-Issue #4 is a decision gate. Do not implement unapproved health thresholds or silently resolve whether “AI-powered” means deterministic local rules or model-generated output. Implement one issue at a time on a focused branch from the latest `main`; each PR must link its issue and report the exact tests/checks run and their results.
+Issue #4 remains a decision gate for the exact health thresholds, Gmail owner setup, investment default, and the LLM provider/gateway and data disclosure. The assessment approach is decided: criteria, scores, calculations, and grouped statistics are deterministic; the LLM may only phrase the validated summary. Do not begin blocked implementation work until the remaining relevant decisions and setup are recorded. Implement one issue at a time on a focused branch from the latest `main`; each PR must link its issue and report the exact tests/checks run and their results.
 
 ## 12. Packaging and release
 
@@ -324,7 +348,7 @@ Submit only after the extension’s behavior, permission prompts, listing claims
 The plan can proceed with defaults except where these choices alter user-visible behavior or data handling:
 
 1. Confirm Walmart US is the first hackathon retailer, with Amazon second.
-2. Resolve “AI-powered”: approve transparent local rule-based assessment for MVP, or explicitly require a model and accept a separate privacy/backend decision.
+2. Choose the LLM provider and approve the minimal server-side gateway/hosting and data disclosure for sending minimized cart-summary fields for wording only. Never place its API key in the extension; no model or gateway may change assessments or numeric results.
 3. Provide a Google Cloud project with Gmail API enabled, configure the OAuth consent screen in testing, add your own Google account as a test user, and provide the extension OAuth client ID. No password, API secret, or personal receipt sample needs to be sent to me. Decide whether observed future purchases should be recorded with opt-in consent.
 4. Approve the specific health triggers, numeric thresholds, source wording, and reviewed claims. Do not ship a health rule based only on an example such as “candy” or “chips.”
 5. Confirm whether aggregate investment illustration is enabled by default or is an opt-in setting.
@@ -343,14 +367,14 @@ Gmail API uses an OAuth extension client ID and your consent, not an API key. Ba
 | Health overclaim | Narrow reviewed triggers, authoritative sources, qualified wording, no inference from title |
 | Broad extension access | One retailer permission at a time; explain and request only required host access |
 | Animation obscures details | Captions, text equivalent, reduced motion, pause/skip, accessible focus order |
-| PRD’s AI wording conflicts with local rules | Get owner decision before coding; never imply a model is used if it is not |
+| LLM wording changes or invents facts | Keep criteria and calculations deterministic, validate wording against structured findings, render numeric/source fields from code, and fall back to reviewed templates |
 | Hackathon time pressure | One retailer, a few evidence-backed scenarios, synthetic fixtures |
 
 ## 15. Plain-English summary
 
 Worth It should be a small Chrome add-on that reviews the supported shopping cart and gives the shopper a short, evidence-based pause before checkout. It can find likely order receipts in Gmail after you explicitly connect your account, show you parsed purchase records for confirmation, and keep approved history on your device. Synthetic receipt emails sent to your own Gmail account provide repeat-purchase test cases when your real mailbox has no matching receipts. The extension can point out a cheaper store brand, a recent similar purchase, or a well-supported nutrition concern; it totals potential savings and may show one aggregate investment illustration. It never edits the cart or uses bank information.
 
-For the hackathon build, use TypeScript/React/WXT, local IndexedDB, and Gmail API read-only OAuth for your own test account. Send synthetic receipt emails to that account and let Worth It find and parse them through the same receipt importer used for real messages. Gmail read access is broad even when searches are constrained; keep processing local and require review before saving each imported record. Walmart-first and the exact meaning of “AI-powered” remain product choices before implementation.
+For the hackathon build, use TypeScript/React/WXT, local IndexedDB, and Gmail API read-only OAuth for your own test account. Send synthetic receipt emails to that account and let Worth It find and parse them through the same receipt importer used for real messages. Gmail read access is broad even when searches are constrained; keep processing local and require review before saving each imported record. The product applies fixed rules to every cart item, computes scores and summary statistics deterministically, then may use an LLM through a secure gateway only to make verified feedback sound natural. The checkout recap uses prebuilt animation populated by those results, not generated video.
 
 ## 16. Primary documentation
 
