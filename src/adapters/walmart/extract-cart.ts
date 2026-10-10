@@ -5,6 +5,7 @@ import {
   BRAND_SELECTORS,
   CART_COUNT_PATTERN,
   CART_HEADING_SELECTORS,
+  CURRENT_QUANTITY_PATTERN,
   EXCLUDED_REGION_SELECTORS,
   ITEM_ID_FROM_URL,
   LINE_ITEM_SELECTORS,
@@ -43,7 +44,9 @@ export function extractWalmartCart(doc: Document, url: URL, now: Date): CartSnap
 
 function displayedCount(doc: Document): number | null {
   for (const selector of CART_HEADING_SELECTORS) {
-    const match = CART_COUNT_PATTERN.exec(doc.querySelector(selector)?.textContent ?? '');
+    const heading = doc.querySelector(selector);
+    // The count may sit inside the heading or right next to it ("Cart" + "(1 item)").
+    const match = CART_COUNT_PATTERN.exec(heading?.textContent ?? '') ?? CART_COUNT_PATTERN.exec(heading?.parentElement?.textContent ?? '');
     if (match) return Number(match[1]);
   }
   return null;
@@ -204,6 +207,10 @@ function readQuantity(line: Element): number | null {
     if (fromText !== null) return fromText;
     const fromLabel = parseQuantity(el.getAttribute('aria-label'));
     if (fromLabel !== null) return fromLabel;
+  }
+  for (const button of Array.from(line.querySelectorAll('button[aria-label]'))) {
+    const current = CURRENT_QUANTITY_PATTERN.exec(button.getAttribute('aria-label') ?? '');
+    if (current) return parseQuantity(current[1]);
   }
   const qtyText = /\bQty:?\s*(\d{1,3})\b/i.exec(line.textContent ?? '');
   return qtyText ? parseQuantity(qtyText[1]) : null;

@@ -42,6 +42,8 @@ export const ITEM_ID_FROM_URL = /\/ip\/(?:[^/?#]+\/)?(\d{5,15})(?:[/?#]|$)/;
 
 /** Containers for one cart line, most specific first. */
 export const LINE_ITEM_SELECTORS = [
+  // Live walmart.com cart (checked 2026-10-10): each line is a product tile with a quantity stepper.
+  '[data-testid="product-tile-container"]',
   '[data-testid="cart-line-item"]',
   '[data-testid="cartPage-lineItem"]',
   '[data-automation-id="cart-item"]',
@@ -79,6 +81,7 @@ export const QUANTITY_INPUT_SELECTORS = [
 ] as const;
 
 export const QUANTITY_TEXT_SELECTORS = [
+  '[data-testid="quantity-label"]',
   '[data-testid="quantity-value"]',
   '[data-testid="quantity-stepper-value"]',
   '[data-automation-id="quantity-value"]',
@@ -93,7 +96,13 @@ export const EXCLUDED_REGION_SELECTORS = [
   '[data-testid*="save-for-later" i]',
   '[data-testid*="recommend" i]',
   '[aria-label*="saved for later" i]',
+  // Recommendation carousels ("Don't forget your usuals") hold product tiles that aren't in the cart.
+  '[data-testid="carousel-container"]',
+  '[data-testid^="horizontal-scroller"]',
 ] as const;
+
+/** Stepper buttons say e.g. "Decrease quantity <name>, Current Quantity 2". */
+export const CURRENT_QUANTITY_PATTERN = /current quantity\s*(\d{1,3})/i;
 
 /** Stock status only; "Price unavailable" is a missing price, not a missing item. */
 export const UNAVAILABLE_PATTERN = /\b(out of stock|no longer available|(?:currently|item|temporarily) unavailable)\b/i;
