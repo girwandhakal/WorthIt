@@ -1,0 +1,80 @@
+/**
+ * Walmart US page knowledge, isolated so markup changes stay in one file.
+ *
+ * Walmart's cart markup changes often, so extraction prefers stable,
+ * accessibility-oriented hooks (data-testid, aria-label, product links to
+ * `/ip/<id>`) and falls back to structural heuristics. Anything that cannot be
+ * read is reported as unknown rather than guessed.
+ */
+
+export const WALMART_ORIGIN = 'https://www.walmart.com';
+
+/** The only route where the cart review runs. Checkout and payment are excluded. */
+export const CART_PATH = /^\/cart\/?$/;
+
+/** Product links look like `/ip/<slug>/<itemId>` or `/ip/<itemId>`. */
+export const ITEM_ID_FROM_URL = /\/ip\/(?:[^/?#]+\/)?(\d{5,15})(?:[/?#]|$)/;
+
+/** Containers for one cart line, most specific first. */
+export const LINE_ITEM_SELECTORS = [
+  '[data-testid="cart-line-item"]',
+  '[data-testid="cartPage-lineItem"]',
+  '[data-automation-id="cart-item"]',
+  '[data-testid*="line-item" i]',
+] as const;
+
+export const PRODUCT_LINK_SELECTOR = 'a[href*="/ip/"]';
+
+export const TITLE_SELECTORS = [
+  '[data-testid="productName"]',
+  '[data-testid="product-title"]',
+  '[data-automation-id="product-title"]',
+] as const;
+
+export const BRAND_SELECTORS = ['[data-testid="product-brand"]', '[data-automation-id="product-brand"]'] as const;
+
+export const LINE_PRICE_SELECTORS = [
+  '[data-testid="line-price"]',
+  '[data-automation-id="line-price"]',
+  '[itemprop="price"]',
+] as const;
+
+export const UNIT_PRICE_SELECTORS = ['[data-testid="unit-price"]', '[data-automation-id="unit-price"]'] as const;
+
+export const WAS_PRICE_SELECTORS = [
+  '[data-testid="was-price"]',
+  '[data-automation-id="strikethrough-price"]',
+  's',
+  'del',
+] as const;
+
+export const QUANTITY_INPUT_SELECTORS = [
+  'select[aria-label*="quantity" i]',
+  'input[aria-label*="quantity" i]',
+] as const;
+
+export const QUANTITY_TEXT_SELECTORS = [
+  '[data-testid="quantity-value"]',
+  '[data-testid="quantity-stepper-value"]',
+  '[data-automation-id="quantity-value"]',
+  '[aria-label^="Quantity" i]',
+] as const;
+
+export const PACKAGE_SIZE_SELECTORS = ['[data-testid="product-size"]', '[data-automation-id="product-variant"]'] as const;
+
+/** Lines inside these regions are not part of the active cart. */
+export const EXCLUDED_REGION_SELECTORS = [
+  '[data-testid*="saved-for-later" i]',
+  '[data-testid*="save-for-later" i]',
+  '[data-testid*="recommend" i]',
+  '[aria-label*="saved for later" i]',
+] as const;
+
+/** Stock status only; "Price unavailable" is a missing price, not a missing item. */
+export const UNAVAILABLE_PATTERN = /\b(out of stock|no longer available|(?:currently|item|temporarily) unavailable)\b/i;
+
+export const SUBTOTAL_SELECTORS = ['[data-testid="subtotal-value"]', '[data-automation-id="subtotal-value"]'] as const;
+
+/** Text that marks a price as a per-unit or reference price, not the line price. */
+export const UNIT_PRICE_TEXT = /\/\s*(ea|each|oz|fl oz|ct|lb|count|100)\b|¢\s*\//i;
+export const WAS_PRICE_TEXT = /\b(was|list price|reg(ular)?\.?)\b/i;

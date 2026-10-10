@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Cart - Walmart.com (fixture)</title></head>
+<body>
+<main>
+  <h1>Cart (3 items)</h1>
+  <div data-testid="cart-line-item">
+    <a href="/ip/Great-Value-Organic-Whole-Vitamin-D-Milk-64-fl-oz/10315798"><span data-testid="productName">Great Value Organic Whole Vitamin D Milk, 64 fl oz</span></a>
+    <div data-testid="line-price">$3.97</div>
+    <select aria-label="Quantity"><option value="1" selected>1</option></select>
+  </div>
+  <div data-testid="cart-line-item">
+    <a href="/ip/Great-Value-Large-White-Eggs-12-Count/145051970"><span data-testid="productName">Great Value Large White Eggs, 12 Count</span></a>
+    <div data-testid="line-price">$1.67</div>
+    <select aria-label="Quantity"><option value="1" selected>1</option></select>
+  </div>
+  <div data-testid="cart-line-item">
+    <a href="/ip/Great-Value-Long-Grain-Enriched-Rice-80-oz/10315395"><span data-testid="productName">Great Value Long Grain Enriched Rice, 80 oz</span></a>
+    <div data-testid="line-price">$3.52</div>
+    <select aria-label="Quantity"><option value="1" selected>1</option></select>
+  </div>
+  <button type="button" class="retailer-control">Continue to checkout</button>
+</main>
+<script>
+  window.__retailerClicks = 0;
+  document.addEventListener('click', (event) => {
+    if (event.target.closest('.retailer-control')) window.__retailerClicks += 1;
+  }, true);
+</script>
+</body>
+</html>

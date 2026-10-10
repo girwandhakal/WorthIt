@@ -246,6 +246,8 @@ WorthIt/
 │   ├── messaging/
 │   │   ├── messages.ts
 │   │   └── validate-message.ts
+│   ├── background/              # Service-worker message handlers and per-tab dismissal state
+│   ├── content/                 # Retailer-agnostic controller: activates only on the cart route
 │   ├── ui/
 │   │   ├── checkout/
 │   │   ├── animation/

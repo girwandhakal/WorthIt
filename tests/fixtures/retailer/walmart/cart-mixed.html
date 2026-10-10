@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Cart - Walmart.com (fixture)</title></head>
+<body>
+<header><a href="/">Walmart</a> <a href="/cart" aria-label="Cart">Cart</a></header>
+<main>
+  <h1>Cart <span>(7 items)</span></h1>
+  <section data-testid="cart-items" aria-label="Items in cart">
+    <div data-testid="cart-line-item">
+      <a href="/ip/Horizon-Organic-Vitamin-D-Whole-Milk-64-fl-oz/10309701"><span data-testid="productName">Horizon Organic Vitamin D Whole Milk, 64 fl oz</span></a>
+      <div data-testid="line-price"><span>$5.96</span></div>
+      <select aria-label="Quantity, Horizon Organic Vitamin D Whole Milk"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option></select>
+      <button type="button" class="retailer-control">Remove</button>
+    </div>
+    <div data-testid="cart-line-item">
+      <a href="/ip/Kraft-Natural-Mild-Cheddar-Finely-Shredded-8-oz/47088920"><span data-testid="productName">Kraft Natural Mild Cheddar Finely Shredded Cheese, 8 oz</span></a>
+      <div data-testid="line-price"><span>$2.98</span></div>
+      <select aria-label="Quantity, Kraft Natural Mild Cheddar"><option value="1" selected>1</option><option value="2">2</option></select>
+      <button type="button" class="retailer-control">Remove</button>
+    </div>
+    <div data-testid="cart-line-item">
+      <a href="/ip/Bounty-Essentials-Select-A-Size-Paper-Towels-6-Double-Rolls/5308263928"><span data-testid="productName">Bounty Essentials Select-A-Size Paper Towels, 6 Double Rolls</span></a>
+      <div data-testid="line-price"><span>$7.97</span></div>
+      <select aria-label="Quantity, Bounty Essentials Paper Towels"><option value="1" selected>1</option><option value="2">2</option></select>
+      <button type="button" class="retailer-control">Remove</button>
+    </div>
+    <div data-testid="cart-line-item">
+      <a href="/ip/Diet-Coke-Soda-Pop-2-L/15610624"><span data-testid="productName">Diet Coke Soda Pop, 2 L Bottle</span></a>
+      <div data-testid="line-price"><span>$2.97</span></div>
+      <select aria-label="Quantity, Diet Coke"><option value="1" selected>1</option><option value="2">2</option></select>
+      <button type="button" class="retailer-control">Remove</button>
+    </div>
+    <div data-testid="cart-line-item">
+      <a href="/ip/Stanley-Quencher-FlowState-Tumbler-30-oz/18256507800"><span data-testid="productName">Stanley Quencher H2.0 FlowState Tumbler, 30 oz</span></a>
+      <div data-testid="line-price"><span>$24.97</span></div>
+      <select aria-label="Quantity, Stanley Quencher Tumbler"><option value="1" selected>1</option><option value="2">2</option></select>
+      <button type="button" class="retailer-control">Remove</button>
+    </div>
+    <div data-testid="cart-line-item">
+      <a href="/ip/Squishmallows-FuzzAMallow-5-inch-Plush/17741466139"><span data-testid="productName">Squishmallows FuzzAMallow 5 inch Plush</span></a>
+      <div data-testid="line-price"><span>$3.97</span></div>
+      <select aria-label="Quantity, Squishmallows Plush"><option value="1" selected>1</option><option value="2">2</option></select>
+      <button type="button" class="retailer-control">Remove</button>
+    </div>
+    <div data-testid="cart-line-item">
+      <a href="/ip/Skittles-Original-Sharing-Size-15-6-oz/656700117"><span data-testid="productName">Skittles Original Fruity Candy, Sharing Size, 15.6 oz</span></a>
+      <div data-testid="line-price"><span>$4.97</span></div>
+      <select aria-label="Quantity, Skittles"><option value="1" selected>1</option><option value="2">2</option></select>
+      <button type="button" class="retailer-control">Remove</button>
+    </div>
+  </section>
+  <section data-testid="saved-for-later" aria-label="Saved for later">
+    <h2>Saved for later</h2>
+    <div data-testid="cart-line-item">
+      <a href="/ip/Monster-16-4-ft-LED-Strip-Lights/18110413708"><span data-testid="productName">Monster 16.4 ft LED Strip Lights</span></a>
+      <div data-testid="line-price"><span>$14.88</span></div>
+    </div>
+  </section>
+  <aside>
+    <div>Subtotal (7 items) <span data-testid="subtotal-value">$54.79</span></div>
+    <button type="button" class="retailer-control" id="checkout">Continue to checkout</button>
+  </aside>
+</main>
+<script>
+  window.__retailerClicks = 0;
+  document.addEventListener('click', (event) => {
+    if (event.target.closest('.retailer-control')) window.__retailerClicks += 1;
+  }, true);
+</script>
+</body>
+</html>

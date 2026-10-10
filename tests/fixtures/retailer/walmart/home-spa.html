@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Walmart.com (fixture, single-page navigation)</title></head>
+<body>
+<header><a id="go-home" href="/">Home</a> <a id="go-cart" href="/cart">Cart</a> <a id="go-checkout" href="/checkout">Checkout</a></header>
+<main id="app"><h1>Home</h1></main>
+<template id="cart-template">
+  <h1>Cart (2 items)</h1>
+  <div data-testid="cart-line-item">
+    <a href="/ip/Great-Value-Spaghetti-16-oz/10534115"><span data-testid="productName">Great Value Spaghetti, 16 oz</span></a>
+    <div data-testid="line-price">$1.24</div>
+    <select aria-label="Quantity"><option value="1" selected>1</option></select>
+  </div>
+  <div data-testid="cart-line-item">
+    <a href="/ip/Mystery-Item/99999999"><span data-testid="productName">Mystery Item</span></a>
+    <div data-testid="line-price">See price in cart</div>
+    <select aria-label="Quantity"><option value="1" selected>1</option></select>
+  </div>
+</template>
+<template id="home-template"><h1>Home</h1></template>
+<script>
+  function render(path) {
+    const app = document.getElementById('app');
+    if (path === '/cart') {
+      app.replaceChildren(document.getElementById('cart-template').content.cloneNode(true));
+    } else if (path === '/checkout') {
+      const heading = document.createElement('h1');
+      heading.textContent = 'Checkout - payment';
+      app.replaceChildren(heading, document.getElementById('cart-template').content.cloneNode(true));
+    } else {
+      app.replaceChildren(document.getElementById('home-template').content.cloneNode(true));
+    }
+  }
+  for (const id of ['go-home', 'go-cart', 'go-checkout']) {
+    document.getElementById(id).addEventListener('click', (event) => {
+      event.preventDefault();
+      const path = event.currentTarget.getAttribute('href');
+      history.pushState({}, '', path);
+      render(path);
+    });
+  }
+  window.addEventListener('popstate', () => render(location.pathname));
+  render(location.pathname);
+</script>
+</body>
+</html>
