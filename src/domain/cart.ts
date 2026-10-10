@@ -59,6 +59,8 @@ export const cartSnapshotSchema = z.object({
   items: z.array(cartItemSchema).max(200),
   /** Retailer-displayed subtotal, when shown. Informational only. */
   subtotalCents: centsSchema.nullable(),
+  /** The item count the page itself shows ("Cart (7 items)"), to detect lines Worth It failed to read. */
+  displayedItemCount: z.number().int().min(0).max(10_000).nullable().optional(),
 });
 export type CartSnapshot = z.infer<typeof cartSnapshotSchema>;
 

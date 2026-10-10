@@ -98,6 +98,10 @@ export const EXCLUDED_REGION_SELECTORS = [
 /** Stock status only; "Price unavailable" is a missing price, not a missing item. */
 export const UNAVAILABLE_PATTERN = /\b(out of stock|no longer available|(?:currently|item|temporarily) unavailable)\b/i;
 
+/** The page heading shows the item count, e.g. "Cart (7 items)". */
+export const CART_HEADING_SELECTORS = ['main h1', 'h1'] as const;
+export const CART_COUNT_PATTERN = /\((\d{1,4})\s+items?\)/i;
+
 export const SUBTOTAL_SELECTORS = ['[data-testid="subtotal-value"]', '[data-automation-id="subtotal-value"]'] as const;
 
 /** Text that marks a price as a per-unit or reference price, not the line price. */

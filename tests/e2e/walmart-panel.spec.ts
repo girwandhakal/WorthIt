@@ -115,3 +115,14 @@ test.describe('Walmart cart panel', () => {
     expect(parseFloat(duration)).toBeLessThan(0.01);
   });
 });
+
+test('a cart layout Worth It cannot read is reported, not guessed', async ({ context }) => {
+  await serveWalmart(context, { '/cart': 'cart-unrecognized.html' });
+  const page = await context.newPage();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('https://www.walmart.com/cart');
+  const panel = page.getByRole('region', { name: 'Worth It' });
+  await expect(panel).toBeVisible();
+  await expect(panel.getByText(/Walmart shows 3 items in your cart, but Worth It couldn't read any of them/)).toBeVisible();
+  await expect(panel.getByText(/would save/)).toHaveCount(0);
+});

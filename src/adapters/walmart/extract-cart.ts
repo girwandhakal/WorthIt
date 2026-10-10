@@ -3,6 +3,8 @@ import { findAllPricesInCents, parsePriceToCents } from '../../shared/currency';
 import { cleanText } from '../retailer-adapter';
 import {
   BRAND_SELECTORS,
+  CART_COUNT_PATTERN,
+  CART_HEADING_SELECTORS,
   EXCLUDED_REGION_SELECTORS,
   ITEM_ID_FROM_URL,
   LINE_ITEM_SELECTORS,
@@ -37,7 +39,16 @@ export function extractWalmartCart(doc: Document, url: URL, now: Date): CartSnap
     observedAt: now.toISOString(),
     items: dedupeKeys(items),
     subtotalCents: firstPrice(doc, SUBTOTAL_SELECTORS),
+    displayedItemCount: displayedCount(doc),
   };
+}
+
+function displayedCount(doc: Document): number | null {
+  for (const selector of CART_HEADING_SELECTORS) {
+    const match = CART_COUNT_PATTERN.exec(doc.querySelector(selector)?.textContent ?? '');
+    if (match) return Number(match[1]);
+  }
+  return null;
 }
 
 function findLineContainers(doc: Document): Element[] {
