@@ -9,7 +9,7 @@ npm ci
 npm run build
 ```
 
-In Google Chrome: `chrome://extensions` → turn on **Developer mode** → **Load unpacked** → select `.output/chrome-mv3`. (`npm run zip` also writes `.output/worth-it-<version>-chrome.zip`; CI uploads the same zip as the `worth-it-chrome` artifact.)
+In Google Chrome: `chrome://extensions` → turn on **Developer mode** → **Load unpacked** → select `dist/chrome-mv3`. (`npm run zip` also writes `dist/worth-it-<version>-chrome.zip`; CI uploads the same zip as the `worth-it-chrome` artifact.)
 
 On first install Worth It opens onboarding. Read the disclosure, turn on **Offer to record purchases** for the walkthrough, and choose **Finish setup**.
 

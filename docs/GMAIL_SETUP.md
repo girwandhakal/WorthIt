@@ -21,7 +21,7 @@ Create `.env.local` in the repository root (git-ignored) from [.env.example](../
 WXT_EXTENSION_PUBLIC_KEY=<the one-line base64 public key>
 ```
 
-Run `npm run build`, load `.output/chrome-mv3` in `chrome://extensions` (Developer mode → Load unpacked), and copy the extension **ID** shown there. It stays the same across rebuilds and folders.
+Run `npm run build`, load `dist/chrome-mv3` in `chrome://extensions` (Developer mode → Load unpacked), and copy the extension **ID** shown there. It stays the same across rebuilds and folders.
 
 ## 2. Create the Google Cloud OAuth client
 

@@ -42,7 +42,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: worth-it-chrome
-          path: .output/*-chrome.zip
+          path: dist/*-chrome.zip
           retention-days: 30
 
       - name: Install Playwright Chromium
