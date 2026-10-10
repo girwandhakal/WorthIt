@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 // Built by `wxt build --mode e2e` (placeholder OAuth client; see wxt.config.ts).
-const EXTENSION_PATH = path.join(process.cwd(), '.output', 'chrome-mv3-e2e');
+const EXTENSION_PATH = path.join(process.cwd(), 'dist', 'chrome-mv3-e2e');
 const FIXTURES = path.join(process.cwd(), 'tests', 'fixtures', 'retailer');
 
 export interface ExtensionFixtures {

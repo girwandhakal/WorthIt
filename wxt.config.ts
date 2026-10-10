@@ -33,7 +33,7 @@ const wordingProxyOrigin = (() => {
 export const GMAIL_READONLY_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
 
 /**
- * `wxt build --mode e2e` (used by `npm run test:e2e`) writes to .output/chrome-mv3-e2e with a
+ * `wxt build --mode e2e` (used by `npm run test:e2e`) writes to dist/chrome-mv3-e2e with a
  * placeholder OAuth client so the Gmail flow can run against stubbed identity and Gmail
  * responses. It never reaches Google. Normal builds are unaffected.
  */
@@ -42,6 +42,8 @@ const E2E_OAUTH_CLIENT_ID = 'e2e-placeholder.apps.googleusercontent.com';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifestVersion: 3,
+  // A plain (not dot-prefixed) folder so it's easy to find in Chrome's Load unpacked dialog.
+  outDir: 'dist',
   outDirTemplate: '{{browser}}-mv{{manifestVersion}}{{modeSuffix}}',
   manifest: ({ mode }) => {
     const clientId = mode === 'e2e' ? E2E_OAUTH_CLIENT_ID : oauthClientId;
