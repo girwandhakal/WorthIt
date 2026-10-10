@@ -222,6 +222,30 @@ describe('history matching', () => {
 });
 
 describe('store-brand value', () => {
+  it('recognizes the reviewed 16 oz cheese separately from the 8 oz variant', () => {
+    const cheese = assess(snapshot([line('43981978')])).items[0]!;
+    expect(cheese.purposeClass).toBe('essential_consumable');
+    expect(criterion(cheese, 'added_sugar').status).toBe('no_concern');
+    expect(cheese.primary).toMatchObject({ kind: 'cheaper_alternative', amountCents: 170 });
+    expect(cheese.primary?.alternative).toMatchObject({ itemId: '10452370', similarity: 'different_ingredients' });
+    expect(cheese.primary?.alternative?.differences).toContain('The store brand is finely shredded; this Kraft cheese is regular shredded.');
+    expect(cheese.primary?.alternative?.differences.join(' ')).toMatch(/8 oz vs 16 oz/);
+    expect(criterion(cheese, 'store_brand').evidence.map(e => e.label)).toContain('Store-brand price (last checked 2026-10-09)');
+  });
+
+  it('keeps the 16 oz cheese cart price unknown when it cannot be extracted', () => {
+    const cheese = assess(snapshot([line('43981978', { linePriceCents: null })])).items[0]!;
+    expect(cheese.purposeClass).toBe('essential_consumable');
+    expect(criterion(cheese, 'readability').status).toBe('unknown');
+    expect(criterion(cheese, 'store_brand').status).toBe('unknown');
+    expect(cheese.primary).toBeNull();
+  });
+
+  it('uses the live 16 oz cheese price rather than its published reference price', () => {
+    const cheese = assess(snapshot([line('43981978', { linePriceCents: 450 })])).items[0]!;
+    expect(cheese.primary).toMatchObject({ kind: 'cheaper_alternative', amountCents: 56 });
+  });
+
   it('coffee: unit prices within 5% are "about the same", with no savings', () => {
     const coffee = criterion(assess(snapshot([line('578550306')])).items[0]!, 'store_brand');
     expect(coffee.suggestion).toMatchObject({ kind: 'store_brand_note', amountCents: null });

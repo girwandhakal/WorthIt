@@ -57,7 +57,7 @@ Recheck reference prices first; the amounts below use the 2026-10-09 prices in [
 
 ## 6. Known limitations
 
-- Walmart selectors are verified only against synthetic fixtures; live markup may differ. Worth It reports unread lines instead of guessing.
+- Walmart fixtures include sanitized markup reported from the live cart on 2026-10-10, including a shared tile container holding separate cheese and milk rows. Other live layouts may differ; verify the rebuilt extension in the owner's cart. Worth It reports unread lines instead of guessing.
 - Reference prices and label facts must be rechecked before the walkthrough; store-brand savings are estimates from last-checked prices.
 - Similar-item matching covers reviewed item types and a few keyword groups (tumblers, plush, LED strip lights, t-shirts).
 - The OpenAI key lives in the browser for this single-user build; a public release needs a server-side proxy ([#11](https://github.com/girwandhakal/WorthIt/issues/11)).
