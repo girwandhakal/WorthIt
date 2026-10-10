@@ -16,7 +16,6 @@ Work through the issues in order, one issue at a time. Before coding, read the i
 
 | Order | Phase | GitHub issue | Outcome | Depends on | Status |
 |---:|---|---|---|---|---|
-| 0 | Planning | [#3 — Create issue-linked end-to-end implementation plan](https://github.com/girwandhakal/WorthIt/issues/3) | Maintain this roadmap and the linked issue set. | — | Open |
 | 1 | Decision gate | [#4 — Finalize hackathon MVP decisions and owner-provided setup](https://github.com/girwandhakal/WorthIt/issues/4) | Resolve scope, behavior, evidence, and Gmail OAuth setup questions that affect implementation. | — | Open |
 | 2 | Core MVP | [#5 — Build the Chrome extension foundation and Walmart checkout panel](https://github.com/girwandhakal/WorthIt/issues/5) | Create the extension skeleton, Walmart cart adapter, and accessible read-only checkout panel. | #4 | Open |
 | 3 | Core MVP | [#6 — Add local purchase history and consent-based Gmail receipt import](https://github.com/girwandhakal/WorthIt/issues/6) | Store reviewed history locally and import synthetic/real receipts through the same optional Gmail API flow. | #4, #5; owner OAuth setup | Open |
@@ -26,7 +25,7 @@ Work through the issues in order, one issue at a time. Before coding, read the i
 | 7 | Follow-up retailer | [#10 — Add Amazon as the second retailer adapter](https://github.com/girwandhakal/WorthIt/issues/10) | Add Amazon support through the shared cart and assessment interfaces after the Walmart flow is stable. | #4, #9 | Open |
 | 8 | Conditional public release | [#11 — Prepare optional public Chrome Web Store and Google OAuth release](https://github.com/girwandhakal/WorthIt/issues/11) | Prepare listing, privacy disclosures, and required Google/Chrome review if public distribution is approved. | #9; #10 only if Amazon is in public launch scope; owner approval | Open / deferred |
 
-There are nine delivery issues after this index issue: eight implementation issues (#4–#11) plus this plan issue (#3). The first six tickets after the decision gate deliver the hackathon-ready Walmart experience. Amazon and public-store publication are later work; public distribution remains conditional on the owner's decision and external review.
+There are eight implementation issues (#4–#11), which keeps the working roadmap under ten issues. Issue #3 tracks this planning document and closes when its PR merges. The first six tickets after the decision gate deliver the hackathon-ready Walmart experience. Amazon and public-store publication are later work; public distribution remains conditional on the owner's decision and external review.
 
 ## Dependency flow
 
