@@ -118,7 +118,7 @@ The initial product experience should focus on shoppers using Amazon and Walmart
 
 When a user first installs Worth It, they should be able to:
 
-1. Optionally connect Gmail with read-only consent to find order receipts, add records manually, or choose the built-in sample purchase history. Connecting Gmail is not required. Worth It does not connect to bank or shopping accounts.
+1. Optionally connect Gmail with read-only consent to find order receipts or add records manually. Gmail is not required. For the single-user hackathon project, synthetic receipt emails sent to the user's own Gmail account are imported through the same Gmail flow and clearly marked as synthetic. Worth It does not connect to bank or retailer accounts.
 2. Choose product, dietary, and shopping preferences they want considered.
 3. Choose how frequently the product should intervene.
 4. Review and adjust the purchase-history information used for recommendations.
@@ -210,7 +210,7 @@ The product must not treat these classifications as definitive judgments about t
 
 **Priority: Must Have**
 
-Worth It should let users build purchase history in ways that do not depend on having receipt emails. Users may optionally connect Gmail through an explicit Google consent flow so Worth It can find likely order receipts and prepare item records for the user to review before import. Gmail access is read-only and optional; users can instead add records manually or select the built-in, clearly labeled sample purchase history. The product must never treat sample records as the user's real purchases unless the user explicitly chooses to add that sample set. With the user's consent, the extension may also record items they purchase through supported shopping pages going forward. Worth It does not connect to bank or retailer accounts.
+Worth It should let users build purchase history without depending on having receipt emails. Users may optionally connect Gmail through an explicit Google consent flow so Worth It can find likely order receipts and prepare item records for the user to review before import. Gmail access is read-only and optional; users can instead add records manually. For the single-user hackathon project, synthetic receipt emails sent to the owner's own Gmail account are found and imported through this same flow, so the demonstration exercises the actual Gmail integration instead of a separate demo path. These generated receipts must be clearly marked as synthetic in the resulting purchase records. With the user's consent, the extension may also record items they purchase through supported shopping pages going forward. Worth It does not connect to bank or retailer accounts.
 
 The initial experience should focus on Amazon and Walmart.
 
@@ -231,7 +231,7 @@ The product should distinguish between an order being placed and an item actuall
 
 If a provided receipt or order record does not contain sufficient item details, Worth It should identify the purchase as incomplete or uncertain instead of inventing missing information.
 
-Users should be able to review, correct, and delete purchase records, disconnect Gmail, and revoke email access. No Gmail connection should be required to use purchase-history features. Imported messages are processed only to extract order details; email bodies and attachments are not retained after extraction.
+Users should be able to review, correct, and delete purchase records, disconnect Gmail, and revoke email access. Gmail remains optional for ordinary use; manual history and permitted retailer observations remain available without it. Imported messages are processed only to extract order details; email bodies and attachments are not retained after extraction.
 
 ### PR-04: Need Memory — Previously Purchased Item Recognition
 
