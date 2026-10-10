@@ -4,7 +4,7 @@
 **Product Name:** Worth It  
 **Product Type:** AI-Powered Shopping and Purchase Assessment Assistant  
 **Platform:** Chrome Browser Extension  
-**Primary Retailers:** Amazon and Walmart  
+**Primary Retailers:** Walmart and Amazon (the hackathon MVP ships one retailer first, Walmart US recommended; Amazon follows)  
 **Project Context:** Hacklanta 2026 — Fintech Track  
 **Status:** Product Requirements — Hackathon MVP
 
@@ -65,7 +65,7 @@ Worth It should not interrupt every purchase.
 
 When the product has no meaningful concerns, the user should be able to shop normally.
 
-When additional context is necessary, the product should ask at most one short, context-specific clarification question.
+When additional context is necessary, the product should ask at most one short, context-specific clarification question per item, and only when the answer could change the assessment.
 
 ### 3.3 Evidence Over Assumptions
 
@@ -133,7 +133,7 @@ Users should be able to control, correct, and delete locally stored purchase-his
 
 The user visits Amazon or Walmart and shops normally.
 
-When a product is added to their cart or they approach checkout, Worth It should automatically evaluate the purchase.
+When they open the supported cart page before checkout, Worth It should automatically evaluate the cart. (Evaluating products as they are added from product pages is a later enhancement; the hackathon MVP reviews the cart page.)
 
 The evaluation should consider:
 
@@ -144,7 +144,7 @@ The evaluation should consider:
 - Whether the purchase appears unusual relative to previous behavior.
 - Whether a cheaper product could meet substantially the same need.
 
-When no meaningful issue is detected, the shopping experience should continue without interruption.
+When no meaningful issue is detected, the shopping experience should continue without interruption: no recap plays and no panel opens on its own. A small, collapsed indicator may confirm that the cart was reviewed.
 
 When intervention is warranted, Worth It should display a compact, contextual panel on the shopping website.
 
@@ -155,11 +155,13 @@ At checkout, the extension should show a concise summary of items that merit att
 
 ## 6. Core Product Requirements
 
+Priority labels in this section describe the full product. Section 11 defines which capabilities the hackathon MVP must deliver; a "Must Have" requirement that is not listed there as required is deferred or optional for the hackathon build.
+
 ### PR-01: Automatic Product Recognition
 
 **Priority: Must Have**
 
-Worth It must recognize products that users are considering purchasing on supported shopping websites. On a supported cart or checkout page, it reads the displayed cart rows and their visible product fields; it does not crawl other pages or continuously scrape the retailer in the background. A retailer-specific reader maps the page’s product name, displayed price, and quantity into Worth It’s standard item record. If a field is absent or the page structure is not recognized, Worth It marks that information unknown and avoids calculations that depend on it.
+Worth It must recognize products that users are considering purchasing on supported shopping websites. On a supported cart page, it reads the displayed cart rows and their visible product fields; it does not crawl other pages or continuously scrape the retailer in the background. A retailer-specific reader maps the page’s product name, displayed price, and quantity into Worth It’s standard item record. If a field is absent or the page structure is not recognized, Worth It marks that information unknown and avoids calculations that depend on it. Cart rows usually do not show ingredients, nutrition facts, category, or a store-brand counterpart; those facts come from a reviewed product reference source approved for the MVP (see the technical specification). When no reference data exists for an item, checks that depend on it are reported as unknown rather than guessed.
 
 The product should identify:
 
@@ -196,7 +198,7 @@ The product should classify purchases into categories such as:
 4. **Potentially Unnecessary or Redundant:** An item for which available evidence suggests the user may already have a suitable alternative or may not need another one.
 5. **Unknown:** Insufficient information to make a reliable assessment.
 
-Classification should consider the product's intended use rather than its category alone. The purchase assessment should also evaluate the product itself independently from the user's ability to afford it, including fit for purpose, quality, price and value, relevant product or nutrition evidence, and likely redundancy. It should explain the evidence and uncertainty rather than issue a moral judgment about the shopper.
+Redundancy itself is assessed from purchase history (PR-04); classification 4 applies only when that history check produces a finding. Classification should consider the product's intended use rather than its category alone. The purchase assessment should also evaluate the product itself independently from the user's ability to afford it, including fit for purpose, quality, price and value, relevant product or nutrition evidence, and likely redundancy. It should explain the evidence and uncertainty rather than issue a moral judgment about the shopper.
 
 For example:
 
@@ -557,7 +559,9 @@ Users should be able to:
 
 The product should access only information relevant to its functionality.
 
-Purchase-history records should come from user-provided information or purchases the user explicitly chooses to record through the extension. The product must not connect to email, bank, or shopping accounts to collect purchase history.
+Purchase-history records should come only from manual entry, receipts the user chooses to import through the optional read-only Gmail connection (PR-03), or purchases the user explicitly chooses to record through the extension. The product must not connect to bank or retailer accounts, and it must not access email except through that optional, user-initiated, read-only Gmail import.
+
+Dietary preferences and allergens are entered by the user, stored locally, and used only to flag conflicts with product labels; Worth It never infers health conditions. If the language-assistance service is used to phrase the checkout summary, the extension must disclose which minimized summary fields are sent, and it must never send purchase history records, email content, OAuth tokens, dietary or allergy settings, or personal financial data.
 
 The extension should not collect payment card details, passwords, or unrelated sensitive checkout information.
 
@@ -569,9 +573,9 @@ When reliable product information and relevant evidence are available, Worth It 
 
 Health is a selective supporting lens in the purchase review, not a separate health score, diagnosis, or health-management feature. Most foods should receive no health advice. Worth It should surface a short health prompt only when item-specific label or ingredient data meets a defined trigger and credible evidence supports a useful concern. Examples of triggers include added sugars at 20% or more of the FDA Daily Value per serving (a high amount on the label), and other nutrients at a high label value when relevant. It may also flag an item confidently classified as ultra-processed when the supporting evidence is relevant, or note a named sweetener when evidence specific to that sweetener warrants attention. It should not flag an item only because it belongs to a broad category such as chips or candy. If evidence is mixed, indirect, or about a whole dietary pattern rather than an individual food, say so plainly and avoid implying that one item causes disease. For triggered items, give a concise suggestion to skip it, choose a smaller amount, or have it less often, and state how removing it would reduce the current cart total. The user decides whether to act; the extension never removes the item.
 
-Health notes must cite credible sources, distinguish established findings from emerging research, and must not diagnose the shopper or use personal health information. For example, FDA label guidance treats 20% Daily Value or more as high for nutrients such as added sugars ([FDA label guidance](https://www.fda.gov/media/135299/download)). A controlled NIH study found higher calorie intake and short-term weight gain during a diet composed of ultra-processed foods, but this is evidence about a dietary pattern, not proof that one bag of chips causes disease ([NIH study summary](https://www.nih.gov/news-events/news-releases/nih-study-finds-heavily-processed-foods-cause-overeating-and-weight-gain)). For non-sugar sweeteners, identify the specific sweetener and keep claims calibrated: WHO's recommendation against using them for long-term weight control is conditional and is not a safety assessment of each sweetener ([WHO guideline](https://www.who.int/publications-detail-redirect/9789240073616)); evidence on human gut microbiota effects remains mixed ([systematic review](https://pubmed.ncbi.nlm.nih.gov/37897982/)).
+Health notes must cite credible sources, distinguish established findings from emerging research, and must not diagnose the shopper or use personal health information. For example, FDA label guidance treats 20% Daily Value or more as high for nutrients such as added sugars ([FDA label guidance](https://www.fda.gov/media/135299/download)). A small, controlled NIH inpatient study found higher calorie intake and short-term weight gain during a diet composed of ultra-processed foods, but this is evidence about a dietary pattern, not proof that one bag of chips causes disease ([NIH study summary](https://www.nih.gov/news-events/news-releases/nih-study-finds-heavily-processed-foods-cause-overeating-weight-gain)). For non-sugar sweeteners, identify the specific sweetener shown on the label and keep claims calibrated at the sweetener level: WHO's recommendation against using them for long-term weight control is conditional and is not a safety assessment of each sweetener or evidence that one drink causes disease ([WHO guideline](https://www.who.int/publications/i/item/9789240073616)); evidence on human gut microbiota and glucose effects remains mixed, with limitations in the available human studies ([review of clinical trials and cross-sectional studies](https://pubmed.ncbi.nlm.nih.gov/37897982/)).
 
-The store-brand preference must not be presented as proof that two products are equivalent. Worth It should not warn solely because an item is candy or another particular food category. Health messages must be grounded in the item label and credible, cited guidance; they should describe general evidence without diagnosing or making a personalized medical claim. For example, when a candy label shows added sugar, a concise tip may say: “Too much added sugar over time can contribute to health problems, including type 2 diabetes. Consider a smaller portion or having it less often.” For diet soda, identify the sweetener shown on the label and summarize evidence at the sweetener level. WHO conditionally recommends against using non-sugar sweeteners for long-term weight control; this is not a safety assessment of each sweetener or evidence that one drink causes disease ([WHO guideline](https://www.who.int/publications-detail-redirect/9789240073616)). Research on effects of specific sweeteners on human gut microbiota and glucose responses remains mixed, with limitations in the available human studies ([systematic review](https://pubmed.ncbi.nlm.nih.gov/37897982/)). The user can dismiss a message and continue with the purchase.
+The store-brand preference must not be presented as proof that two products are equivalent. Worth It should not warn solely because an item is candy or another particular food category. For example, when a candy label meets the approved added-sugar trigger, a concise tip may say: “Too much added sugar over time can contribute to health problems, including type 2 diabetes. Consider a smaller portion or having it less often.” The exact triggers, thresholds, sources, and wording used by the MVP must be approved before implementation (issue #4); the examples above are not approved rules by themselves. The user can dismiss a message and continue with the purchase.
 
 ### PR-17: Pre-Checkout Concern Summary
 
@@ -585,7 +589,7 @@ Before checkout, the shopper sees a short, polished animated recap of the items 
 
 **Priority: Should Have**
 
-At the end of the checkout summary, Worth It may show one illustration of what the total potential reduction in the current cart could grow to if invested over a stated period, such as 40 years. This total may combine supported savings from lower-priced alternatives and the prices of flagged items the shopper could choose to remove. For example: “Following these suggestions could reduce this cart by $5. If you invested that $5 at an assumed 10% annual return, compounded annually, it could grow to about $226 in 40 years before inflation.” Calculate the projection using only supported potential reductions in the current cart and the stated assumptions: future value = aggregate potential reduction × (1 + annual return) ^ years. Count each item only once, do not include estimated savings from past purchases, and do not show a separate investment projection for any individual item. This is an optional perspective on the cart, not a recommendation to invest or a promise of actual returns.
+At the end of the checkout summary, Worth It may show one illustration of what the total potential reduction in the current cart could grow to if invested over a stated period, such as 40 years. This total may combine supported savings from lower-priced alternatives and the prices of flagged items the shopper could choose to remove. For example: “Following these suggestions could reduce this cart by $5. If you invested that $5 at an assumed 10% annual return, compounded annually, it could grow to about $226 in 40 years before inflation.” Calculate the projection using only supported potential reductions in the current cart and the stated assumptions: future value = aggregate potential reduction × (1 + annual return) ^ years. Count each item only once: when an item has both a lower-priced alternative and a skip/remove suggestion, the aggregate uses a single, documented path for that item (the technical specification defines the rule). Do not include estimated savings from past purchases, and do not show a separate investment projection for any individual item. This is an optional perspective on the cart, not a recommendation to invest or a promise of actual returns.
 
 The single cart-level illustration must appear after the total potential reduction and state that amount, time horizon, assumed annual return, compounding frequency, and whether the projected value is nominal or adjusted for inflation. It must calculate the projected amount from those assumptions and explain that returns are uncertain and the result is hypothetical, not guaranteed. Worth It must not call an amount "saved" unless the user actually makes the lower-priced choice or removes the item and the product can verify that change. This comparison should remain secondary to the direct assessment of the cart.
 
@@ -723,7 +727,7 @@ Available for every recommendation.
 ### Scenario 3: Duplicate Purchase Independent of Personal Finances
 
 **Context:**
-- They are considering $250 headphones.
+- The user is considering $250 headphones.
 - They purchased similar headphones recently.
 
 **Expected behavior:**
@@ -750,7 +754,7 @@ Available for every recommendation.
 ### Scenario 5: Discretionary Purchase with No History Concern
 
 **Context:**
-- They are considering a $45 hobby-related purchase.
+- The user is considering a $45 hobby-related purchase.
 - No redundancy or concerning spending pattern is detected.
 
 **Expected behavior:**
@@ -796,7 +800,7 @@ Available for every recommendation.
 - The current cart contains several items with supported lower-priced alternatives and $5 in total potential savings.
 
 **Expected behavior:**
-1. Worth It assesses the item's purpose, price, alternatives, product evidence, and purchase history; it does not request or use personal financial data.
+1. Worth It assesses each item's purpose, price, alternatives, product evidence, and purchase history; it does not request or use personal financial data.
 2. The cart summary totals the supported potential reduction from lower-priced alternatives and flagged items the user could remove; potential savings from past purchases are reported separately and excluded from this current-cart total.
 3. After the item summaries, if the opportunity-cost feature is enabled, Worth It shows one 40-year hypothetical investment illustration based on the $5 aggregate potential savings, together with the return assumption, compounding frequency, and inflation basis.
 4. The illustration states the assumed return and time horizon, makes clear that the result is uncertain, and does not imply that potential savings or investment growth are guaranteed.
@@ -825,12 +829,12 @@ It should provide:
 
 ### 10.1.1 Checkout User Journey
 
-1. As checkout approaches, the shopper sees a short animated recap of only the cart items that merit attention.
+1. On the supported cart page, before the shopper proceeds to checkout, the shopper sees a short animated recap of only the cart items that merit attention. If nothing merits attention, no recap plays.
 2. Each item has been assessed against defined criteria; the recap shows only applicable findings and groups related points into a concise cart-level explanation.
 3. The recap explains what Worth It noticed and why. For example, it may show the price difference for a store-brand suggestion or remind the shopper about a similar recent purchase.
 4. For a supported health concern, it gives a brief, evidence-based tip. Ordinary items receive no health warning.
 5. The recap totals the potential reduction if the shopper follows its suggestions. If enabled, it then shows one hypothetical investment illustration based on that combined amount.
-6. The shopper may pause, replay, read captions, review supporting details, skip the recap, or continue checkout. The shopper decides whether to make any changes. The recap is an animated presentation inside the checkout panel, populated with the current review's findings rather than an AI-generated video.
+6. The shopper may pause, replay, read captions, review supporting details, skip the recap, or continue checkout. "Continue" closes Worth It's panel; it never clicks the retailer's checkout or cart controls. A dismissed panel does not reopen on its own for the same cart unless a new finding appears. The shopper decides whether to make any changes. The recap is an animated presentation inside the checkout panel, populated with the current review's findings rather than an AI-generated video.
 
 ### 10.2 Purchase Insight Panel
 
@@ -876,7 +880,7 @@ The Hacklanta MVP should demonstrate the product's primary capabilities without 
 1. A functioning Chrome extension on at least one supported shopping flow.
 2. Automatic recognition of every product and relevant price in a supported checkout cart, with uncertainty shown for items the extension cannot read reliably.
 3. A concise pre-checkout summary of flagged items and meaningful concerns, including material uncertainty when an item could not be assessed reliably; ordinary items with no relevant concern are omitted.
-4. User-controlled purchase history using manual records, receipts the user chooses to import, and items the extension records with the user's consent.
+4. User-controlled purchase history using manual records and receipts the user chooses to import through the optional read-only Gmail flow.
 5. Automatic purpose/necessity assessment and detection of potentially redundant purchases, while distinguishing food restocking, replacements, and additional items where possible.
 6. A single contextual clarification question when missing user context could change an assessment.
 7. At least one working, evidence-backed grocery value or nutrition insight based on actual product and label data, showing the store-brand recommendation, its actual price difference, and quantified potential savings when it costs less.
@@ -887,6 +891,9 @@ The Hacklanta MVP should demonstrate the product's primary capabilities without 
 ### Optional MVP Capabilities
 
 - Multiple retailer support.
+- Consent-based recording of purchases observed on supported retailer pages.
+- Impulsive purchase risk detection (PR-05) beyond the redundancy check.
+- Intervention-frequency settings beyond a simple on/off control.
 - Multiple product categories for alternatives.
 - Save-for-later functionality.
 - Personalized learning from user feedback.
