@@ -295,10 +295,10 @@ Repository guidance requires issue-linked work units. Create or confirm one GitH
 1. **Foundation:** WXT + TypeScript skeleton, MV3 manifest, icons, build/lint/typecheck, CI.
 2. **Retailer adapter:** Walmart cart extraction, normalization, fixture tests, extraction uncertainty UI.
 3. **Read-only checkout surface:** isolated React panel, dynamic updates, accessible controls, no retailer-page mutation.
-4. **Local history:** IndexedDB schema, import/manual entry, opt-in recording, review/delete/export.
+4. **Gmail-backed local history:** IndexedDB schema, Google OAuth setup, bounded Gmail API search, synthetic email seeding to the owner's account, receipt parsing and review, manual entry, optional recording, review/delete/export.
 5. **Assessment core:** store-brand prices, repeat detection, evidence templates, narrow nutrition triggers, savings aggregation.
 6. **Animated recap:** short timeline and visuals, captions, reduced motion, pause/replay/skip.
-8. **Integration and hackathon walkthrough:** connect the owner's Gmail test account, exercise OAuth and API receipt search, import synthetic receipt emails sent to that account through the same review flow as real order emails, run the manual retailer check, and package the extension.
+7. **Integration and hackathon walkthrough:** connect the owner's Gmail test account, exercise OAuth and API receipt search, import synthetic receipt emails sent to that account through the same review flow as real order emails, run the manual retailer check, and package the extension.
 8. **Second retailer:** Amazon adapter only after first retailer is reliable and scope is confirmed.
 
 Do not parallelize issues unless their acceptance criteria are independent. Each PR should link its issue, state evidence/checks run, and document remaining limitations.
@@ -326,7 +326,7 @@ The plan can proceed with defaults except where these choices alter user-visible
 3. Provide a Google Cloud project with Gmail API enabled, configure the OAuth consent screen in testing, add your own Google account as a test user, and provide the extension OAuth client ID. No password, API secret, or personal receipt sample needs to be sent to me. Decide whether observed future purchases should be recorded with opt-in consent.
 4. Approve the specific health triggers, numeric thresholds, source wording, and reviewed claims. Do not ship a health rule based only on an example such as “candy” or “chips.”
 5. Confirm whether aggregate investment illustration is enabled by default or is an opt-in setting.
-6. Provide a Chrome profile on which you can authorize your own test account and a retailer test cart, or use local retailer fixtures. Do not share your passwords or payment details.
+6. Provide a Chrome profile where you can authorize your Google account and access your Gmail test inbox, plus a retailer test cart or local retailer fixtures. Do not share your password or payment details.
 7. For public store release, supply the listing/support/privacy materials listed above.
 
 Gmail API uses an OAuth extension client ID and your consent, not an API key. Bank connections, retailer logins, payment data, and personal financial analysis remain out of scope. Your own synthetic receipt emails supply repeat-purchase test cases through the same Gmail API path if you do not have real retailer receipts.
