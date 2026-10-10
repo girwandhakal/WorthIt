@@ -19,6 +19,7 @@ const STATUS_LABELS: Record<CriterionStatus, string> = {
  */
 export function FullAnalysis({ review, onBack }: { review: CartReview; onBack: () => void }) {
   const { assessment, summary } = review;
+  const options = savingOptions(assessment.items);
   return (
     <div className="wi-full">
       <div className="wi-full-header">
@@ -36,6 +37,25 @@ export function FullAnalysis({ review, onBack }: { review: CartReview; onBack: (
           <ItemAnalysis key={item.itemKey} item={item} />
         ))}
       </ol>
+      <section className="wi-full-savings" aria-label="Every possible saving">
+        <h4>Every possible saving</h4>
+        <p className="wi-muted">
+          All the options Worth It found, biggest first. Each item adds only one to the cart total (marked “counted”); the others are alternatives to the same item, so
+          they are shown but never added together.
+        </p>
+        {options.length === 0 ? (
+          <p>No savings were found for this cart.</p>
+        ) : (
+          <ol className="wi-savings-list">
+            {options.map((option) => (
+              <li key={`${option.itemKey}:${option.kind}`}>
+                <strong>{option.itemName}</strong>: {suggestionLabel(option.kind)}, {formatCents(option.amountCents)}{' '}
+                <span className="wi-muted">({option.counted ? 'counted in the total' : 'alternative, not added to the total'})</span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
       <section className="wi-full-totals" aria-label="Cart totals">
         <h4>Cart totals (potential, not realized)</h4>
         <dl>
@@ -144,6 +164,19 @@ function sourceLabel(id: keyof typeof SOURCES, url?: string) {
   ) : (
     source.label
   );
+}
+
+/** Every suggestion with a calculable amount, biggest first; the primary one per item is the one the total counts. */
+export function savingOptions(items: readonly ItemAssessment[]) {
+  return items
+    .flatMap((item) =>
+      [item.primary, ...item.secondary].flatMap((suggestion) =>
+        suggestion && suggestion.amountCents !== null && suggestion.amountCents > 0
+          ? [{ itemKey: item.itemKey, itemName: item.itemName, kind: suggestion.kind, amountCents: suggestion.amountCents, counted: suggestion === item.primary }]
+          : [],
+      ),
+    )
+    .sort((a, b) => b.amountCents - a.amountCents);
 }
 
 function suggestionLabel(kind: string): string {

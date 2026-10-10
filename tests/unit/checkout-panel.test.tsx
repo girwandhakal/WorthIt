@@ -163,6 +163,24 @@ describe('See full analysis', () => {
   });
 });
 
+describe('See full analysis: every possible saving', () => {
+  it('lists every option, biggest first, marking which one the total counts', async () => {
+    const { user } = setup(mixed(), { reducedMotion: true });
+    await user.click(screen.getByRole('button', { name: 'See full analysis' }));
+    const section = screen.getByRole('region', { name: 'Every possible saving' });
+    const rows = within(section).getAllByRole('listitem').map((row) => row.textContent ?? '');
+    // The tumbler has two options: skipping it (counted) and the cheaper tumbler (an alternative to the same item).
+    expect(rows[0]).toMatch(/Stanley.*Consider skipping \(recent similar purchase\), \$24\.97 \(counted in the total\)/);
+    expect(rows.some((row) => /Stanley.*Cheaper alternative, \$12\.00 \(alternative, not added to the total\)/.test(row))).toBe(true);
+    // 7 items, 6 with a counted saving, plus the tumbler's alternative; the no-savings paper towels are absent.
+    expect(rows).toHaveLength(7);
+    expect(rows.filter((row) => row.includes('counted in the total'))).toHaveLength(6);
+    expect(rows.some((row) => row.includes('Bounty'))).toBe(false);
+    const amounts = rows.map((row) => Number(/\$(\d+\.\d\d)/.exec(row)![1]));
+    expect(amounts).toEqual([...amounts].sort((a, b) => b - a));
+  });
+});
+
 describe('closing the panel', () => {
   it('Continue, Dismiss, and Escape only close Worth It and record the dismissal', async () => {
     const { user, onDismiss } = setup(mixed(), { reducedMotion: true });
