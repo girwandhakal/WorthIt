@@ -1,4 +1,4 @@
-import { watchRoute } from '../adapters/walmart/observe-cart';
+import { watchRoute } from '../adapters/observe-page';
 import type { Merchant } from '../domain/cart';
 import type { PurchaseInput } from '../domain/history';
 import type { ObservedOrderItem, OrderPageKind } from '../domain/orders';

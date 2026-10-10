@@ -1,5 +1,5 @@
-import type { CartSnapshot } from '../../domain/cart';
-import { WORTH_IT_HOST_TAG } from './extract-cart';
+import type { CartSnapshot } from '../domain/cart';
+import { WORTH_IT_HOST_TAG } from './retailer-adapter';
 
 /**
  * Stable fingerprint of what the review depends on, so cosmetic rerenders of
@@ -73,7 +73,7 @@ function isOwnUiMutation(mutation: MutationRecord): boolean {
 }
 
 /**
- * Walmart is a single-page app: the URL changes without a page load. This
+ * Retailer sites are single-page apps: the URL changes without a page load. This
  * watcher reports route changes from history navigation and from client-side
  * `pushState` (detected by polling, since content scripts cannot patch the
  * page's history functions).

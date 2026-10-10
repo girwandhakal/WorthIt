@@ -45,7 +45,7 @@ function OptionsShell() {
       <main className="wi-page">
         <h1>Welcome to Worth It</h1>
         <p className="wi-lead-text">
-          Worth It reviews your Walmart cart before checkout and points out a few things worth a second thought: a cheaper
+          Worth It reviews your Walmart or Amazon cart before checkout and points out a few things worth a second thought: a cheaper
           store brand, something you bought recently, or an item with added sugar. It only suggests; you make every cart
           change.
         </p>

@@ -43,6 +43,11 @@ export interface ReferenceProduct {
   label?: LabelFacts;
   /** Material, non-label differences worth stating (features, style). */
   note?: string;
+  /**
+   * Amazon ASINs reviewed as the same product (same brand, size, and label).
+   * Empty until reviewed; unmatched Amazon items stay 'unknown'.
+   */
+  amazonAsins?: readonly string[];
 }
 
 const NO_SUGAR = 0;
@@ -606,6 +611,13 @@ const BY_ID = new Map(PRODUCTS.map((product) => [product.itemId, product]));
 
 export function referenceProduct(itemId: string | null | undefined): ReferenceProduct | null {
   return itemId ? (BY_ID.get(itemId) ?? null) : null;
+}
+
+/** Reviewed reference data for a cart item, by retailer-specific ID. */
+export function referenceForItem(merchant: 'walmart' | 'amazon', itemId: string | null): ReferenceProduct | null {
+  if (!itemId) return null;
+  if (merchant === 'walmart') return referenceProduct(itemId);
+  return PRODUCTS.find((product) => product.amazonAsins?.includes(itemId)) ?? null;
 }
 
 export function storeBrandAlternative(product: ReferenceProduct): ReferenceProduct | null {

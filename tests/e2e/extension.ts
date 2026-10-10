@@ -135,3 +135,17 @@ export function daysAgo(days: number): string {
   date.setDate(date.getDate() - days);
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
+
+/** Serves synthetic Amazon fixture pages for the given paths (`*` = any path). */
+export async function serveAmazon(context: BrowserContext, pages: Record<string, string>) {
+  await context.route('https://www.amazon.com/**', async (route) => {
+    const url = new URL(route.request().url());
+    const file = pages[url.pathname] ?? pages['*'];
+    if (!file) return route.fulfill({ status: 404, body: 'Not found (fixture)' });
+    return route.fulfill({
+      status: 200,
+      contentType: 'text/html; charset=utf-8',
+      body: readFileSync(path.join(FIXTURES, 'amazon', file), 'utf8'),
+    });
+  });
+}

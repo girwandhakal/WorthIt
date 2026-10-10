@@ -1,7 +1,7 @@
 import { assessCart } from '../assessment/assess-cart';
 import { panelFindings } from '../assessment/describe';
 import { summarizeCart } from '../assessment/summarize-cart';
-import { isFullyReadable, type CartSnapshot } from '../domain/cart';
+import { MERCHANT_LABELS, isFullyReadable, type CartSnapshot } from '../domain/cart';
 import type { ClarificationRecord, PurchaseRecord } from '../domain/history';
 import type { CartReview, ReviewFinding } from '../domain/review';
 import { SOURCES } from '../assessment/evidence/sources';
@@ -57,6 +57,7 @@ export function reviewCart(snapshot: CartSnapshot, context: ReviewContext): Cart
 export function unreadLinesFinding(snapshot: CartSnapshot): ReviewFinding | null {
   const displayed = snapshot.displayedItemCount ?? null;
   if (displayed === null || displayed === 0) return null;
+  const store = MERCHANT_LABELS[snapshot.merchant];
   const read = snapshot.items.reduce((sum, item) => sum + (item.quantity ?? 1), 0);
   if (read >= displayed) return null;
   return {
@@ -67,8 +68,8 @@ export function unreadLinesFinding(snapshot: CartSnapshot): ReviewFinding | null
     itemName: 'Your cart',
     text:
       snapshot.items.length === 0
-        ? `Walmart shows ${displayed} ${displayed === 1 ? 'item' : 'items'} in your cart, but Worth It couldn't read any of them. Walmart's page may have changed, so Worth It isn't guessing.`
-        : `Walmart shows ${displayed} items, but Worth It could read only ${read}. Walmart's page may have changed, so this review may be incomplete.`,
+        ? `${store} shows ${displayed} ${displayed === 1 ? 'item' : 'items'} in your cart, but Worth It couldn't read any of them. ${store}'s page may have changed, so Worth It isn't guessing.`
+        : `${store} shows ${displayed} items, but Worth It could read only ${read}. ${store}'s page may have changed, so this review may be incomplete.`,
     wording: null,
     amountCents: null,
     question: null,

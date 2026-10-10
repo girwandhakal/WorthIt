@@ -10,11 +10,11 @@ export function PrivacySummary() {
         <h3>What Worth It reads</h3>
         <ul className="wi-list">
           <li>
-            <strong>Walmart cart page</strong>: each cart line’s product name, item link, quantity, and displayed prices,
+            <strong>Walmart and Amazon cart pages</strong>: each cart line’s product name, item link, quantity, and displayed prices,
             only while you’re on the cart page.
           </li>
           <li>
-            <strong>Walmart order pages (only if you turn on purchase recording)</strong>: item names, item links,
+            <strong>Walmart and Amazon order pages (only if you turn on purchase recording)</strong>: item names, item links,
             quantities, prices, and order dates, only when you choose “Record these purchases.”
           </li>
           <li>

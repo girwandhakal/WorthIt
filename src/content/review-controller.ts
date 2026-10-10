@@ -1,5 +1,5 @@
 import type { RetailerAdapter } from '../adapters/retailer-adapter';
-import { observeCart, watchRoute } from '../adapters/walmart/observe-cart';
+import { observeCart, watchRoute } from '../adapters/observe-page';
 import type { CartSnapshot } from '../domain/cart';
 import type { ClarificationQuestion } from '../domain/finding';
 import type { ClarificationAnswer } from '../domain/history';

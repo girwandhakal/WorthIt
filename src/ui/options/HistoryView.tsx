@@ -141,7 +141,7 @@ export function HistoryView() {
         <p className="wi-empty">
           {query || source !== 'any'
             ? 'No purchases match.'
-            : 'No purchase history yet. Add purchases here, import receipts from Gmail, or record purchases from Walmart order pages.'}
+            : 'No purchase history yet. Add purchases here, import receipts from Gmail, or record purchases from Walmart and Amazon order pages.'}
         </p>
       ) : (
         <ul className="wi-history" aria-label="Purchase history">

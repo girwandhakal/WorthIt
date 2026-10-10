@@ -39,10 +39,11 @@ export default defineConfig({
     return {
       name: 'Worth It',
       description:
-        'A read-only pre-checkout advisor: highlights a few cart items worth a second thought. You make every cart change.',
+        'A read-only pre-checkout advisor for Walmart and Amazon carts: highlights a few items worth a second thought. You make every cart change.',
       permissions: ['storage', 'identity'],
       host_permissions: [
         'https://www.walmart.com/*',
+        'https://www.amazon.com/*',
         'https://gmail.googleapis.com/*',
         'https://api.openai.com/*',
       ],

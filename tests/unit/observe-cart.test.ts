@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { extractWalmartCart } from '../../src/adapters/walmart/extract-cart';
-import { observeCart, snapshotSignature, watchRoute } from '../../src/adapters/walmart/observe-cart';
+import { observeCart, snapshotSignature, watchRoute } from '../../src/adapters/observe-page';
 import type { CartSnapshot } from '../../src/domain/cart';
 import { readFixture } from '../helpers/fixtures';
 

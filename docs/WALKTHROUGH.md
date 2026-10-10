@@ -61,4 +61,4 @@ Recheck reference prices first; the amounts below use the 2026-10-09 prices in [
 - Reference prices and label facts must be rechecked before the walkthrough; store-brand savings are estimates from last-checked prices.
 - Similar-item matching covers reviewed item types and a few keyword groups (tumblers, plush, LED strip lights, t-shirts).
 - The OpenAI key lives in the browser for this single-user build; a public release needs a server-side proxy ([#11](https://github.com/girwandhakal/WorthIt/issues/11)).
-- Amazon support is a separate adapter ([#10](https://github.com/girwandhakal/WorthIt/issues/10)).
+- Amazon carts are reviewed through their own adapter, but no Amazon products are in the reviewed reference data yet, so Amazon reviews cover readability, history repeats, and unread rows only ([AMAZON.md](AMAZON.md)).

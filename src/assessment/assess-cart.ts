@@ -9,7 +9,7 @@ import {
 import type { ClarificationRecord, PurchaseRecord } from '../domain/history';
 import { sumCents } from '../shared/currency';
 import { REPEAT_PURPOSE_QUESTION_ID, itemMatchKey, storedAnswer } from './clarification';
-import { REFERENCE_DATA_VERSION, referenceProduct, type ReferenceProduct } from './reference/products';
+import { REFERENCE_DATA_VERSION, referenceForItem, type ReferenceProduct } from './reference/products';
 import { assessAddedSugar } from './rules/nutrition';
 import { assessPurpose } from './rules/purpose';
 import { assessRepeatPurchase, findHistoryMatches } from './rules/repeat-purchase';
@@ -32,7 +32,7 @@ export interface AssessmentInputs {
  * budget, or other personal-finance data.
  */
 export function assessCart(inputs: AssessmentInputs): CartAssessment {
-  const lookup = inputs.lookupReference ?? ((item: CartItem) => (item.merchant === 'walmart' ? referenceProduct(item.retailerItemId) : null));
+  const lookup = inputs.lookupReference ?? ((item: CartItem) => referenceForItem(item.merchant, item.retailerItemId));
   const readableTotalCents = sumCents(inputs.snapshot.items.map((item) => item.linePriceCents));
   return {
     criteriaVersion: CRITERIA_VERSION,
