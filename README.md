@@ -7,6 +7,7 @@ The extension offers information and suggestions only. Shoppers decide whether t
 - [Product requirements](docs/PRD.md): goals, user journey, evidence standards, and hackathon MVP scope.
 - [Technical specification](docs/TECH_SPEC.md): architecture, data handling, security, and project structure.
 - [Implementation plan](docs/IMPLEMENTATION_PLAN.md): the ordered GitHub issues and their status.
+- [Walkthrough and verification record](docs/WALKTHROUGH.md): install, demo steps, what has been verified, data deletion, and known limitations.
 
 ## Development
 

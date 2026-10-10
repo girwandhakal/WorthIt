@@ -3,7 +3,8 @@ import { panelFindings } from '../assessment/describe';
 import { summarizeCart } from '../assessment/summarize-cart';
 import { isFullyReadable, type CartSnapshot } from '../domain/cart';
 import type { ClarificationRecord, PurchaseRecord } from '../domain/history';
-import type { CartReview } from '../domain/review';
+import type { CartReview, ReviewFinding } from '../domain/review';
+import { SOURCES } from '../assessment/evidence/sources';
 import type { ShopperPreferences } from '../assessment/rules/store-brand';
 
 export interface ReviewContext {
@@ -30,7 +31,8 @@ export function reviewCart(snapshot: CartSnapshot, context: ReviewContext): Cart
     preferences: context.preferences,
     today: context.today,
   });
-  const findings = panelFindings(assessment, snapshot.items).map((finding) =>
+  const unread = unreadLinesFinding(snapshot);
+  const findings = [...panelFindings(assessment, snapshot.items), ...(unread ? [unread] : [])].map((finding) =>
     finding.question && context.skippedQuestions.has(`${finding.question.questionId}:${finding.question.itemMatchKey}`)
       ? { ...finding, question: null }
       : finding,
@@ -44,5 +46,34 @@ export function reviewCart(snapshot: CartSnapshot, context: ReviewContext): Cart
     summary: summarizeCart(assessment, findings, { investmentIllustration: context.investmentIllustration }),
     assessment,
     autoOpen: findings.some((finding) => !context.dismissedIds.has(finding.id)),
+  };
+}
+
+/**
+ * Fails visibly when the page reports more items than Worth It could read
+ * (for example after a Walmart layout change), instead of quietly reviewing
+ * a partial cart. Quantities count as items, matching the page heading.
+ */
+export function unreadLinesFinding(snapshot: CartSnapshot): ReviewFinding | null {
+  const displayed = snapshot.displayedItemCount ?? null;
+  if (displayed === null || displayed === 0) return null;
+  const read = snapshot.items.reduce((sum, item) => sum + (item.quantity ?? 1), 0);
+  if (read >= displayed) return null;
+  return {
+    id: 'cart:unread-lines',
+    itemKey: 'cart',
+    position: Number.MAX_SAFE_INTEGER,
+    kind: 'uncertain',
+    itemName: 'Your cart',
+    text:
+      snapshot.items.length === 0
+        ? `Walmart shows ${displayed} ${displayed === 1 ? 'item' : 'items'} in your cart, but Worth It couldn't read any of them. Walmart's page may have changed, so Worth It isn't guessing.`
+        : `Walmart shows ${displayed} items, but Worth It could read only ${read}. Walmart's page may have changed, so this review may be incomplete.`,
+    wording: null,
+    amountCents: null,
+    question: null,
+    why: [],
+    sources: [SOURCES.cart_page],
+    confidence: 'low',
   };
 }
