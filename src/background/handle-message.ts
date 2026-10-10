@@ -4,7 +4,8 @@ import { buildImportReview } from '../ingestion/review-import';
 import type { ContentRequest } from '../messaging/messages';
 import { validateContentRequest } from '../messaging/validate-message';
 import { localIsoDate } from '../shared/dates';
-import type { WordingResponse } from '../summary/openai-client';
+import { WORDING_PROXY_URL } from '../summary/config';
+import { wordingTransport, type WordingResponse } from '../summary/openai-client';
 import { phraseSummary, type PhraseDeps } from '../summary/phrase-summary';
 import { getOpenAiKey, getPreferences, type LocalArea } from '../storage/preferences';
 import type { Repositories } from '../storage/repositories';
@@ -18,6 +19,8 @@ export interface BackgroundDeps {
   repositories: () => Promise<Repositories>;
   /** HTTP POST used only for the optional OpenAI wording request. */
   post?: PhraseDeps['post'];
+  /** Overrides the build-time proxy URL (tests). */
+  wordingProxyUrl?: string | null;
   now?: () => Date;
 }
 
@@ -69,7 +72,7 @@ async function dispatch(request: ContentRequest, tabId: number, deps: Background
       });
       const summary = deps.post
         ? await phraseSummary(review.summary, {
-            getApiKey: () => getOpenAiKey(deps.local),
+            getTransport: async () => wordingTransport(deps.wordingProxyUrl ?? WORDING_PROXY_URL, await getOpenAiKey(deps.local)),
             post: deps.post,
             cache: sessionWordingCache(deps.session),
           })

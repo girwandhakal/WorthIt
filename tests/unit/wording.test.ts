@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { panelFindings } from '../../src/assessment/describe';
 import { summarizeCart } from '../../src/assessment/summarize-cart';
 import type { CartSummary } from '../../src/domain/review';
-import { OPENAI_ENDPOINT, OPENAI_MODEL, type PostLike, type WordingResponse } from '../../src/summary/openai-client';
+import { OPENAI_ENDPOINT, OPENAI_MODEL, wordingTransport, type PostLike, type WordingResponse } from '../../src/summary/openai-client';
 import { buildWordingRequest, phraseSummary, type WordingCache } from '../../src/summary/phrase-summary';
 import { TEMPLATES } from '../../src/summary/templates';
 import { validateRephrasing } from '../../src/summary/validate-phrasing';
@@ -82,7 +82,7 @@ describe('the OpenAI request', () => {
   it('contains only finding kinds, check names, and placeholder templates', async () => {
     const summary = walkthroughSummary();
     const { post, calls } = fakeOpenAi(goodWording);
-    await phraseSummary(summary, { getApiKey: async () => KEY, post, cache: memoryCache() });
+    await phraseSummary(summary, { getTransport: async () => wordingTransport(null, KEY), post, cache: memoryCache() });
     expect(calls).toHaveLength(1);
     expect(calls[0]!.url).toBe(OPENAI_ENDPOINT);
     expect(calls[0]!.headers.Authorization).toBe(`Bearer ${KEY}`);
@@ -107,7 +107,7 @@ describe('phraseSummary', () => {
   it('applies validated wording and fills real values in code', async () => {
     const summary = walkthroughSummary();
     const { post } = fakeOpenAi(goodWording);
-    const phrased = await phraseSummary(summary, { getApiKey: async () => KEY, post, cache: memoryCache() });
+    const phrased = await phraseSummary(summary, { getTransport: async () => wordingTransport(null, KEY), post, cache: memoryCache() });
     expect(phrased.wordingSource).toBe('openai');
     expect(phrased.opening).toBe('Before you head to checkout, 3 things are worth a quick second look.');
     expect(phrased.highlights[0]!.text).toBe('You picked up this 20 days ago. Is another one really needed? Leaving it out would save $24.97.');
@@ -128,14 +128,14 @@ describe('phraseSummary', () => {
         { id: 'h9', text: 'Also skip the milk entirely, it is bad.' },
       ],
     });
-    const phrased = await phraseSummary(summary, { getApiKey: async () => KEY, post, cache: memoryCache() });
+    const phrased = await phraseSummary(summary, { getTransport: async () => wordingTransport(null, KEY), post, cache: memoryCache() });
     expect(phrased).toEqual(summary);
   });
 
   it('uses templates when there is no key, without calling OpenAI', async () => {
     const { post, calls } = fakeOpenAi(goodWording);
     const summary = walkthroughSummary();
-    expect(await phraseSummary(summary, { getApiKey: async () => null, post, cache: memoryCache() })).toBe(summary);
+    expect(await phraseSummary(summary, { getTransport: async () => wordingTransport(null, null), post, cache: memoryCache() })).toBe(summary);
     expect(calls).toHaveLength(0);
   });
 
@@ -151,7 +151,7 @@ describe('phraseSummary', () => {
     ],
   ])('falls back to templates on %s', async (_label, post) => {
     const summary = walkthroughSummary();
-    expect(await phraseSummary(summary, { getApiKey: async () => KEY, post, cache: memoryCache() })).toBe(summary);
+    expect(await phraseSummary(summary, { getTransport: async () => wordingTransport(null, KEY), post, cache: memoryCache() })).toBe(summary);
   });
 
   it('falls back to templates after about 3 seconds', async () => {
@@ -159,7 +159,7 @@ describe('phraseSummary', () => {
     const summary = walkthroughSummary();
     const post: PostLike = (_url, init) =>
       new Promise((_resolve, reject) => init.signal.addEventListener('abort', () => reject(new Error('aborted'))));
-    const pending = phraseSummary(summary, { getApiKey: async () => KEY, post, cache: memoryCache() });
+    const pending = phraseSummary(summary, { getTransport: async () => wordingTransport(null, KEY), post, cache: memoryCache() });
     await vi.advanceTimersByTimeAsync(3000);
     expect(await pending).toBe(summary);
   });
@@ -167,8 +167,8 @@ describe('phraseSummary', () => {
   it('caches accepted wording so rerenders do not call again', async () => {
     const cache = memoryCache();
     const { post, calls } = fakeOpenAi(goodWording);
-    await phraseSummary(walkthroughSummary(), { getApiKey: async () => KEY, post, cache });
-    const second = await phraseSummary(walkthroughSummary(), { getApiKey: async () => KEY, post, cache });
+    await phraseSummary(walkthroughSummary(), { getTransport: async () => wordingTransport(null, KEY), post, cache });
+    const second = await phraseSummary(walkthroughSummary(), { getTransport: async () => wordingTransport(null, KEY), post, cache });
     expect(calls).toHaveLength(1);
     expect(second.wordingSource).toBe('openai');
   });

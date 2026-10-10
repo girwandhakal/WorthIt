@@ -1,7 +1,7 @@
 /**
- * Direct OpenAI call for the single-user hackathon build, using the owner's
- * key from settings. A public release must replace this with a server-side
- * proxy (issue #11). Requests carry only finding types, check names, and
+ * OpenAI call for the wording assistant: directly with the owner's key in the
+ * single-user hackathon build, or through a key-holding proxy in a public
+ * build (src/summary/config.ts). Requests carry only finding types, check names, and
  * placeholder templates — never names, prices, history, or settings.
  */
 
@@ -21,6 +21,22 @@ export interface WordingRequest {
 export interface WordingResponse {
   opening: string;
   highlights: { id: string; text: string }[];
+}
+
+/** Where wording requests go and how they authenticate. */
+export interface WordingTransport {
+  endpoint: string;
+  headers: Record<string, string>;
+}
+
+/**
+ * A configured proxy wins (it holds the key server-side; no key leaves the
+ * browser). Otherwise the owner's key goes directly to OpenAI. Neither: null.
+ */
+export function wordingTransport(proxyUrl: string | null, apiKey: string | null): WordingTransport | null {
+  if (proxyUrl) return { endpoint: proxyUrl, headers: {} };
+  if (apiKey) return { endpoint: OPENAI_ENDPOINT, headers: { Authorization: `Bearer ${apiKey}` } };
+  return null;
 }
 
 export type PostLike = (
@@ -79,16 +95,20 @@ export function buildRequestBody(request: WordingRequest): string {
  * Returns the parsed wording, or null on a missing key, timeout, HTTP error,
  * oversize payload, or malformed output (callers then use the templates).
  */
-export async function requestWording(post: PostLike, apiKey: string, request: WordingRequest, timeoutMs = OPENAI_TIMEOUT_MS): Promise<WordingResponse | null> {
-  if (!apiKey) return null;
+export async function requestWording(
+  post: PostLike,
+  transport: WordingTransport,
+  request: WordingRequest,
+  timeoutMs = OPENAI_TIMEOUT_MS,
+): Promise<WordingResponse | null> {
   const body = buildRequestBody(request);
   if (body.length > MAX_REQUEST_CHARS) return null;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await post(OPENAI_ENDPOINT, {
+    const response = await post(transport.endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      headers: { 'Content-Type': 'application/json', ...transport.headers },
       body,
       signal: controller.signal,
     });

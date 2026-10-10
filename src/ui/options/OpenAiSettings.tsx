@@ -7,7 +7,7 @@ import { useServices } from './context';
  * only in chrome.storage.local; never shown again in full, exported, or logged.
  */
 export function OpenAiSettings() {
-  const { local } = useServices();
+  const { local, wordingProxy } = useServices();
   const inputId = useId();
   const [saved, setSaved] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -34,6 +34,19 @@ export function OpenAiSettings() {
     setSaved(null);
     setMessage({ tone: 'ok', text: 'Key removed. Worth It will use its built-in wording.' });
   };
+
+  if (wordingProxy) {
+    return (
+      <div className="wi-card">
+        <h3>Wording assistant</h3>
+        <p>
+          This version of Worth It phrases its recap through the Worth It wording service, which holds the OpenAI key. You
+          don’t need a key. Requests contain only finding types, check names, and placeholders: no product names, prices,
+          purchase history, email content, or settings.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="wi-stack">

@@ -1,6 +1,6 @@
 import { CRITERION_LABELS } from '../domain/finding';
 import type { CartSummary, ReviewFinding } from '../domain/review';
-import { requestWording, type PostLike, type WordingRequest, type WordingResponse } from './openai-client';
+import { requestWording, type PostLike, type WordingRequest, type WordingResponse, type WordingTransport } from './openai-client';
 import { INGREDIENT_CLAIM_TEMPLATES, PHRASABLE, TEMPLATES, fill } from './templates';
 import { validateRephrasing } from './validate-phrasing';
 
@@ -10,7 +10,8 @@ export interface WordingCache {
 }
 
 export interface PhraseDeps {
-  getApiKey: () => Promise<string | null>;
+  /** Null when there is no key and no proxy: templates are used. */
+  getTransport: () => Promise<WordingTransport | null>;
   post: PostLike;
   cache: WordingCache;
 }
@@ -59,13 +60,13 @@ export function hashRequest(request: WordingRequest): string {
 export async function phraseSummary(summary: CartSummary, deps: PhraseDeps): Promise<CartSummary> {
   const request = buildWordingRequest(summary);
   if (!request.opening && request.highlights.length === 0) return summary;
-  const apiKey = await deps.getApiKey().catch(() => null);
-  if (!apiKey) return summary;
+  const transport = await deps.getTransport().catch(() => null);
+  if (!transport) return summary;
 
   const hash = hashRequest(request);
   let response = await deps.cache.get(hash).catch(() => null);
   if (!response) {
-    response = await requestWording(deps.post, apiKey, request);
+    response = await requestWording(deps.post, transport, request);
     if (!response) return summary;
     await deps.cache.set(hash, response).catch(() => undefined);
   }
