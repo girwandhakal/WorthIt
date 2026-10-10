@@ -10,6 +10,7 @@ import { OrdersPanel } from '../ui/orders/OrdersPanel';
 import { createReviewStore } from '../ui/shared/review-store';
 import { startOrdersController } from './orders-controller';
 import { startReviewController } from './review-controller';
+import { createContentDiagnostics } from './diagnostics';
 
 /**
  * Shared content-script setup for every retailer: the cart review (cart route
@@ -17,12 +18,14 @@ import { startReviewController } from './review-controller';
  * specifics come entirely from the adapter.
  */
 export function startRetailerContent(ctx: ContentScriptContext, adapter: RetailerAdapter): void {
+  const diagnostics = createContentDiagnostics(document, adapter.merchant);
   const send = (request: ContentRequest) => browser.runtime.sendMessage(request);
 
   const stopReview = startReviewController({
     win: window,
     adapter,
     send,
+    diagnose: diagnostics.update,
     mountPanel: async (handlers) => {
       const store = createReviewStore();
       const remove = await mountShadow(ctx, <CheckoutPanel store={store} {...handlers} />);
@@ -40,6 +43,7 @@ export function startRetailerContent(ctx: ContentScriptContext, adapter: Retaile
   });
 
   ctx.onInvalidated(() => {
+    diagnostics.update({ context: 'invalidated', error: 'context-invalidated' });
     stopReview();
     stopOrders();
   });
