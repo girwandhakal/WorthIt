@@ -8,3 +8,5 @@ See the [product requirements document](docs/PRD.md) for the product goals, user
 
 See the [technical implementation specification](docs/TECH_SPEC.md) for the recommended architecture, data handling, security, project structure, and delivery plan.
 
+
+See the [end-to-end implementation plan](docs/IMPLEMENTATION_PLAN.md) for the ordered GitHub issues, dependencies, and completion criteria.

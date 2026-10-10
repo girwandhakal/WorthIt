@@ -288,20 +288,22 @@ Do not begin with live retailer automation. Build confidence in layers:
 
 CI should install from the lockfile and run lint, typecheck, unit/integration tests, and production build. Keep screenshots and fixture data synthetic or scrubbed of account details. The user has asked for a spec, not implementation; checks begin when the code exists.
 
-## 11. Build sequence
+## 11. Implementation plan and issue order
 
-Repository guidance requires issue-linked work units. Create or confirm one GitHub issue for each stage, then implement in order:
+Use the [end-to-end implementation plan](IMPLEMENTATION_PLAN.md) as the current roadmap index. It links each delivery stage to its GitHub issue, dependencies, and status. The detailed issue bodies define scope, proposed source paths, acceptance criteria, tests, commands, and completion evidence.
 
-1. **Foundation:** WXT + TypeScript skeleton, MV3 manifest, icons, build/lint/typecheck, CI.
-2. **Retailer adapter:** Walmart cart extraction, normalization, fixture tests, extraction uncertainty UI.
-3. **Read-only checkout surface:** isolated React panel, dynamic updates, accessible controls, no retailer-page mutation.
-4. **Gmail-backed local history:** IndexedDB schema, Google OAuth setup, bounded Gmail API search, synthetic email seeding to the owner's account, receipt parsing and review, manual entry, optional recording, review/delete/export.
-5. **Assessment core:** store-brand prices, repeat detection, evidence templates, narrow nutrition triggers, savings aggregation.
-6. **Animated recap:** short timeline and visuals, captions, reduced motion, pause/replay/skip.
-7. **Integration and hackathon walkthrough:** connect the owner's Gmail test account, exercise OAuth and API receipt search, import synthetic receipt emails sent to that account through the same review flow as real order emails, run the manual retailer check, and package the extension.
-8. **Second retailer:** Amazon adapter only after first retailer is reliable and scope is confirmed.
+Complete work in this order:
 
-Do not parallelize issues unless their acceptance criteria are independent. Each PR should link its issue, state evidence/checks run, and document remaining limitations.
+1. [#4 — Finalize hackathon MVP decisions and owner-provided setup](https://github.com/girwandhakal/WorthIt/issues/4)
+2. [#5 — Build the Chrome extension foundation and Walmart checkout panel](https://github.com/girwandhakal/WorthIt/issues/5)
+3. [#6 — Add local purchase history and consent-based Gmail receipt import](https://github.com/girwandhakal/WorthIt/issues/6)
+4. [#7 — Implement explainable item assessment rules and evidence-backed suggestions](https://github.com/girwandhakal/WorthIt/issues/7)
+5. [#8 — Add cart-level savings, investment illustration, and animated checkout recap](https://github.com/girwandhakal/WorthIt/issues/8)
+6. [#9 — Integrate, validate, and package the hackathon-ready Worth It extension](https://github.com/girwandhakal/WorthIt/issues/9)
+7. [#10 — Add Amazon as the second retailer adapter](https://github.com/girwandhakal/WorthIt/issues/10), after the Walmart vertical slice is stable.
+8. [#11 — Prepare optional public Chrome Web Store and Google OAuth release](https://github.com/girwandhakal/WorthIt/issues/11), only if the owner chooses public distribution.
+
+Issue #4 is a decision gate. Do not implement unapproved health thresholds or silently resolve whether “AI-powered” means deterministic local rules or model-generated output. Implement one issue at a time on a focused branch from the latest `main`; each PR must link its issue and report the exact tests/checks run and their results.
 
 ## 12. Packaging and release
 
