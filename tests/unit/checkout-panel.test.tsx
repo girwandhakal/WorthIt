@@ -148,6 +148,22 @@ describe('static view (reduced motion)', () => {
 });
 
 describe('See full analysis', () => {
+  it('links cart prices to the cart and label evidence to the reviewed product', async () => {
+    const { user } = setup(reviewCart(snapshot([line('16275314128'), line('43981978'), line('10309701')]), reviewContext()), { reducedMotion: true });
+    await user.click(screen.getByRole('button', { name: 'See full analysis' }));
+    const tables = screen.getAllByRole('table');
+    const donutLabelLink = within(tables[0]!).getAllByRole('link', { name: 'Worth It product reference (Walmart.com prices and labels)' });
+    expect(donutLabelLink.every(link => link.getAttribute('href') === 'https://www.walmart.com/ip/16275314128')).toBe(true);
+    expect(within(tables[0]!).getByRole('link', { name: 'CDC: Get the Facts: Added Sugars' }).getAttribute('href')).toBe('https://www.cdc.gov/nutrition/php/data-research/added-sugars.html');
+    for (const table of tables.slice(1)) {
+      expect(within(table).getByRole('link', { name: 'Your Walmart cart page' }).getAttribute('href')).toBe('https://www.walmart.com/cart');
+    }
+    const cheeseSources = within(tables[1]!).getAllByRole('link', { name: 'Worth It product reference (Walmart.com prices and labels)' });
+    expect(cheeseSources.map(link => link.getAttribute('href'))).toEqual(expect.arrayContaining([
+      'https://www.walmart.com/ip/43981978', 'https://www.walmart.com/ip/10452370',
+    ]));
+  });
+
   it('opens only on request, lists every item and check, and returns to the highlights', async () => {
     const { user } = setup(mixed(), { reducedMotion: true });
     expect(screen.queryByRole('heading', { name: 'Full analysis' })).toBeNull();

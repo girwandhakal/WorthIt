@@ -167,3 +167,29 @@ test('grouped Walmart tile: reviews cheese and milk independently with known pri
   expect(await retailerClicks(page)).toBe(0);
   expect(await retailerMarkup(page)).toBe(before);
 });
+
+test('three reviewed products: donut label finding, staple swaps, and correct source links', async ({ context }) => {
+  await serveWalmart(context, { '/cart': 'cart-three-reviewed-2026-10.html' });
+  const page = await context.newPage();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('https://www.walmart.com/cart');
+  const before = await retailerMarkup(page);
+  const panel = page.getByRole('region', { name: 'Worth It' });
+  await panel.getByRole('button', { name: 'See full analysis' }).click();
+  await expect(panel.getByRole('table')).toHaveCount(3);
+  const donuts = panel.locator('.wi-full-item').filter({ hasText: 'Hostess Donettes Frightfully Frosted Mini Donuts' });
+  await expect(donuts.getByText('Discretionary', { exact: true })).toBeVisible();
+  await expect(donuts.getByText('Skip or reduce (added sugar): $2.68', { exact: true })).toBeVisible();
+  await expect(donuts.getByRole('link', { name: 'CDC: Get the Facts: Added Sugars' })).toHaveAttribute('href', 'https://www.cdc.gov/nutrition/php/data-research/added-sugars.html');
+  const totals = panel.getByRole('region', { name: 'Cart totals' });
+  await expect(totals.getByText('$14.28', { exact: true })).toBeVisible();
+  await expect(totals.getByText('$3.69', { exact: true })).toBeVisible();
+  await expect(totals.getByText('$2.68', { exact: true })).toBeVisible();
+  await expect(totals.getByText('$6.37', { exact: true })).toBeVisible();
+  await expect(panel.getByRole('link', { name: 'Your Walmart cart page' })).toHaveCount(2);
+  for (const link of await panel.getByRole('link', { name: 'Your Walmart cart page' }).all()) {
+    await expect(link).toHaveAttribute('href', 'https://www.walmart.com/cart');
+  }
+  expect(await retailerClicks(page)).toBe(0);
+  expect(await retailerMarkup(page)).toBe(before);
+});

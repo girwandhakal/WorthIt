@@ -317,6 +317,26 @@ describe('store-brand value', () => {
 });
 
 describe('added-sugar rule (the only health rule)', () => {
+  it('assesses all three reported cart products using their exact reviewed IDs', () => {
+    const result = assess(snapshot([line('16275314128'), line('43981978'), line('10309701')]));
+    expect(result.items.map((item) => [item.purposeClass, item.primary?.kind, item.primary?.amountCents])).toEqual([
+      ['discretionary', 'reduce_added_sugar', 268],
+      ['essential_consumable', 'cheaper_alternative', 170],
+      ['essential_consumable', 'cheaper_alternative', 199],
+    ]);
+    expect(result.readableTotalCents).toBe(1428);
+    expect(totalOfPrimaries(result.items)).toBe(637);
+    expect(criterion(result.items[0]!, 'added_sugar').summary).toBe(ADDED_SUGAR_NOTE);
+    expect(criterion(result.items[0]!, 'store_brand').status).toBe('not_applicable');
+  });
+
+  it('does not copy seasonal donut label facts to an unreviewed ID with the same title', () => {
+    const donut = assess(snapshot([line('99999999', { title: referenceProduct('16275314128')!.name })])).items[0]!;
+    expect(donut.purposeClass).toBe('unknown');
+    expect(criterion(donut, 'added_sugar').status).toBe('unknown');
+    expect(donut.primary).toBeNull();
+  });
+
   it('0 g: no note', () => {
     const dietCoke = assess(snapshot([line('15610624')])).items[0]!;
     expect(criterion(dietCoke, 'added_sugar').status).toBe('no_concern');

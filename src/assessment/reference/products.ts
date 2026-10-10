@@ -582,6 +582,17 @@ const PRODUCTS: ReferenceProduct[] = [
   },
   // Unpaired walkthrough items
   {
+    itemId: '16275314128',
+    name: 'Hostess Donettes Frightfully Frosted Mini Donuts, 10 oz Bag',
+    brand: 'Hostess',
+    storeBrand: false,
+    category: 'snack',
+    itemType: 'mini donuts',
+    size: { amount: 10, unit: 'oz' },
+    priceCents: 268,
+    label: food(17, null, null, UNKNOWN_DIET),
+  },
+  {
     itemId: '17741466139',
     name: 'Squishmallows FuzzAMallow 5 in plush',
     brand: 'Squishmallows',
