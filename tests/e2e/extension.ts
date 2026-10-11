@@ -101,6 +101,11 @@ export async function waitForReview(page: Page) {
   await expect.poll(async () => (await debugReport(page)).review).toBe('delivered');
 }
 
+/** Waits until the next real checkout click will be held (everything this cart's findings depend on has loaded). */
+export async function waitForArmed(page: Page) {
+  await expect.poll(async () => (await debugReport(page)).checkout).toBe('armed');
+}
+
 /** Worth It shows nothing on the page: no pill, no panel, no buttons. */
 export async function expectNothingShown(page: Page) {
   await expect(page.getByRole('dialog', { name: 'Worth It' })).toHaveCount(0);

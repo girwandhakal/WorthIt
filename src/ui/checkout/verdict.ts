@@ -31,12 +31,15 @@ export function swapTarget(finding: ReviewFinding): string | null {
   return finding.kind === 'cheaper_alternative' ? (finding.wording?.slots.alternative ?? null) : null;
 }
 
-/** Walmart's image CDN resizes on request; ask for a crisp square on white. Other URLs pass through. */
-export function sizedImage(url: string | null, px: number): string | null {
+/**
+ * Walmart's image CDN resizes on request; ask for a crisp square on white. Other URLs pass through.
+ * With no size, the URL is used as the cart page loaded it, so the browser already has it.
+ */
+export function sizedImage(url: string | null, px: number | null): string | null {
   if (!url) return null;
   try {
     const parsed = new URL(url);
-    if (!/(^|\.)walmartimages\.com$/i.test(parsed.hostname)) return url;
+    if (px === null || !/(^|\.)walmartimages\.com$/i.test(parsed.hostname)) return url;
     parsed.searchParams.set('odnHeight', String(px));
     parsed.searchParams.set('odnWidth', String(px));
     parsed.searchParams.set('odnBg', 'FFFFFF');

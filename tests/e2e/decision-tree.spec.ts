@@ -1,6 +1,6 @@
 import type { PageSpec } from '../helpers/product-page';
 import { PAGES } from '../helpers/product-page';
-import { clickCheckout, debugReport, expect, expectNothingShown, retailerClicks, retailerMarkup, serveWalmart, test, waitForReview } from './extension';
+import { clickCheckout, debugReport, expect, expectNothingShown, retailerClicks, retailerMarkup, serveWalmart, test, waitForArmed, waitForReview } from './extension';
 
 /**
  * The decision tree in the real extension: every cart item's own product page
@@ -22,6 +22,8 @@ test('reads product pages and shows the decision tree result: whole foods quiet,
   const page = await context.newPage();
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('https://www.walmart.com/cart');
+  // Every finding in this cart comes from a product page's label, which loads after the first pass.
+  await waitForArmed(page);
   await clickCheckout(page);
   const before = await retailerMarkup(page);
   const panel = page.getByRole('dialog', { name: 'Worth It' });

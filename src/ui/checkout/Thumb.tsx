@@ -2,7 +2,8 @@ import { useState, type CSSProperties } from 'react';
 import { SceneIcon, type IconKind } from '../animation/icons';
 import { sizedImage } from './verdict';
 
-const PX = { sm: 96, md: 160, lg: 480 } as const;
+/** Pixel size to request; the small tiles use the cart page's own (already loaded) image. */
+const PX = { sm: null, md: 160, lg: 480 } as const;
 
 /**
  * The retailer's own product thumbnail, decorative (the name is always in text

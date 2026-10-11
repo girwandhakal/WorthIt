@@ -249,3 +249,22 @@ test('three reviewed products: donut label finding, staple swaps, and correct so
   expect(await retailerClicks(page)).toBe(0);
   expect(await retailerMarkup(page)).toBe(before);
 });
+
+test('the checkout click is held even while product pages are still loading', async ({ context }) => {
+  await serveWalmart(context, { '/cart': 'cart-mixed.html' });
+  // Every product page takes 6 seconds to answer, far longer than this test waits for the first review.
+  const slow = new Promise<void>((resolve) => setTimeout(resolve, 6000));
+  await context.route('https://www.walmart.com/ip/**', async (route) => {
+    await slow;
+    await route.fallback().catch(() => undefined);
+  });
+  const page = await context.newPage();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const started = Date.now();
+  await page.goto('https://www.walmart.com/cart');
+  await expect.poll(async () => (await debugReport(page)).checkout, { timeout: 3000 }).toBe('armed');
+  expect(Date.now() - started).toBeLessThan(4000);
+  await checkoutButton(page).click();
+  await expect(page.getByRole('dialog', { name: 'Worth It' })).toBeVisible();
+  expect(await retailerClicks(page)).toBe(0);
+});

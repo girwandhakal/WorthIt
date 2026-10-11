@@ -164,17 +164,38 @@ describe('startReviewController', () => {
       loadProductFacts,
     });
 
-    it('reads the product page of every cart item and sends the facts with the review', async () => {
+    it('reviews at once from the cart page, then reads every product page and reviews again with the facts', async () => {
       vi.useFakeTimers();
       history.replaceState({}, '', '/cart');
       loadIntoDocument('cart-normal.html');
       const loadProductFacts = vi.fn(async (ids: readonly string[]) => ({ [ids[0]!]: factsFor({ ...PAGES.milk, id: ids[0]! }) }));
-      const { sent, stop } = start({ adapter: cartAdapter(loadProductFacts) });
+      const { sent, shown, stop } = start({ adapter: cartAdapter(loadProductFacts) });
       await vi.advanceTimersByTimeAsync(50);
       expect(loadProductFacts).toHaveBeenCalledWith(['10315798', '145051970', '10315395']);
-      const request = sent[0]!;
-      expect(request.type).toBe('cart/review');
-      expect(request.type === 'cart/review' && Object.keys(request.facts ?? {})).toEqual(['10315798']);
+      expect(sent).toHaveLength(2);
+      expect(sent[0]).not.toHaveProperty('facts');
+      const second = sent[1]!;
+      expect(second.type).toBe('cart/review');
+      expect(second.type === 'cart/review' && Object.keys(second.facts ?? {})).toEqual(['10315798']);
+      // Only the first pass opens a new visit; the second must not clear the shopper's dismissals.
+      expect(sent[0]).toHaveProperty('fresh', true);
+      expect(sent[1]).not.toHaveProperty('fresh');
+      expect(shown).toHaveLength(2);
+      stop();
+    });
+
+    it('skips the second review when facts are already known, so cart edits are instant', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-normal.html');
+      const known = { '10315798': factsFor({ ...PAGES.milk, id: '10315798' }) };
+      const loadProductFacts = vi.fn(async () => known);
+      const adapter = { ...cartAdapter(loadProductFacts), knownProductFacts: () => ({ facts: known, complete: true }) };
+      const { sent, stop } = start({ adapter });
+      await vi.advanceTimersByTimeAsync(50);
+      expect(loadProductFacts).not.toHaveBeenCalled();
+      expect(sent).toHaveLength(1);
+      expect(sent[0]!.type === 'cart/review' && Object.keys(sent[0]!.facts ?? {})).toEqual(['10315798']);
       stop();
     });
 
@@ -202,13 +223,85 @@ describe('startReviewController', () => {
       });
       const { sent, shown, stop } = start({ adapter: cartAdapter(loadProductFacts) });
       await vi.advanceTimersByTimeAsync(50);
+      expect(sent).toHaveLength(1); // the first pass doesn't wait for the product pages
       document.querySelector('[data-testid="line-price"]')!.textContent = '$9.00';
       await vi.advanceTimersByTimeAsync(50);
-      expect(sent).toHaveLength(1); // the newer read finished first
+      expect(sent).toHaveLength(2); // the newer read's first pass
       release();
       await vi.advanceTimersByTimeAsync(50);
-      expect(sent).toHaveLength(1); // the older one never sends
+      expect(sent).toHaveLength(2); // the older read's second pass never sends
+      expect(shown).toHaveLength(2);
+      stop();
+    });
+  });
+
+  describe('before the product pages have loaded', () => {
+    const click = (element: Element) => element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    const never = () => new Promise<never>(() => undefined);
+    type Facts = Awaited<ReturnType<NonNullable<typeof walmartAdapter.loadProductFacts>>>;
+
+    function startWithSlowPages(loadProductFacts: NonNullable<typeof walmartAdapter.loadProductFacts>) {
+      let isOpen = false;
+      let handlers!: Parameters<ReviewControllerDeps['mountPanel']>[0];
+      const shown: CartReview[] = [];
+      const mountPanel = vi.fn(async (given: typeof handlers): Promise<PanelHandle> => {
+        handlers = given;
+        return { show: (review) => shown.push(review), open: () => (isOpen = true), isOpen: () => isOpen, remove: () => undefined };
+      });
+      const adapter = { ...walmartAdapter, isCartRoute: (url: URL) => /^\/cart\/?$/.test(url.pathname), loadProductFacts };
+      const started = start({ adapter, mountPanel, trustedClicksOnly: false });
+      return { ...started, shown, handlers: () => handlers, isOpen: () => isOpen, setOpen: (value: boolean) => (isOpen = value) };
+    }
+
+    it('holds the first checkout click while product pages are still loading', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      const pageClicks = vi.fn();
+      document.addEventListener('click', pageClicks);
+      const { isOpen, diagnose, stop } = startWithSlowPages(never);
+      await vi.advanceTimersByTimeAsync(50);
+      expect(diagnose).toHaveBeenCalledWith({ checkout: 'armed' });
+      click(document.getElementById('checkout')!);
+      expect(isOpen()).toBe(true);
+      expect(pageClicks).not.toHaveBeenCalled();
+      document.removeEventListener('click', pageClicks);
+      stop();
+    });
+
+    it('applies what the product pages teach once they arrive, if the panel is closed', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      let release!: (facts: Facts) => void;
+      const { shown, sent, stop } = startWithSlowPages(() => new Promise<Facts>((resolve) => { release = resolve; }));
+      await vi.advanceTimersByTimeAsync(50);
       expect(shown).toHaveLength(1);
+      release({ '10309701': factsFor({ ...PAGES.milk, id: '10309701' }) });
+      await vi.advanceTimersByTimeAsync(50);
+      expect(sent).toHaveLength(2);
+      expect(shown).toHaveLength(2);
+      stop();
+    });
+
+    it('does not swap the review while the shopper is reading it, and refreshes after they close it', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      let release!: (facts: Facts) => void;
+      const { shown, sent, handlers, setOpen, stop } = startWithSlowPages(() => new Promise<Facts>((resolve) => { release = resolve; }));
+      await vi.advanceTimersByTimeAsync(50);
+      setOpen(true); // the shopper is looking at the first pass
+      release({ '10309701': factsFor({ ...PAGES.milk, id: '10309701' }) });
+      await vi.advanceTimersByTimeAsync(50);
+      expect(sent).toHaveLength(1);
+      expect(shown).toHaveLength(1);
+
+      setOpen(false);
+      handlers().onDismiss(['walmart:18256507800:cheaper_alternative']);
+      await vi.advanceTimersByTimeAsync(50);
+      // A fresh review is requested, which honors what they just dismissed.
+      expect(sent.map((request) => request.type)).toEqual(['cart/review', 'panel/dismiss', 'cart/review']);
       stop();
     });
   });

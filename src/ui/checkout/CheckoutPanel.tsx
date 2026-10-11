@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type Ke
 import type { PanelHandlers } from '../../content/review-controller';
 import type { CartReview } from '../../domain/review';
 import { Recap } from '../animation/Recap';
+import { preloadReviewImages } from '../shared/preload';
 import type { ReviewStore } from '../shared/review-store';
 import { FullAnalysis } from './FullAnalysis';
 import { StaticSummary } from './StaticSummary';
@@ -28,6 +29,10 @@ function prefersReducedMotion(): boolean {
 export function CheckoutPanel({ store, reducedMotion, openOnLoad = false, ...handlers }: CheckoutPanelProps) {
   const review = useSyncExternalStore(store.subscribe, store.get);
   const openRequests = useSyncExternalStore(store.subscribe, store.openRequests);
+  // Load the thumbnails as soon as the review is ready, not when the checkout click opens it.
+  useEffect(() => {
+    if (review) preloadReviewImages(review);
+  }, [review]);
   if (!review) return null;
   return (
     <PanelForReview

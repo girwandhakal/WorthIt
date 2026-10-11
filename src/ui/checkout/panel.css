@@ -350,22 +350,19 @@ select {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: rgba(5, 10, 8, 0.9);
-  -webkit-backdrop-filter: blur(18px) saturate(120%);
-  backdrop-filter: blur(18px) saturate(120%);
+  background: rgba(5, 10, 8, 0.95);
   color: var(--wi-text);
   font-size: 16px;
-  animation: wi-overlay-in 480ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  animation: wi-overlay-in 140ms ease-out;
 }
 
+/* The dark scrim is there on the first frame; only a short fade softens it. */
 @keyframes wi-overlay-in {
   from {
-    opacity: 0;
-    transform: scale(1.02);
+    opacity: 0.4;
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 
@@ -677,19 +674,17 @@ select {
   width: 100%;
   display: grid;
   justify-items: center;
-  animation: wi-scene-in 600ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  animation: wi-scene-in 360ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 @keyframes wi-scene-in {
   from {
     opacity: 0;
-    transform: translateY(18px);
-    filter: blur(6px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
     transform: none;
-    filter: none;
   }
 }
 
@@ -736,19 +731,19 @@ select {
 }
 
 .wi-star {
-  animation: wi-star-in 620ms calc(var(--i, 0) * 70ms + 200ms) both cubic-bezier(0.3, 1.5, 0.5, 1);
+  animation: wi-star-in 520ms calc(var(--i, 0) * 50ms) both cubic-bezier(0.3, 1.5, 0.5, 1);
 }
 
 .wi-constellation .wi-star-dim {
   animation:
-    wi-star-in 620ms calc(var(--i, 0) * 70ms + 200ms) both cubic-bezier(0.3, 1.5, 0.5, 1),
-    wi-dim 700ms 1900ms forwards ease;
+    wi-star-in 520ms calc(var(--i, 0) * 50ms) both cubic-bezier(0.3, 1.5, 0.5, 1),
+    wi-dim 700ms 1500ms forwards ease;
 }
 
 .wi-constellation .wi-star-lit {
   animation:
-    wi-star-in 620ms calc(var(--i, 0) * 70ms + 200ms) both cubic-bezier(0.3, 1.5, 0.5, 1),
-    wi-lift 700ms 1900ms forwards cubic-bezier(0.3, 1.5, 0.5, 1);
+    wi-star-in 520ms calc(var(--i, 0) * 50ms) both cubic-bezier(0.3, 1.5, 0.5, 1),
+    wi-lift 700ms 1500ms forwards cubic-bezier(0.3, 1.5, 0.5, 1);
 }
 
 .wi-star-more {

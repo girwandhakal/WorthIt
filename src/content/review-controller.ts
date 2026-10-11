@@ -3,6 +3,7 @@ import { observeCart, watchRoute } from '../adapters/observe-page';
 import { isFullyReadable, type CartSnapshot } from '../domain/cart';
 import type { ClarificationQuestion } from '../domain/finding';
 import type { ClarificationAnswer } from '../domain/history';
+import type { ProductFactsMap } from '../domain/product-facts';
 import type { CartReview } from '../domain/review';
 import type { ContentRequest } from '../messaging/messages';
 import { messagingErrorCode, type DiagnosticUpdate } from './diagnostics';
@@ -57,6 +58,8 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
   let dismissals = 0;
   /** The mounted panel, once it exists. A click is held only when this can open. */
   let mounted: PanelHandle | null = null;
+  /** Product pages finished loading while the shopper was looking at the review; refresh once they close it. */
+  let refreshAfterClose = false;
 
   const ignore = () => undefined;
   const handlers: PanelHandlers = {
@@ -64,7 +67,14 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
       armed = false; // the shopper has seen it and closed it
       dismissals += 1;
       deps.diagnose?.({ checkout: 'closed-by-shopper' });
-      void deps.send({ type: 'panel/dismiss', findingIds: ids }).catch(ignore);
+      void deps
+        .send({ type: 'panel/dismiss', findingIds: ids })
+        .catch(ignore)
+        .then(() => {
+          if (!refreshAfterClose) return;
+          refreshAfterClose = false;
+          active?.refresh();
+        });
     },
     onAnswer: (question, answer, itemName) =>
       void deps
@@ -108,6 +118,7 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
     const myGeneration = ++generation;
     armed = false;
     mounted = null;
+    refreshAfterClose = false;
     freshVisit = true;
     deps.diagnose?.({ checkout: 'waiting-for-review' });
     deps.win.addEventListener('click', holdCheckoutClick, true);
@@ -139,6 +150,7 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
     deps.win.removeEventListener('click', holdCheckoutClick, true);
     armed = false;
     mounted = null;
+    refreshAfterClose = false;
     if (!active) return;
     active.stop();
     void active.panel.then((handle) => handle?.remove());
@@ -156,33 +168,56 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
     });
     const requestId = ++latestRequest;
     const dismissalsAtStart = dismissals;
-    // Read each item's own product page (ingredients, Nutrition Facts, category). Never fatal.
+    const stale = () => myGeneration !== generation || requestId !== latestRequest; // route changed, or a newer cart read replaced this one
+
+    /** Reviews the cart with the given product facts and hands the result to the panel. True when it was delivered. */
+    const review = async (facts: ProductFactsMap): Promise<boolean> => {
+      let response: unknown;
+      try {
+        response = await deps.send({
+          type: 'cart/review',
+          snapshot,
+          ...(Object.keys(facts).length > 0 ? { facts } : {}),
+          ...(freshVisit ? { fresh: true } : {}),
+        });
+      } catch (error) {
+        if (myGeneration === generation) deps.diagnose?.({ background: 'unavailable', error: messagingErrorCode(error) });
+        return false;
+      }
+      if (stale()) return false;
+      deps.diagnose?.({ background: isReviewResponse(response) ? 'ok' : 'invalid-response' });
+      if (!isReviewResponse(response)) return false;
+      freshVisit = false;
+      const handle = await panel;
+      if (stale() || !handle) return false;
+      handle.show(response.review);
+      // Something un-dismissed to show: hold the first checkout click (unless they dismissed while this was in flight).
+      armed = response.review.autoOpen && dismissals === dismissalsAtStart;
+      deps.diagnose?.({ checkout: armed ? 'armed' : 'nothing-to-show' });
+      deps.diagnose?.({ review: 'delivered', error: 'none' });
+      return true;
+    };
+
+    // First pass, straight away: everything the cart page and the product pages already read support. This
+    // does not wait on the network, so the first checkout click can be held within a moment of opening the cart.
     const itemIds = snapshot.items.flatMap((item) => (item.retailerItemId ? [item.retailerItemId] : []));
-    const facts = deps.adapter.loadProductFacts && itemIds.length > 0 ? await deps.adapter.loadProductFacts(itemIds).catch(() => ({})) : {};
-    if (myGeneration !== generation || requestId !== latestRequest) return;
-    let response: unknown;
-    try {
-      response = await deps.send({
-        type: 'cart/review',
-        snapshot,
-        ...(Object.keys(facts).length > 0 ? { facts } : {}),
-        ...(freshVisit ? { fresh: true } : {}),
-      });
-    } catch (error) {
-      if (myGeneration === generation) deps.diagnose?.({ background: 'unavailable', error: messagingErrorCode(error) });
+    const load = deps.adapter.loadProductFacts;
+    const known = deps.adapter.knownProductFacts?.(itemIds) ?? { facts: {}, complete: !load || itemIds.length === 0 };
+    await review(known.facts);
+    if (known.complete || !load || stale()) return;
+
+    // Second pass: read each item's own product page (ingredients, Nutrition Facts, category), then review
+    // again with what was learned. Never fatal, and skipped when nothing new was read.
+    const facts = await load(itemIds).catch((): ProductFactsMap => ({}));
+    if (stale() || Object.keys(facts).length <= Object.keys(known.facts).length) return;
+    // Never swap the review under a shopper who is reading it; refresh once they close it.
+    if (mounted?.isOpen()) {
+      refreshAfterClose = true;
       return;
     }
-    if (myGeneration !== generation || requestId !== latestRequest) return; // Route changed or a newer cart read replaced this one.
-    deps.diagnose?.({ background: isReviewResponse(response) ? 'ok' : 'invalid-response' });
-    if (!isReviewResponse(response)) return;
-    freshVisit = false;
-    const handle = await panel;
-    if (myGeneration !== generation || !handle) return;
-    handle.show(response.review);
-    // Something un-dismissed to show: hold the first checkout click (unless they dismissed while this was in flight).
-    armed = response.review.autoOpen && dismissals === dismissalsAtStart;
-    deps.diagnose?.({ checkout: armed ? 'armed' : 'nothing-to-show' });
-    deps.diagnose?.({ review: 'delivered', error: 'none' });
+    // They have already seen and closed the first pass: re-review so that dismissal is honored.
+    if (dismissals !== dismissalsAtStart) return void active?.refresh();
+    await review(facts);
   };
 
   const onRoute = (url: URL) => {

@@ -3,6 +3,7 @@ import {
   BLOCKED_COOLDOWN_MS,
   BlockedError,
   MAX_PAGES_PER_REVIEW,
+  knownProductFacts,
   loadProductFacts,
   parseAmount,
   parseProductPage,
@@ -220,5 +221,20 @@ describe('Walmart adapter product-page fetch', () => {
     const calls = fetchMock.mock.calls.map(([url]) => String(url).split('/').pop());
     expect(calls.filter((id) => id === '50000001')).toHaveLength(2);
     expect(calls.filter((id) => id === '50000002')).toHaveLength(1);
+  });
+});
+
+describe('knownProductFacts', () => {
+  const milk = parseProductPage(productPageHtml({ ...PAGES.milk, id: '90000001' }), '90000001') as ProductFacts;
+
+  it('returns what is cached without any request, and says whether anything is left to load', () => {
+    const cache = new Map<string, ProductFacts | null>([['90000001', milk], ['90000002', null]]);
+    expect(knownProductFacts(['90000001', '90000002'], cache)).toEqual({ facts: { '90000001': milk }, complete: true });
+    expect(knownProductFacts(['90000001', '90000003'], cache)).toEqual({ facts: { '90000001': milk }, complete: false });
+  });
+
+  it('ignores IDs it would never request, and has nothing to load for an empty cart', () => {
+    expect(knownProductFacts(['not-an-id', '1'], new Map())).toEqual({ facts: {}, complete: true });
+    expect(knownProductFacts([], new Map())).toEqual({ facts: {}, complete: true });
   });
 });

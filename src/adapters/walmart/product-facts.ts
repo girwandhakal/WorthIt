@@ -125,6 +125,20 @@ export interface LoadFactsOptions {
   now?: () => number;
 }
 
+/**
+ * What is already known for these items, without any request: the facts read so far, and whether
+ * every item has been looked at (read or found unreadable). Lets a review start before the network does.
+ */
+export function knownProductFacts(itemIds: readonly string[], cache: Map<string, ProductFacts | null>): { facts: ProductFactsMap; complete: boolean } {
+  const wanted = [...new Set(itemIds)].filter((id) => ITEM_ID.test(id));
+  const facts: ProductFactsMap = {};
+  for (const id of wanted) {
+    const known = cache.get(id);
+    if (known) facts[id] = known;
+  }
+  return { facts, complete: wanted.every((id) => cache.has(id)) };
+}
+
 /** Fetches in progress, per cache, so an overlapping review waits for them instead of asking Walmart again. */
 const inFlight = new WeakMap<Map<string, ProductFacts | null>, Map<string, Promise<void>>>();
 
