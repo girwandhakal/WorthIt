@@ -32,6 +32,11 @@ export const addDismissed = (area: SessionArea, tabId: number, ids: readonly str
 export const getSkippedQuestions = (area: SessionArea, tabId: number) => getSet(area, 'skipped', tabId);
 export const addSkippedQuestion = (area: SessionArea, tabId: number, id: string) => addToSet(area, 'skipped', tabId, [id]);
 
+/** A new visit to the cart page starts over: the panel may be offered again at checkout. Skipped questions are kept. */
+export async function resetDismissed(area: SessionArea, tabId: number): Promise<void> {
+  await area.remove(keyFor('dismissed', tabId));
+}
+
 export async function clearDismissed(area: SessionArea, tabId: number): Promise<void> {
   await area.remove(keyFor('dismissed', tabId));
   await area.remove(keyFor('skipped', tabId));

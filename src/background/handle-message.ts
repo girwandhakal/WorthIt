@@ -9,7 +9,7 @@ import { wordingTransport, type WordingResponse } from '../summary/openai-client
 import { phraseSummary, type PhraseDeps } from '../summary/phrase-summary';
 import { getOpenAiKey, getPreferences, type LocalArea } from '../storage/preferences';
 import type { Repositories } from '../storage/repositories';
-import { addDismissed, addSkippedQuestion, getDismissed, getSkippedQuestions, type SessionArea } from './dismissals';
+import { addDismissed, addSkippedQuestion, getDismissed, getSkippedQuestions, resetDismissed, type SessionArea } from './dismissals';
 import { reviewCart } from './review-cart';
 
 export interface BackgroundDeps {
@@ -53,6 +53,7 @@ async function dispatch(request: ContentRequest, tabId: number, deps: Background
   const now = deps.now?.() ?? new Date();
   switch (request.type) {
     case 'cart/review': {
+      if (request.fresh) await resetDismissed(deps.session, tabId);
       const { purchases, clarifications } = await deps.repositories();
       const [dismissedIds, skippedQuestions, preferences, history, answers] = await Promise.all([
         getDismissed(deps.session, tabId),

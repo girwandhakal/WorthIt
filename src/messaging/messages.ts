@@ -17,6 +17,8 @@ export const contentRequestSchema = z.discriminatedUnion('type', [
     snapshot: cartSnapshotSchema,
     /** Ingredients, Nutrition Facts, and category read from each cart item's own product page. */
     facts: productFactsMapSchema.refine((facts) => Object.keys(facts).length <= 100).optional(),
+    /** First review since the cart page loaded or was reopened: earlier dismissals don't apply. */
+    fresh: z.boolean().optional(),
   }),
   z.object({ type: z.literal('panel/dismiss'), findingIds: z.array(findingIdSchema).max(500) }),
   /** The shopper answered a clarification question (stored locally, reused next time). */

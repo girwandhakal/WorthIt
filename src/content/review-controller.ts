@@ -45,6 +45,8 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
   let generation = 0;
   /** Only the newest request may update the panel; slower, older ones are dropped. */
   let latestRequest = 0;
+  /** True until a review for this visit to the cart page has come back, so earlier dismissals are dropped. */
+  let freshVisit = true;
   /**
    * True while there is something un-dismissed to show and the shopper has not yet been
    * shown it. The first real click on the retailer's checkout control is held once, then
@@ -103,6 +105,7 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
     const myGeneration = ++generation;
     armed = false;
     mounted = null;
+    freshVisit = true;
     deps.diagnose?.({ checkout: 'waiting-for-review' });
     deps.win.addEventListener('click', holdCheckoutClick, true);
     deps.diagnose?.({ panel: 'mounting', review: 'pending', error: 'none' });
@@ -155,7 +158,12 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
     if (myGeneration !== generation || requestId !== latestRequest) return;
     let response: unknown;
     try {
-      response = await deps.send({ type: 'cart/review', snapshot, ...(Object.keys(facts).length > 0 ? { facts } : {}) });
+      response = await deps.send({
+        type: 'cart/review',
+        snapshot,
+        ...(Object.keys(facts).length > 0 ? { facts } : {}),
+        ...(freshVisit ? { fresh: true } : {}),
+      });
     } catch (error) {
       if (myGeneration === generation) deps.diagnose?.({ background: 'unavailable', error: messagingErrorCode(error) });
       return;
@@ -163,6 +171,7 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
     if (myGeneration !== generation || requestId !== latestRequest) return; // Route changed or a newer cart read replaced this one.
     deps.diagnose?.({ background: isReviewResponse(response) ? 'ok' : 'invalid-response' });
     if (!isReviewResponse(response)) return;
+    freshVisit = false;
     const handle = await panel;
     if (myGeneration !== generation || !handle) return;
     handle.show(response.review);

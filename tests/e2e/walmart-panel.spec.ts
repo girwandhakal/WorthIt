@@ -51,6 +51,14 @@ test.describe('Walmart cart panel', () => {
     await clickCheckout(page);
     await expect(panel).toHaveCount(0);
     expect(await retailerClicks(page)).toBe(2);
+
+    // Reloading the cart page is a new visit: the first click is held and the panel opens again.
+    await page.reload();
+    await clickCheckout(page);
+    await expect(panel).toBeVisible();
+    expect(await retailerClicks(page)).toBe(0);
+    const report = JSON.parse((await page.locator('html').getAttribute('data-worth-it-debug'))!);
+    expect(report.checkout).toBe('held');
   });
 
   test('holds the click again only when a new finding appears', async ({ context }) => {

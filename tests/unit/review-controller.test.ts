@@ -338,4 +338,45 @@ describe('startReviewController', () => {
       stop();
     });
   });
+
+  it('marks only the first review of each visit to the cart page as fresh', async () => {
+    vi.useFakeTimers();
+    history.replaceState({}, '', '/cart');
+    loadIntoDocument('cart-normal.html');
+    const { sent, stop } = start();
+    await vi.advanceTimersByTimeAsync(50);
+    expect(sent[0]).toMatchObject({ type: 'cart/review', fresh: true });
+
+    document.querySelector('[data-testid="line-price"]')!.textContent = '$9.00';
+    await vi.advanceTimersByTimeAsync(50);
+    expect(sent).toHaveLength(2);
+    expect(sent[1]).not.toHaveProperty('fresh');
+
+    // Leaving the cart and coming back is a new visit.
+    history.pushState({}, '', '/checkout');
+    await vi.advanceTimersByTimeAsync(100);
+    history.pushState({}, '', '/cart');
+    await vi.advanceTimersByTimeAsync(100);
+    expect(sent.at(-1)).toMatchObject({ fresh: true });
+    stop();
+  });
+
+  it('keeps asking for a fresh start until a review actually comes back', async () => {
+    vi.useFakeTimers();
+    history.replaceState({}, '', '/cart');
+    loadIntoDocument('cart-normal.html');
+    let attempts = 0;
+    const sent: ContentRequest[] = [];
+    const send = vi.fn(async (request: ContentRequest) => {
+      sent.push(request);
+      if (attempts++ === 0) throw new Error('background asleep');
+      return request.type === 'cart/review' ? { ok: true, review: reviewCart(request.snapshot, reviewContext()) } : { ok: true };
+    });
+    const { stop } = start({ send });
+    await vi.advanceTimersByTimeAsync(50);
+    document.querySelector('[data-testid="line-price"]')!.textContent = '$9.00';
+    await vi.advanceTimersByTimeAsync(50);
+    expect(sent.map((request) => request.type === 'cart/review' && request.fresh === true)).toEqual([true, true]);
+    stop();
+  });
 });
