@@ -497,3 +497,42 @@ describe('startReviewController', () => {
     stop();
   });
 });
+
+describe('saved product labels', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    history.replaceState({}, '', '/');
+    document.body.replaceChildren();
+  });
+
+  it('brings in the labels saved by earlier visits before the first review', async () => {
+    vi.useFakeTimers();
+    history.replaceState({}, '', '/cart');
+    loadIntoDocument('cart-normal.html');
+    const saved = { '10315798': factsFor({ ...PAGES.milk, id: '10315798' }) };
+    let warmed = false;
+    const adapter = {
+      ...walmartAdapter,
+      isCartRoute: (url: URL) => /^\/cart\/?$/.test(url.pathname),
+      warmUp: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        warmed = true;
+      },
+      knownProductFacts: () => ({ facts: warmed ? saved : {}, complete: warmed }),
+      loadProductFacts: vi.fn(async () => saved),
+    };
+    const sent: ContentRequest[] = [];
+    const send = vi.fn(async (request: ContentRequest) => {
+      sent.push(request);
+      return request.type === 'cart/review' ? { ok: true, review: reviewCart(request.snapshot, reviewContext()) } : { ok: true };
+    });
+    const panel: PanelHandle = { show: () => undefined, open: () => undefined, isOpen: () => false, remove: () => undefined };
+    const stop = startReviewController({ win: window, adapter, send, mountPanel: async () => panel, debounceMs: 10, routePollMs: 50 });
+    await vi.advanceTimersByTimeAsync(100);
+    // One review, already carrying the saved labels, and no product page read.
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!.type === 'cart/review' && Object.keys(sent[0]!.facts ?? {})).toEqual(['10315798']);
+    expect(adapter.loadProductFacts).not.toHaveBeenCalled();
+    stop();
+  });
+});

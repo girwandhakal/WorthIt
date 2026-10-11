@@ -1,5 +1,6 @@
+import { browser } from 'wxt/browser';
 import { defineContentScript } from 'wxt/utils/define-content-script';
-import { walmartAdapter } from '../src/adapters/walmart';
+import { createWalmartAdapter } from '../src/adapters/walmart';
 import { startRetailerContent } from '../src/content/start-content';
 import '../src/ui/checkout/panel.css';
 import '../src/ui/shared/review-list.css';
@@ -14,6 +15,7 @@ export default defineContentScript({
   runAt: 'document_idle',
   cssInjectionMode: 'ui',
   main(ctx) {
-    startRetailerContent(ctx, walmartAdapter);
+    // Product labels are kept on this device for a day, so a repeat visit to the cart doesn't read every page again.
+    startRetailerContent(ctx, createWalmartAdapter({ factsStorage: browser.storage.local }));
   },
 });

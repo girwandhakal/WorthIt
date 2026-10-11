@@ -202,6 +202,8 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
     // does not wait on the network, so the first checkout click can be held within a moment of opening the cart.
     const itemIds = snapshot.items.flatMap((item) => (item.retailerItemId ? [item.retailerItemId] : []));
     const load = deps.adapter.loadProductFacts;
+    await deps.adapter.warmUp?.().catch(ignore); // labels saved by earlier visits, so a repeat visit starts with them
+    if (stale()) return;
     const known = deps.adapter.knownProductFacts?.(itemIds) ?? { facts: {}, complete: !load || itemIds.length === 0 };
     await review(known.facts);
     if (known.complete || !load || stale()) return;
