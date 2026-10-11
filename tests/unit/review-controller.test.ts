@@ -37,7 +37,7 @@ describe('startReviewController', () => {
     });
     const mountPanel = vi.fn(async (): Promise<PanelHandle> => {
       mounted.push('mount');
-      return { show: (review) => shown.push(review), remove: () => mounted.push('remove') };
+      return { show: (review) => shown.push(review), open: () => undefined, isOpen: () => false, remove: () => mounted.push('remove') };
     });
     const diagnose = vi.fn();
     const stop = startReviewController({ win: window, adapter, send, mountPanel, debounceMs: 10, routePollMs: 50, diagnose, ...overrides });
@@ -149,7 +149,7 @@ describe('startReviewController', () => {
     await vi.advanceTimersByTimeAsync(50);
     history.pushState({}, '', '/checkout');
     await vi.advanceTimersByTimeAsync(100);
-    resolvePanel({ show, remove });
+    resolvePanel({ show, open: vi.fn(), isOpen: () => false, remove });
     await vi.advanceTimersByTimeAsync(50);
     expect(show).not.toHaveBeenCalled();
     expect(remove).toHaveBeenCalledOnce();
@@ -209,6 +209,127 @@ describe('startReviewController', () => {
       await vi.advanceTimersByTimeAsync(50);
       expect(sent).toHaveLength(1); // the older one never sends
       expect(shown).toHaveLength(1);
+      stop();
+    });
+  });
+
+  describe('holding the first checkout click', () => {
+    /** Clicks like a shopper would; returns true when the page's own handlers would still run. */
+    const click = (element: Element) => element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    const checkout = () => document.getElementById('checkout')!;
+
+    function startWithPanel(overrides: Partial<ReviewControllerDeps> = {}) {
+      const open = vi.fn();
+      let isOpen = false;
+      let handlers!: Parameters<ReviewControllerDeps['mountPanel']>[0];
+      const pageClicks = vi.fn();
+      document.addEventListener('click', pageClicks); // stands in for the retailer's own handler
+      const mountPanel = vi.fn(async (given: typeof handlers): Promise<PanelHandle> => {
+        handlers = given;
+        return { show: () => undefined, open: () => ((isOpen = true), open()), isOpen: () => isOpen, remove: () => undefined };
+      });
+      const started = start({ mountPanel, trustedClicksOnly: false, ...overrides });
+      return { ...started, open, pageClicks, handlers: () => handlers, setOpen: (value: boolean) => (isOpen = value) };
+    }
+
+    it('holds the first click once, opens the panel, and lets the next click through', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      const { open, pageClicks, stop } = startWithPanel();
+      await vi.advanceTimersByTimeAsync(50);
+
+      expect(click(checkout())).toBe(false); // held: default prevented
+      expect(open).toHaveBeenCalledTimes(1);
+      expect(pageClicks).not.toHaveBeenCalled(); // the page never saw it
+
+      expect(click(checkout())).toBe(true); // the shopper's second click goes through
+      expect(open).toHaveBeenCalledTimes(1);
+      expect(pageClicks).toHaveBeenCalledTimes(1);
+      stop();
+    });
+
+    it('never holds anything when there is nothing to show', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-normal.html');
+      const { open, stop } = startWithPanel();
+      await vi.advanceTimersByTimeAsync(50);
+      const button = document.createElement('button');
+      button.id = 'checkout';
+      button.textContent = 'Continue to checkout';
+      document.body.append(button);
+      expect(click(button)).toBe(true);
+      expect(open).not.toHaveBeenCalled();
+      stop();
+    });
+
+    it('ignores other buttons on the page', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      const { open, stop } = startWithPanel();
+      await vi.advanceTimersByTimeAsync(50);
+      expect(click(document.querySelector('button.retailer-control:not(#checkout)')!)).toBe(true);
+      expect(open).not.toHaveBeenCalled();
+      stop();
+    });
+
+    it('does not hold a click after the shopper has already seen and closed the panel', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      const { open, handlers, stop } = startWithPanel();
+      await vi.advanceTimersByTimeAsync(50);
+      handlers().onDismiss(['a']);
+      expect(click(checkout())).toBe(true);
+      expect(open).not.toHaveBeenCalled();
+      stop();
+    });
+
+    it('does not hold a click while the panel is already open', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      const { open, setOpen, stop } = startWithPanel();
+      await vi.advanceTimersByTimeAsync(50);
+      setOpen(true);
+      expect(click(checkout())).toBe(true);
+      expect(open).not.toHaveBeenCalled();
+      stop();
+    });
+
+    it('never holds a click it cannot show a panel for', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      const { stop } = startWithPanel({ mountPanel: () => Promise.reject(new Error('no UI')) });
+      await vi.advanceTimersByTimeAsync(50);
+      expect(click(checkout())).toBe(true);
+      stop();
+    });
+
+    it('ignores scripted clicks (only real user clicks are held)', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      const { open, stop } = startWithPanel({ trustedClicksOnly: true });
+      await vi.advanceTimersByTimeAsync(50);
+      expect(click(checkout())).toBe(true); // jsdom events are never trusted
+      expect(open).not.toHaveBeenCalled();
+      stop();
+    });
+
+    it('stops listening once the shopper leaves the cart', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      const { open, stop } = startWithPanel();
+      await vi.advanceTimersByTimeAsync(50);
+      history.pushState({}, '', '/checkout');
+      await vi.advanceTimersByTimeAsync(100);
+      expect(click(checkout())).toBe(true);
+      expect(open).not.toHaveBeenCalled();
       stop();
     });
   });

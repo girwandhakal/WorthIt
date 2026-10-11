@@ -56,8 +56,8 @@ The first usable slice should prove one complete journey:
 1. The shopper opens the supported retailer cart page.
 2. Worth It recognizes visible line items, quantities, and prices when available, and looks up each item in the bundled product reference data.
 3. The extension assesses every recognized line item internally.
-4. If nothing merits attention, Worth It shows only a small collapsed “Reviewed N items” indicator; no recap plays and no panel opens on its own.
-5. Otherwise, a compact panel summarizes only meaningful, supported observations and says when data is missing.
+4. If nothing merits attention, Worth It shows only a small collapsed “Reviewed N items” indicator; no recap plays, no panel opens on its own, and the checkout click is not held.
+5. Otherwise the collapsed indicator stays up and nothing pops open on load. When the shopper clicks the retailer's checkout control, a capture-phase listener holds that first real click once (`preventDefault` and `stopImmediatePropagation`, never a synthetic click) and opens a compact panel that summarizes only meaningful, supported observations and says when data is missing. The listener is armed only while there is an un-dismissed finding, the panel is mounted, and it is not already open; it disarms after one hold or any dismissal, is removed off the cart route, and ignores untrusted events. Control detection is per retailer (`isCheckoutControl`: the retailer's own selector, else a “checkout” label on a button or link). Worth It never clicks the control; the shopper's next click goes through.
 6. The panel may show store-brand savings, a recent similar purchase, or a qualifying nutrition note with its source.
 7. It totals supported potential savings for the current cart and, by default, shows one investment projection at the end.
 8. The shopper dismisses the panel, reviews evidence, or continues. They make all cart changes themselves.

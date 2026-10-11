@@ -9,6 +9,10 @@ import { messagingErrorCode, type DiagnosticUpdate } from './diagnostics';
 
 export interface PanelHandle {
   show(review: CartReview): void;
+  /** Opens the panel (the shopper clicked the retailer's checkout control). */
+  open(): void;
+  /** True while the panel is showing, so a checkout click isn't held again. */
+  isOpen(): boolean;
   remove(): void;
 }
 
@@ -28,6 +32,8 @@ export interface ReviewControllerDeps {
   debounceMs?: number;
   routePollMs?: number;
   diagnose?: (update: DiagnosticUpdate) => void;
+  /** Hold only real user clicks, never scripted ones. Tests turn this off because jsdom events are never trusted. */
+  trustedClicksOnly?: boolean;
 }
 
 /**
@@ -39,10 +45,21 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
   let generation = 0;
   /** Only the newest request may update the panel; slower, older ones are dropped. */
   let latestRequest = 0;
+  /**
+   * True while there is something un-dismissed to show and the shopper has not yet been
+   * shown it. The first real click on the retailer's checkout control is held once, then
+   * this goes false so the next click goes straight through.
+   */
+  let armed = false;
+  /** The mounted panel, once it exists. A click is held only when this can open. */
+  let mounted: PanelHandle | null = null;
 
   const ignore = () => undefined;
   const handlers: PanelHandlers = {
-    onDismiss: (ids) => void deps.send({ type: 'panel/dismiss', findingIds: ids }).catch(ignore),
+    onDismiss: (ids) => {
+      armed = false; // the shopper has seen it and closed it
+      void deps.send({ type: 'panel/dismiss', findingIds: ids }).catch(ignore);
+    },
     onAnswer: (question, answer, itemName) =>
       void deps
         .send({
@@ -61,14 +78,36 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
         .then(() => active?.refresh()),
   };
 
+  /**
+   * Holds the first checkout click, once, when there's something to show. It never clicks
+   * anything: the shopper's next click on the retailer's own control goes through untouched.
+   * Only real user clicks are held (not scripted ones), and only if the panel can open.
+   */
+  const holdCheckoutClick = (event: MouseEvent) => {
+    if (!armed || !mounted || mounted.isOpen()) return;
+    if ((deps.trustedClicksOnly ?? true) && !event.isTrusted) return;
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target || !deps.adapter.isCheckoutControl?.(target)) return;
+    armed = false;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    mounted.open();
+  };
+
   const activate = () => {
     const myGeneration = ++generation;
+    armed = false;
+    mounted = null;
+    deps.win.addEventListener('click', holdCheckoutClick, true);
     deps.diagnose?.({ panel: 'mounting', review: 'pending', error: 'none' });
     // Attach a rejection handler immediately, even if the background never answers.
     const panel = Promise.resolve()
       .then(() => deps.mountPanel(handlers))
       .then((handle) => {
-        if (myGeneration === generation) deps.diagnose?.({ panel: 'mounted' });
+        if (myGeneration === generation) {
+          mounted = handle;
+          deps.diagnose?.({ panel: 'mounted' });
+        }
         return handle;
       })
       .catch(() => {
@@ -85,6 +124,9 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
 
   const deactivate = () => {
     generation++;
+    deps.win.removeEventListener('click', holdCheckoutClick, true);
+    armed = false;
+    mounted = null;
     if (!active) return;
     active.stop();
     void active.panel.then((handle) => handle?.remove());
@@ -118,6 +160,7 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
     const handle = await panel;
     if (myGeneration !== generation || !handle) return;
     handle.show(response.review);
+    armed = response.review.autoOpen; // something un-dismissed to show: hold the first checkout click
     deps.diagnose?.({ review: 'delivered', error: 'none' });
   };
 

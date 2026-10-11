@@ -29,7 +29,7 @@ export function startRetailerContent(ctx: ContentScriptContext, adapter: Retaile
     mountPanel: async (handlers) => {
       const store = createReviewStore();
       const remove = await mountShadow(ctx, <CheckoutPanel store={store} {...handlers} />);
-      return { show: (review) => store.set(review), remove };
+      return { show: (review) => store.set(review), open: () => store.requestOpen(), isOpen: () => store.isOpen(), remove };
     },
   });
 

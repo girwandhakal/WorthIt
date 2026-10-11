@@ -1,5 +1,5 @@
 import type { BrowserContext, Page, Worker } from '@playwright/test';
-import { daysAgo, expect, retailerClicks, retailerMarkup, seedHistory, serveWalmart, setPreferences, storedPurchase, test } from './extension';
+import { clickCheckout, daysAgo, expect, retailerClicks, retailerMarkup, seedHistory, serveWalmart, setPreferences, storedPurchase, test } from './extension';
 
 const INVESTMENT_SENTENCE = (x: string, y: string) =>
   `By following these suggestions, you would save ${x}. If you invested that ${x} at an assumed 10% annual return, compounded annually, it could grow to about ${y} in 40 years (before inflation; returns are not guaranteed).`;
@@ -12,6 +12,7 @@ async function openMixedCart(context: BrowserContext, extensionId: string, servi
   await serveWalmart(context, { '/cart': 'cart-mixed.html' });
   const page = await context.newPage();
   await page.goto('https://www.walmart.com/cart');
+  await clickCheckout(page);
   return page;
 }
 
@@ -67,6 +68,7 @@ test('reduced motion shows the static view, and the illustration can be turned o
   const page = await context.newPage();
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('https://www.walmart.com/cart');
+  await clickCheckout(page);
   const panel = page.getByRole('region', { name: 'Worth It' });
   await expect(panel.getByRole('toolbar', { name: 'Recap controls' })).toHaveCount(0);
   await expect(panel.getByText('Before you check out, 3 things are worth a second thought.')).toBeVisible();

@@ -1,6 +1,6 @@
 import type { PageSpec } from '../helpers/product-page';
 import { PAGES } from '../helpers/product-page';
-import { expect, retailerClicks, retailerMarkup, serveWalmart, test } from './extension';
+import { clickCheckout, expect, retailerClicks, retailerMarkup, serveWalmart, test } from './extension';
 
 /**
  * The decision tree in the real extension: every cart item's own product page
@@ -22,6 +22,7 @@ test('reads product pages and shows the decision tree result: whole foods quiet,
   const page = await context.newPage();
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('https://www.walmart.com/cart');
+  await clickCheckout(page);
   const before = await retailerMarkup(page);
   const panel = page.getByRole('region', { name: 'Worth It' });
 

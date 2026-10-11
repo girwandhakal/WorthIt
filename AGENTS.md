@@ -28,7 +28,7 @@ Do not start implementation work blocked by #4 until its relevant decisions are 
 
 ## Product constraints
 
-- Worth It informs and suggests. The shopper makes every cart change and decides whether to purchase; never mutate the cart, trigger checkout, or block checkout.
+- Worth It informs and suggests. The shopper makes every cart change and decides whether to purchase; never mutate the cart or trigger checkout. The one approved interruption (owner decision): when there is something un-dismissed to show, the first real user click on the retailer's checkout control on the cart page is held once and the panel opens; Worth It never clicks anything itself, and the shopper's next click goes straight through. Nothing is ever held when there is nothing to show, for scripted clicks, or off the cart page.
 - Worth It is an advisor that makes shoppers think twice, not an analysis tool. The checkout panel highlights at most three items with short advice or a question, groups the rest, and keeps scores, categories, tables, and charts out of the default view; the shopper can open “See full analysis” for the full per-item breakdown (PRD 3.6, TECH_SPEC section 8).
 - Assess readable cart items, but show concise prompts only for meaningful findings and report uncertainty instead of guessing.
 - Prefer an available store brand for groceries. Claim similarity or savings only when product data supports it. Store-brand pairs and prices come from `docs/WALMART_REFERENCE_PRODUCTS.md`; the owner's MVP decisions are in section 1 of `docs/TECH_SPEC.md`.

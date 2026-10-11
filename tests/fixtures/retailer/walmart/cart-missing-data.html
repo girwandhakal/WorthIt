@@ -28,6 +28,13 @@
     <div data-testid="line-price">$2.47</div>
     <p>Out of stock</p>
   </div>
+<button type="button" class="retailer-control" id="checkout">Continue to checkout</button>
 </main>
+<script>
+  window.__retailerClicks = 0;
+  document.addEventListener('click', (event) => {
+    if (event.target.closest('.retailer-control')) window.__retailerClicks += 1;
+  }, true);
+</script>
 </body>
 </html>

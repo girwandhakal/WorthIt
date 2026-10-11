@@ -26,6 +26,8 @@ On first install Worth It opens onboarding. Read the disclosure, turn on **Offer
 Recheck reference prices first; the amounts below use the 2026-10-09 prices in [WALMART_REFERENCE_PRODUCTS.md](WALMART_REFERENCE_PRODUCTS.md).
 
 1. **History:** import the synthetic receipts (or add the tumbler manually). Purchase history shows them labeled **Synthetic test receipt (Gmail)**.
+Open each cart and note that nothing pops open by itself: the small "Worth It · Reviewed N items" indicator appears, and the panel opens when you click **Continue to checkout** (the first click is held once; click again to go through). A cart with nothing to show never holds the click.
+
 2. **Normal cart:** Great Value milk (`10315798`), eggs (`145051970`), long-grain rice (`10315395`). Open the cart: only "Worth It · Reviewed 3 items". No recap.
 **Note on live numbers.** The amounts below are what the fixture pages produce, where each product page cannot be read and the reviewed reference data alone drives the result. On live walmart.com Worth It also reads each item's own product page, so label-based notes appear and some totals change: for example Diet Coke lists aspartame, so it gets the sweetener note (full price counted, no store-brand swap) instead of the $1.81 swap, and any reviewed item whose live label shows another approved concern is flagged. Recheck the totals against what the panel shows rather than the figures here.
 

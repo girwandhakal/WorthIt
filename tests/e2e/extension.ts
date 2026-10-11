@@ -73,6 +73,15 @@ export async function serveWalmart(context: BrowserContext, pages: Record<string
   return requested;
 }
 
+/**
+ * A real click on the retailer's checkout control. Worth It holds the first one, once, when it
+ * has something to show, and opens its panel; it never clicks anything itself.
+ */
+export async function clickCheckout(page: Page) {
+  await expect(page.getByRole('button', { name: /^Worth It: Reviewed/ })).toBeVisible();
+  await page.getByRole('button', { name: /^(continue to |proceed to )?check ?out/i }).first().click();
+}
+
 /** The cart page markup, excluding Worth It's own panel host. */
 export function retailerMarkup(page: Page): Promise<string> {
   return page.evaluate(() => {

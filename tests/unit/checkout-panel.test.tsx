@@ -13,17 +13,46 @@ const mixed = () => reviewCart(walkthroughSnapshot(), reviewContext({ history: [
 const normal = () => reviewCart(snapshot([line('10315798'), line('145051970', {}, 1), line('10315395', {}, 2)]), reviewContext());
 const unreadable = () => reviewCart(snapshot([line('10315798', { linePriceCents: null })]), reviewContext());
 
-function setup(review: CartReview, options: { reducedMotion?: boolean; fakeTimers?: boolean } = {}) {
+function setup(review: CartReview, options: { reducedMotion?: boolean; fakeTimers?: boolean; openOnLoad?: boolean } = {}) {
   if (options.fakeTimers) vi.useFakeTimers({ shouldAdvanceTime: true });
   const store = createReviewStore();
   store.set(review);
   const handlers = { onDismiss: vi.fn(), onAnswer: vi.fn(), onSkipQuestion: vi.fn() };
-  render(<CheckoutPanel store={store} reducedMotion={options.reducedMotion ?? false} {...handlers} />);
+  // Content tests open the panel up front; the extension itself opens it on the checkout click (see below).
+  render(<CheckoutPanel store={store} reducedMotion={options.reducedMotion ?? false} openOnLoad={options.openOnLoad ?? true} {...handlers} />);
   const user = userEvent.setup(options.fakeTimers ? { advanceTimers: vi.advanceTimersByTime } : {});
   return { store, user, ...handlers };
 }
 
 afterEach(() => vi.useRealTimers());
+
+describe('opening on the checkout click', () => {
+  it('stays collapsed on load, even with findings, and opens when asked', async () => {
+    const { store } = setup(mixed(), { openOnLoad: false, reducedMotion: true });
+    expect(screen.queryByRole('region')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Worth It: Reviewed 7 items. Open review' })).toBeTruthy();
+    expect(store.isOpen()).toBe(false);
+
+    act(() => store.requestOpen());
+    expect(screen.getByRole('region', { name: 'Worth It' })).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Worth It' }));
+    expect(store.isOpen()).toBe(true);
+  });
+
+  it('reports closed again after Continue, so a later checkout click is not held', async () => {
+    const { store, user } = setup(mixed(), { openOnLoad: false, reducedMotion: true });
+    act(() => store.requestOpen());
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(store.isOpen()).toBe(false);
+    expect(screen.queryByRole('region')).toBeNull();
+  });
+
+  it('a request while already open changes nothing', () => {
+    const { store } = setup(mixed(), { reducedMotion: true });
+    act(() => store.requestOpen());
+    expect(screen.getAllByRole('region')).toHaveLength(1);
+  });
+});
 
 describe('collapsed indicator', () => {
   it('is all that shows when nothing needs attention', async () => {

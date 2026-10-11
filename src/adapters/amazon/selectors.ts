@@ -7,6 +7,9 @@
 
 export const AMAZON_ORIGIN = 'https://www.amazon.com';
 
+/** Amazon's checkout control on the cart page (plus a label check in matchesCheckoutControl). */
+export const CHECKOUT_CONTROL_SELECTORS = ['input[name="proceedToRetailCheckout"]', '[data-feature-id="proceed-to-checkout-action"]'] as const;
+
 /** Cart routes. Checkout (`/gp/buy/...`, `/checkout/...`) is never the cart. */
 export const CART_PATH = /^\/(?:gp\/cart\/view\.html|cart|gp\/aw\/c)(?:\/ref=[^/]*)?\/?$/;
 

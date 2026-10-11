@@ -153,7 +153,7 @@ The evaluation should consider:
 - Whether the purchase appears unusual relative to previous behavior.
 - Whether a cheaper product could meet substantially the same need.
 
-When no meaningful issue is detected, the shopping experience should continue without interruption: no recap plays and no panel opens on its own. A small, collapsed indicator may confirm that the cart was reviewed.
+When no meaningful issue is detected, the shopping experience should continue without interruption: no recap plays, no panel opens on its own, and the checkout click is not held. A small, collapsed indicator may confirm that the cart was reviewed.
 
 When intervention is warranted, Worth It should display a compact, contextual panel on the shopping website.
 
@@ -863,12 +863,12 @@ It should provide:
 
 ### 10.1.1 Checkout User Journey
 
-1. On the supported cart page, before the shopper proceeds to checkout, the shopper sees a short animated recap of only the cart items that merit attention. If nothing merits attention, no recap plays.
+1. On the supported cart page, nothing pops up on its own: a small collapsed indicator shows that the cart was reviewed. When the shopper clicks the retailer's checkout control and there is something to show, Worth It holds that first click once and opens a short animated recap of only the cart items that merit attention (the owner confirmed this is acceptable because the checkout link only leads to the page where payment is finalized). If nothing merits attention, nothing is held and no recap plays.
 2. Each item has been assessed against defined criteria; the recap shows only applicable findings and groups related points into a concise cart-level explanation.
 3. The recap explains what Worth It noticed and why. For example, it may show the price difference for a store-brand suggestion or remind the shopper about a similar recent purchase.
 4. For a food whose label shows an approved concern (added sugar, a non-sugar sweetener, cured meat, and so on), it gives a brief, evidence-based tip with its source. Whole foods and other items with nothing flagged receive no health warning.
 5. The recap totals the potential reduction if the shopper follows its suggestions. It then shows one hypothetical investment illustration based on that combined amount, for example: “By following these suggestions, you would save $X. If you invested that $X at an assumed 10% annual return, compounded annually, it could grow to about $Y in 40 years (before inflation; returns are not guaranteed).” The shopper can turn this off in settings.
-6. The shopper may pause, replay, read captions, review supporting details, skip the recap, or continue checkout. "Continue" closes Worth It's panel; it never clicks the retailer's checkout or cart controls. A dismissed panel does not reopen on its own for the same cart unless a new finding appears. The shopper decides whether to make any changes. The recap is an animated presentation inside the checkout panel, populated with the current review's findings rather than an AI-generated video.
+6. The shopper may pause, replay, read captions, review supporting details, skip the recap, or continue checkout. "Continue" closes Worth It's panel; it never clicks the retailer's checkout or cart controls, so the shopper clicks Checkout again and that click goes straight through. Only real user clicks are held (never scripted ones), only once per set of findings, and only when the panel is actually able to open. After the shopper has seen and closed the panel, later checkout clicks are not held unless a new finding appears. The shopper decides whether to make any changes. The recap is an animated presentation inside the checkout panel, populated with the current review's findings rather than an AI-generated video.
 
 ### 10.2 Purchase Insight Panel
 
