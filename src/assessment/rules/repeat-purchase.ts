@@ -5,19 +5,26 @@ import { daysBetween } from '../../shared/dates';
 import { ANSWER_LABELS, answerWithdrawsSkip, repeatPurposeQuestion } from '../clarification';
 import { LOOKBACK_DAYS, lookbackDaysFor, type PurposeClass } from '../reference/categories';
 import { ITEM_TYPE_KEYWORDS, referenceProduct, type ReferenceProduct } from '../reference/products';
+import { SIMILAR_TITLE_THRESHOLD, titleSimilarity } from '../similarity';
 
 /** History older than this is not considered at all. */
 const MAX_HISTORY_DAYS = 365;
 
 /**
  * Finds past purchases of the same item (item ID or identical name) or a
- * similar one (same reviewed item type). Newest first.
+ * similar one. Newest first. A reviewed item is similar to the same reviewed
+ * item type; an item with no reviewed data is similar when both titles name the
+ * same keyword type (tumbler, plush, ...) or their title/category cosine
+ * similarity reaches SIMILAR_TITLE_THRESHOLD. The latter only ever feeds a
+ * question, never a skip suggestion (see assessRepeatPurchase).
  */
 export function findHistoryMatches(
   item: Pick<CartItem, 'retailerItemId' | 'title'>,
   reference: ReferenceProduct | null,
   history: readonly PurchaseRecord[],
   today: string,
+  /** The item's category on its own Walmart page, when it was read. */
+  categoryPath: readonly string[] = [],
 ): HistoryMatch[] {
   const title = item.title ? normalizeTitle(item.title) : null;
   const keywords = reference ? (ITEM_TYPE_KEYWORDS[reference.itemType] ?? []) : [];
@@ -35,6 +42,8 @@ export function findHistoryMatches(
       similar =
         recordReference?.itemType === reference.itemType ||
         keywords.some((keyword) => recordTitle.includes(normalizeTitle(keyword)));
+    } else if (!exact && item.title) {
+      similar = sameKeywordType(item.title, record.title) || titleSimilarity(item.title, categoryPath, record.title) >= SIMILAR_TITLE_THRESHOLD;
     }
     if (!exact && !similar) continue;
     matches.push({
@@ -48,6 +57,16 @@ export function findHistoryMatches(
     });
   }
   return matches.sort((a, b) => a.daysAgo - b.daysAgo);
+}
+
+/** Both titles name the same reviewed keyword type, such as "tumbler" or "plush". */
+function sameKeywordType(a: string, b: string): boolean {
+  const left = normalizeTitle(a);
+  const right = normalizeTitle(b);
+  return Object.values(ITEM_TYPE_KEYWORDS).some((words) => {
+    const normalized = words.map(normalizeTitle);
+    return normalized.some((word) => left.includes(word)) && normalized.some((word) => right.includes(word));
+  });
 }
 
 export interface RepeatAssessment {
@@ -95,7 +114,7 @@ export function assessRepeatPurchase(input: {
           result: {
             ...base,
             status: 'unknown',
-            summary: 'No exact repeat found; without product data, similar items can’t be matched.',
+            summary: 'No exact repeat or similar-looking purchase found; without product data, matching is by name and category only.',
             evidence,
             confidence: 'low',
           },
@@ -110,16 +129,16 @@ export function assessRepeatPurchase(input: {
     return none(`Bought ${latest.daysAgo} days ago; treated as routine restocking, not a concern.`);
   }
 
-  // Without product data, only an exact repeat is noted, and only to ask.
+  // Without product data, an exact repeat or a similar-looking past purchase is noted, and only to ask.
   if (!reference || purposeClass === 'unknown') {
-    const exact = kept.find((match) => match.kind === 'exact' && match.daysAgo <= LOOKBACK_DAYS.unknownExact);
-    if (!exact) return none('No recent exact repeat in your history.');
+    const repeat = kept.find((match) => match.daysAgo <= LOOKBACK_DAYS.unknownExact);
+    if (!repeat) return none('No recent repeat or similar purchase in your history.');
     if (answer) return answeredResult(base, evidence, answer, false);
     return {
       result: {
         ...base,
         status: 'finding',
-        summary: `You bought this ${exact.daysAgo} days ago. A past receipt doesn’t show whether you still have it.`,
+        summary: `You bought ${repeat.kind === 'exact' ? 'this' : 'something similar'} ${repeat.daysAgo} days ago. A past receipt doesn’t show whether you still have it.`,
         evidence,
         confidence: 'low',
       },

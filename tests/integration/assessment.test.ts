@@ -14,6 +14,7 @@ import {
   tumblerReceipt,
   walkthroughSnapshot,
 } from '../helpers/assessment';
+import { factsFor } from '../helpers/product-page';
 
 const ALL_CRITERIA: CriterionId[] = ['readability', 'purpose', 'repeat_purchase', 'store_brand', 'added_sugar', 'food_quality'];
 const totalOfPrimaries = (items: ReturnType<typeof assess>['items']) =>
@@ -218,6 +219,59 @@ describe('history matching', () => {
     expect(item.question).not.toBeNull();
     expect(criterion(item, 'repeat_purchase').summary).toMatch(/^You bought this 10 days ago/);
     expect(criterion(item, 'repeat_purchase').confidence).toBe('low');
+  });
+
+  describe('an item with no reference data that looks like a past purchase', () => {
+    const talTitle = 'TAL 40oz Stainless Steel Hudson Tumbler with Straw, Sage';
+    const tal = line('999000111', { title: talTitle });
+    const talFacts = factsFor({
+      id: '999000111',
+      name: talTitle,
+      path: ['Sports & Outdoors', 'Outdoor Tumblers', '40 oz Tumblers'],
+    });
+    const stanley = purchase('Stanley Quencher H2.0 FlowState Tumbler, 30 oz', '2026-09-20', { retailerItemId: '18256507800' });
+
+    it.each([
+      ['with its Walmart category', { '999000111': talFacts }],
+      ['without product-page facts (the page could not be read)', undefined],
+    ])('asks about a similar tumbler %s, and never suggests skipping', (_label, facts) => {
+      const item = assess(snapshot([tal]), { history: [stanley], ...(facts ? { facts } : {}) }).items[0]!;
+      expect(item.historyMatches).toMatchObject([{ kind: 'similar', daysAgo: 20 }]);
+      expect(item.primary).toBeNull();
+      expect(item.question).not.toBeNull();
+      expect(criterion(item, 'repeat_purchase')).toMatchObject({
+        status: 'finding',
+        confidence: 'low',
+        summary: expect.stringMatching(/^You bought something similar 20 days ago/) as unknown as string,
+      });
+    });
+
+    it('surfaces the question in the panel with "a similar one"', () => {
+      const result = assess(snapshot([tal]), { history: [stanley], facts: { '999000111': talFacts } });
+      const finding = panelFindings(result, snapshot([tal]).items).find((candidate) => candidate.kind === 'repeat_question');
+      expect(finding?.text).toMatch(/a similar one/);
+      expect(finding?.question).not.toBeNull();
+    });
+
+    it('matches by name similarity alone, beyond the keyword types', () => {
+      const cooker = line('999000222', { title: 'Instant Pot Duo 6 Qt Pressure Cooker' });
+      const item = assess(snapshot([cooker]), { history: [purchase('Ninja Foodi 8 Qt Pressure Cooker', '2026-09-01')] }).items[0]!;
+      expect(item.historyMatches[0]?.kind).toBe('similar');
+      expect(item.primary).toBeNull();
+      expect(item.question).not.toBeNull();
+    });
+
+    it('ignores a returned similar purchase', () => {
+      const item = assess(snapshot([tal]), { history: [{ ...stanley, status: 'returned' }], facts: { '999000111': talFacts } }).items[0]!;
+      expect(item.question).toBeNull();
+    });
+
+    it('does not match unrelated purchases', () => {
+      const history = [purchase('Hanes Men’s Value Pack Crew T-Shirts, 6 pk', '2026-09-20'), purchase('Skittles Original Fruity Candy', '2026-10-03')];
+      const item = assess(snapshot([tal]), { history, facts: { '999000111': talFacts } }).items[0]!;
+      expect(item.historyMatches).toEqual([]);
+      expect(item.question).toBeNull();
+    });
   });
 });
 

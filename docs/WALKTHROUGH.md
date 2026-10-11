@@ -67,6 +67,6 @@ Open each cart and note that nothing from Worth It appears on the page. Click **
 - Amazon has no product-page reader, so Amazon food items are not label-checked yet.
 - Product pages are re-read each time the cart page loads (cached only while the page stays open).
 - Reference prices and label facts must be rechecked before the walkthrough; store-brand savings are estimates from last-checked prices.
-- Similar-item matching covers reviewed item types and a few keyword groups (tumblers, plush, LED strip lights, t-shirts).
+- Similar-item matching for reviewed products uses their item type and a few keyword groups (tumblers, plush, LED strip lights, t-shirts). For any other item, Worth It compares the cart item's name (plus its own Walmart category, when the page was read) with past purchases using on-device cosine similarity over the words, ignoring sizes, units, and colors. It only ever asks "you bought something similar N days ago; replacement, extra, or different?", never suggests skipping, and is a heuristic: unrelated products with overlapping words can occasionally be asked about, and similar products with no shared words are missed. No data leaves the browser.
 - The OpenAI key lives in the browser for this single-user build; a public release needs a server-side proxy ([#11](https://github.com/girwandhakal/WorthIt/issues/11)).
 - Amazon carts are reviewed through their own adapter, but no Amazon products are in the reviewed reference data yet, so Amazon reviews cover readability, history repeats, and unread rows only ([AMAZON.md](AMAZON.md)).

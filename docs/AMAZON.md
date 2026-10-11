@@ -19,7 +19,7 @@ Amazon is Worth It's second retailer ([issue #10](https://github.com/girwandhaka
 
 - **Price**: Amazon rows show a per-unit price, so the line price is unit × quantity (`priceSource: unit_price_times_quantity`).
 - **Product facts**: the bundled reference data is Walmart-specific. An Amazon item gets category, label, and store-brand checks only if its ASIN is listed in `amazonAsins` on a reviewed reference record in `src/assessment/reference/products.ts`. **None are listed yet**, so on Amazon those checks are `unknown` and nothing is guessed from titles.
-- **History**: exact repeats (same ASIN or identical name) from any source still prompt "You bought this N days ago" with the replacement / extra / different-purpose question; there is no skip suggestion without product facts.
+- **History**: exact repeats (same ASIN or identical name) from any source still prompt "You bought this N days ago" with the replacement / extra / different-purpose question. Similar-looking past purchases (on-device title cosine similarity, or the same tumbler/plush/LED-strip/t-shirt keyword type) prompt "You bought something similar N days ago". There is no skip suggestion without product facts.
 - **Unread rows**: if Amazon's "Subtotal (N items)" is higher than what Worth It read, the panel says so.
 
 To add an ASIN: open the Amazon product page, confirm it is the same brand, size, and label as a reference record, and add the ASIN to that record's `amazonAsins`. Store-brand alternatives remain Walmart products, so Amazon store-brand savings are not shown.
