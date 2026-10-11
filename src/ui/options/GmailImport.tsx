@@ -20,17 +20,30 @@ type State =
   | { step: 'review'; review: ImportReview; scanned: number; saving: boolean }
   | { step: 'message'; tone: 'info' | 'error'; text: string };
 
-const ERROR_TEXT: Record<GmailError['kind'], string> = {
-  not_configured: 'Gmail sign-in isn’t configured in this build. See docs/GMAIL_SETUP.md, or add purchases manually.',
+const ERROR_TEXT: Record<Exclude<GmailError['kind'], 'client_rejected'>, string> = {
   declined: 'Gmail wasn’t connected. That’s fine — you can add purchases manually in Purchase history.',
   auth: 'Gmail sign-in didn’t work. Try again, or disconnect and reconnect.',
   network: 'Couldn’t reach Gmail. Check your connection and try again.',
   api: 'Gmail returned an error. Try again later.',
 };
 
+/** Says what actually failed, with Chrome's own message when it gave one. */
+function errorText(error: GmailError, extensionId: string | undefined): string {
+  const chrome = error.detail ? ` Chrome said: “${error.detail}”.` : '';
+  if (error.kind === 'client_rejected') {
+    const id = extensionId ? ` This extension’s ID is ${extensionId}.` : '';
+    return (
+      `This build has a Gmail client ID, but Chrome or Google rejected it.${id} In Google Cloud, the OAuth client must be of type ` +
+      '“Chrome extension” with that exact ID as its Item ID (a newly created client can take a few minutes to work). ' +
+      `If the ID shown here is not the one you registered, you loaded a different copy of the extension. See docs/GMAIL_SETUP.md.${chrome}`
+    );
+  }
+  return error.kind === 'auth' ? `${ERROR_TEXT.auth}${chrome}` : ERROR_TEXT[error.kind];
+}
+
 /** Optional, user-initiated, read-only Gmail receipt import. */
 export function GmailImport() {
-  const { identity, fetch, repositories, gmailConfigured, now } = useServices();
+  const { identity, fetch, repositories, gmailConfigured, extensionId, now } = useServices();
   const [days, setDays] = useState(90);
   const [includeSynthetic, setIncludeSynthetic] = useState(true);
   const [includeWalmart, setIncludeWalmart] = useState(true);
@@ -57,7 +70,7 @@ export function GmailImport() {
       }
       setState({ step: 'review', review, scanned: result.messagesScanned, saving: false });
     } catch (error) {
-      const text = error instanceof GmailError ? ERROR_TEXT[error.kind] : 'Something went wrong while importing. Nothing was saved.';
+      const text = error instanceof GmailError ? errorText(error, extensionId) : 'Something went wrong while importing. Nothing was saved.';
       setState({ step: 'message', tone: 'error', text });
     }
   };

@@ -20,7 +20,9 @@ const gmailFetch: FetchLike = async (url) => {
   return jsonResponse(id === 'm1' ? loadEmail('synthetic-tumbler.eml', 'm1') : loadEmail('synthetic-malformed.eml', 'm2'));
 };
 
-async function setup(options: { onboarded?: boolean; gmailConfigured?: boolean; getAuthToken?: () => Promise<unknown> } = {}) {
+async function setup(
+  options: { onboarded?: boolean; gmailConfigured?: boolean; extensionId?: string; getAuthToken?: () => Promise<unknown> } = {},
+) {
   const local = memoryArea();
   if (options.onboarded ?? true) await updatePreferences(local, { onboardingComplete: true });
   const repos: Repositories = await testRepositories(() => new Date('2026-10-10T12:00:00Z'));
@@ -35,6 +37,7 @@ async function setup(options: { onboarded?: boolean; gmailConfigured?: boolean; 
     identity,
     fetch: vi.fn(gmailFetch),
     gmailConfigured: options.gmailConfigured ?? true,
+    ...(options.extensionId ? { extensionId: options.extensionId } : {}),
     now: () => new Date(2026, 9, 10, 12),
   };
   render(<OptionsApp services={services} />);
@@ -136,6 +139,22 @@ describe('Gmail import', () => {
     });
     await user.click(await screen.findByRole('button', { name: 'Connect Gmail and find receipts' }));
     expect((await screen.findByRole('alert')).textContent).toMatch(/Gmail wasn’t connected.*add purchases manually/);
+  });
+
+  it('says when Chrome rejects the OAuth client, with the extension ID and Chrome’s message', async () => {
+    window.location.hash = '#gmail';
+    const { user } = await setup({
+      extensionId: 'abcdefghijklmnopabcdefghijklmnop',
+      getAuthToken: async () => {
+        throw new Error("OAuth2 request failed: Service responded with error: 'bad client id'");
+      },
+    });
+    await user.click(await screen.findByRole('button', { name: 'Connect Gmail and find receipts' }));
+    const text = (await screen.findByRole('alert')).textContent ?? '';
+    expect(text).toMatch(/This build has a Gmail client ID, but Chrome or Google rejected it/);
+    expect(text).toContain('abcdefghijklmnopabcdefghijklmnop');
+    expect(text).toContain('bad client id');
+    expect(text).not.toMatch(/isn’t configured in this build/);
   });
 
   it('explains when Gmail is not configured in this build', async () => {

@@ -11,6 +11,8 @@ export interface OptionsServices {
   identity: IdentityApi;
   fetch: FetchLike;
   gmailConfigured: boolean;
+  /** This extension's ID, shown when Google rejects the sign-in so it can be compared with the OAuth client. */
+  extensionId?: string;
   /** True in public builds that use the wording proxy (no key in the browser). */
   wordingProxy?: boolean;
   now: () => Date;
