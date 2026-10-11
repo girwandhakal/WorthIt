@@ -58,6 +58,7 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
   const handlers: PanelHandlers = {
     onDismiss: (ids) => {
       armed = false; // the shopper has seen it and closed it
+      deps.diagnose?.({ checkout: 'closed-by-shopper' });
       void deps.send({ type: 'panel/dismiss', findingIds: ids }).catch(ignore);
     },
     onAnswer: (question, answer, itemName) =>
@@ -84,11 +85,15 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
    * Only real user clicks are held (not scripted ones), and only if the panel can open.
    */
   const holdCheckoutClick = (event: MouseEvent) => {
-    if (!armed || !mounted || mounted.isOpen()) return;
-    if ((deps.trustedClicksOnly ?? true) && !event.isTrusted) return;
     const target = event.target instanceof Element ? event.target : null;
     if (!target || !deps.adapter.isCheckoutControl?.(target)) return;
+    // From here on it is a click on the retailer's checkout control; say why it was or wasn't held.
+    if (!armed) return void deps.diagnose?.({ checkout: 'passed-through-not-armed' });
+    if (!mounted) return void deps.diagnose?.({ checkout: 'passed-through-panel-unavailable' });
+    if (mounted.isOpen()) return void deps.diagnose?.({ checkout: 'passed-through-panel-open' });
+    if ((deps.trustedClicksOnly ?? true) && !event.isTrusted) return void deps.diagnose?.({ checkout: 'passed-through-scripted-click' });
     armed = false;
+    deps.diagnose?.({ checkout: 'held' });
     event.preventDefault();
     event.stopImmediatePropagation();
     mounted.open();
@@ -98,6 +103,7 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
     const myGeneration = ++generation;
     armed = false;
     mounted = null;
+    deps.diagnose?.({ checkout: 'waiting-for-review' });
     deps.win.addEventListener('click', holdCheckoutClick, true);
     deps.diagnose?.({ panel: 'mounting', review: 'pending', error: 'none' });
     // Attach a rejection handler immediately, even if the background never answers.
@@ -132,7 +138,7 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
     void active.panel.then((handle) => handle?.remove());
     active = null;
     deps.diagnose?.({
-      panel: 'removed', review: 'not-requested', background: 'not-requested',
+      panel: 'removed', review: 'not-requested', background: 'not-requested', checkout: 'idle',
       extractedItems: null, readableItems: null, displayedItems: null,
     });
   };
@@ -161,6 +167,7 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
     if (myGeneration !== generation || !handle) return;
     handle.show(response.review);
     armed = response.review.autoOpen; // something un-dismissed to show: hold the first checkout click
+    deps.diagnose?.({ checkout: armed ? 'armed' : 'nothing-to-show' });
     deps.diagnose?.({ review: 'delivered', error: 'none' });
   };
 

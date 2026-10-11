@@ -236,14 +236,17 @@ describe('startReviewController', () => {
       vi.useFakeTimers();
       history.replaceState({}, '', '/cart');
       loadIntoDocument('cart-mixed.html');
-      const { open, pageClicks, stop } = startWithPanel();
+      const { open, pageClicks, stop, diagnose } = startWithPanel();
       await vi.advanceTimersByTimeAsync(50);
+      expect(diagnose).toHaveBeenCalledWith({ checkout: 'armed' });
 
       expect(click(checkout())).toBe(false); // held: default prevented
+      expect(diagnose).toHaveBeenLastCalledWith({ checkout: 'held' });
       expect(open).toHaveBeenCalledTimes(1);
       expect(pageClicks).not.toHaveBeenCalled(); // the page never saw it
 
       expect(click(checkout())).toBe(true); // the shopper's second click goes through
+      expect(diagnose).toHaveBeenLastCalledWith({ checkout: 'passed-through-not-armed' });
       expect(open).toHaveBeenCalledTimes(1);
       expect(pageClicks).toHaveBeenCalledTimes(1);
       stop();
@@ -253,8 +256,9 @@ describe('startReviewController', () => {
       vi.useFakeTimers();
       history.replaceState({}, '', '/cart');
       loadIntoDocument('cart-normal.html');
-      const { open, stop } = startWithPanel();
+      const { open, stop, diagnose } = startWithPanel();
       await vi.advanceTimersByTimeAsync(50);
+      expect(diagnose).toHaveBeenCalledWith({ checkout: 'nothing-to-show' });
       const button = document.createElement('button');
       button.id = 'checkout';
       button.textContent = 'Continue to checkout';
@@ -313,9 +317,10 @@ describe('startReviewController', () => {
       vi.useFakeTimers();
       history.replaceState({}, '', '/cart');
       loadIntoDocument('cart-mixed.html');
-      const { open, stop } = startWithPanel({ trustedClicksOnly: true });
+      const { open, stop, diagnose } = startWithPanel({ trustedClicksOnly: true });
       await vi.advanceTimersByTimeAsync(50);
       expect(click(checkout())).toBe(true); // jsdom events are never trusted
+      expect(diagnose).toHaveBeenLastCalledWith({ checkout: 'passed-through-scripted-click' });
       expect(open).not.toHaveBeenCalled();
       stop();
     });
