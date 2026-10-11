@@ -8,6 +8,7 @@ import {
   CURRENT_QUANTITY_PATTERN,
   EXCLUDED_REGION_SELECTORS,
   GROUPED_LINE_ROW_SELECTOR,
+  IMAGE_HOST,
   ITEM_ID_FROM_URL,
   LINE_ITEM_SELECTORS,
   LINE_PRICE_SELECTORS,
@@ -151,6 +152,7 @@ function extractLine(line: Element, position: number, pageUrl: URL): CartItem {
     currency: 'USD',
     priceSource: price.source,
     packageSize: firstText(line, PACKAGE_SIZE_SELECTORS)?.slice(0, 100) ?? null,
+    imageUrl: readImage(line),
     issues,
     confidence,
   };
@@ -205,6 +207,23 @@ function readPrices(line: Element, quantity: number | null): PriceReading {
     };
   }
   return { linePriceCents: null, unitPriceCents, wasLinePriceCents, source: 'unknown', issue: 'missing_price' };
+}
+
+/** The line's product thumbnail, only from Walmart's image CDN over https. */
+function readImage(line: Element): string | null {
+  for (const img of Array.from(line.querySelectorAll('img'))) {
+    const candidates = [img.getAttribute('src'), img.getAttribute('data-src'), img.getAttribute('srcset')?.split(/\s+/)[0]];
+    for (const candidate of candidates) {
+      if (!candidate) continue;
+      try {
+        const url = new URL(candidate);
+        if (url.protocol === 'https:' && IMAGE_HOST.test(url.hostname)) return url.href.slice(0, 2000);
+      } catch {
+        // Relative or malformed: not a CDN thumbnail.
+      }
+    }
+  }
+  return null;
 }
 
 function readQuantity(line: Element): number | null {

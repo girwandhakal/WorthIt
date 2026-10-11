@@ -72,6 +72,7 @@ describe('FindingCard', () => {
     itemKey: 'walmart:18256507800',
     position: 0,
     kind: 'skip_redundant',
+    imageUrl: null,
     itemName: 'Stanley Quencher H2.0 FlowState Tumbler, 30 oz',
     text: 'You bought this 20 days ago. Do you need another? Skipping it would take $24.97 off your cart.',
     wording: null,

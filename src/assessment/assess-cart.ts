@@ -93,6 +93,7 @@ function assessItem(
     itemName: itemDisplayName(item),
     position: item.position,
     retailerItemId: item.retailerItemId,
+    imageUrl: item.imageUrl ?? null,
     quantity: item.quantity,
     linePriceCents: item.linePriceCents,
     unitPriceCents,

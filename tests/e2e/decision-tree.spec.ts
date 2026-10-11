@@ -1,6 +1,6 @@
 import type { PageSpec } from '../helpers/product-page';
 import { PAGES } from '../helpers/product-page';
-import { clickCheckout, expect, retailerClicks, retailerMarkup, serveWalmart, test } from './extension';
+import { clickCheckout, debugReport, expect, expectNothingShown, retailerClicks, retailerMarkup, serveWalmart, test, waitForReview } from './extension';
 
 /**
  * The decision tree in the real extension: every cart item's own product page
@@ -24,7 +24,7 @@ test('reads product pages and shows the decision tree result: whole foods quiet,
   await page.goto('https://www.walmart.com/cart');
   await clickCheckout(page);
   const before = await retailerMarkup(page);
-  const panel = page.getByRole('region', { name: 'Worth It' });
+  const panel = page.getByRole('dialog', { name: 'Worth It' });
 
   await expect(panel.getByText('Before you check out, 3 things are worth a second thought.')).toBeVisible();
   const highlights = panel.getByRole('list', { name: 'Worth a second thought' }).getByRole('listitem');
@@ -75,6 +75,7 @@ test('when product pages cannot be read, Worth It says nothing it cannot support
   await serveWalmart(context, { '/cart': 'cart-decision-tree.html' }, []); // every product page is a 404
   const page = await context.newPage();
   await page.goto('https://www.walmart.com/cart');
-  await expect(page.getByRole('button', { name: 'Worth It: Reviewed 7 items. Open review' })).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Worth It' })).toHaveCount(0);
+  await waitForReview(page);
+  expect(await debugReport(page)).toMatchObject({ checkout: 'nothing-to-show', extractedItems: 7 });
+  await expectNothingShown(page);
 });

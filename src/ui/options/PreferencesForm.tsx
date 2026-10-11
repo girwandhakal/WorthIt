@@ -32,7 +32,7 @@ export function PreferencesForm({ preferences, update }: PreferencesFormProps) {
           <span>
             <strong>Show checkout prompts</strong>
             <span className="wi-hint">
-              When off, Worth It still reviews your cart but only shows the small “Reviewed N items” indicator.
+              When off, Worth It still reviews your cart but never opens at checkout.
             </span>
           </span>
         </label>

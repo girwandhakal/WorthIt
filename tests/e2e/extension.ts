@@ -6,6 +6,7 @@ import { productPageHtml, type PageSpec } from '../helpers/product-page';
 // Built by `wxt build --mode e2e` (placeholder OAuth client; see wxt.config.ts).
 const EXTENSION_PATH = path.join(process.cwd(), 'dist', 'chrome-mv3-e2e');
 const FIXTURES = path.join(process.cwd(), 'tests', 'fixtures', 'retailer');
+const PRODUCT_IMAGE_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><rect width="240" height="240" fill="#e8f0ff"/><circle cx="120" cy="120" r="70" fill="#0071dc"/></svg>';
 
 export interface ExtensionFixtures {
   context: BrowserContext;
@@ -53,6 +54,10 @@ export const expect = test.expect;
  */
 export async function serveWalmart(context: BrowserContext, pages: Record<string, string>, products: readonly PageSpec[] = []) {
   const requested: string[] = [];
+  // Product thumbnails come from Walmart's image CDN; serve a stand-in image.
+  await context.route('https://i5.walmartimages.com/**', (route) =>
+    route.fulfill({ status: 200, contentType: 'image/svg+xml', body: PRODUCT_IMAGE_SVG }),
+  );
   await context.route('https://www.walmart.com/**', async (route) => {
     const url = new URL(route.request().url());
     const productId = /^\/ip\/(?:[^/]+\/)?(\d+)$/.exec(url.pathname)?.[1];
@@ -78,8 +83,28 @@ export async function serveWalmart(context: BrowserContext, pages: Record<string
  * has something to show, and opens its panel; it never clicks anything itself.
  */
 export async function clickCheckout(page: Page) {
-  await expect(page.getByRole('button', { name: /^Worth It: Reviewed/ })).toBeVisible();
-  await page.getByRole('button', { name: /^(continue to |proceed to )?check ?out/i }).first().click();
+  await waitForReview(page);
+  await checkoutButton(page).click();
+}
+
+export function checkoutButton(page: Page) {
+  return page.getByRole('button', { name: /^(continue to |proceed to )?check ?out/i }).first();
+}
+
+/** Worth It's own debug marker on the page (counts and states only, never cart contents). */
+export async function debugReport(page: Page): Promise<Record<string, unknown>> {
+  return JSON.parse((await page.locator('html').getAttribute('data-worth-it-debug')) ?? '{}');
+}
+
+/** Waits until Worth It has reviewed the cart. Nothing is visible on the page until the checkout click. */
+export async function waitForReview(page: Page) {
+  await expect.poll(async () => (await debugReport(page)).review).toBe('delivered');
+}
+
+/** Worth It shows nothing on the page: no pill, no panel, no buttons. */
+export async function expectNothingShown(page: Page) {
+  await expect(page.getByRole('dialog', { name: 'Worth It' })).toHaveCount(0);
+  await expect(page.locator('worth-it-panel').getByRole('button')).toHaveCount(0);
 }
 
 /** The cart page markup, excluding Worth It's own panel host. */

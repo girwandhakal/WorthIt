@@ -2,6 +2,9 @@ import { useId, useState } from 'react';
 import type { ClarificationQuestion } from '../../domain/finding';
 import type { ClarificationAnswer } from '../../domain/history';
 import type { ReviewFinding } from '../../domain/review';
+import { formatCents } from '../../shared/currency';
+import { Thumb } from './Thumb';
+import { VERDICTS, amountLabel, toneOf } from './verdict';
 
 export interface FindingHandlers {
   onAnswer: (question: ClarificationQuestion, answer: ClarificationAnswer, itemName: string) => void;
@@ -98,9 +101,22 @@ export function FindingBody({ finding, onAnswer, onSkipQuestion, onWhyOpened, sh
   );
 }
 
+/** A highlight card for the static view: thumbnail, verdict, amount, then the details. */
 export function FindingCard(props: FindingCardProps) {
+  const { finding } = props;
   return (
-    <li className={`wi-finding wi-finding-${props.finding.kind}`}>
+    <li className={`wi-finding wi-finding-${finding.kind} wi-tone-${toneOf(finding.kind)}`}>
+      <div className="wi-finding-top">
+        <Thumb src={finding.imageUrl} kind={finding.kind} size="sm" />
+        <div className="wi-finding-head">
+          <span className="wi-verdict">{VERDICTS[finding.kind]}</span>
+          {finding.amountCents !== null && (
+            <span className="wi-finding-amount">
+              {formatCents(finding.amountCents)} <span className="wi-finding-amount-label">{amountLabel(finding)}</span>
+            </span>
+          )}
+        </div>
+      </div>
       <FindingBody {...props} />
     </li>
   );

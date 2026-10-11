@@ -3,7 +3,7 @@ import type { ReviewFinding } from '../../domain/review';
 
 /** Small inline illustrations for recap scenes. Decorative only (aria-hidden). */
 
-type IconKind = ReviewFinding['kind'] | 'opening' | 'grouped' | 'closing';
+export type IconKind = ReviewFinding['kind'] | 'opening' | 'grouped' | 'closing';
 
 export function SceneIcon({ kind }: { kind: IconKind }) {
   return (

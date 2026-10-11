@@ -45,6 +45,8 @@ export const cartItemSchema = z.object({
   /** How `linePriceCents` was obtained. */
   priceSource: z.enum(['line_price', 'unit_price_times_quantity', 'unknown']),
   packageSize: z.string().max(100).nullable(),
+  /** The retailer's own product thumbnail (its image CDN, https only), when the line shows one. */
+  imageUrl: z.string().max(2000).nullable().optional(),
   issues: z.array(extractionIssueSchema).max(10),
   /** `high`: every core field read; `partial`: something missing; `low`: unusable. */
   confidence: z.enum(['high', 'partial', 'low']),

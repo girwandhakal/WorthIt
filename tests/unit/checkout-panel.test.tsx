@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { reviewCart } from '../../src/background/review-cart';
 import type { CartReview } from '../../src/domain/review';
+import { GROWTH_DRAW_MS } from '../../src/ui/animation/GrowthChart';
 import { SCENE_MS } from '../../src/ui/animation/Recap';
 import { CheckoutPanel } from '../../src/ui/checkout/CheckoutPanel';
 import { createReviewStore } from '../../src/ui/shared/review-store';
@@ -24,18 +25,27 @@ function setup(review: CartReview, options: { reducedMotion?: boolean; fakeTimer
   return { store, user, ...handlers };
 }
 
+function withReview(review: CartReview) {
+  const store = createReviewStore();
+  store.set(review);
+  return store;
+}
+
 afterEach(() => vi.useRealTimers());
 
 describe('opening on the checkout click', () => {
-  it('stays collapsed on load, even with findings, and opens when asked', async () => {
+  it('shows nothing on the page until asked, even with findings, then fills the screen', async () => {
     const { store } = setup(mixed(), { openOnLoad: false, reducedMotion: true });
-    expect(screen.queryByRole('region')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Worth It: Reviewed 7 items. Open review' })).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
     expect(store.isOpen()).toBe(false);
 
     act(() => store.requestOpen());
-    expect(screen.getByRole('region', { name: 'Worth It' })).toBeTruthy();
+    const dialog = screen.getByRole('dialog', { name: 'Worth It' });
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
+    expect(dialog.classList.contains('wi-overlay')).toBe(true);
     expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Worth It' }));
+    expect(screen.getByText('Your next checkout click goes straight through.')).toBeTruthy();
     expect(store.isOpen()).toBe(true);
   });
 
@@ -44,22 +54,43 @@ describe('opening on the checkout click', () => {
     act(() => store.requestOpen());
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(store.isOpen()).toBe(false);
-    expect(screen.queryByRole('region')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
+  });
+
+  it('returns focus to where it was (the checkout button) on close', async () => {
+    const checkout = document.createElement('button');
+    checkout.textContent = 'Continue to checkout';
+    document.body.append(checkout);
+    try {
+      const { store, user } = setup(mixed(), { openOnLoad: false, reducedMotion: true });
+      checkout.focus();
+      act(() => store.requestOpen());
+      expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Worth It' }));
+      await user.click(screen.getByRole('button', { name: 'Continue' }));
+      await act(() => Promise.resolve());
+      expect(document.activeElement).toBe(checkout);
+    } finally {
+      checkout.remove();
+    }
   });
 
   it('a request while already open changes nothing', () => {
     const { store } = setup(mixed(), { reducedMotion: true });
     act(() => store.requestOpen());
-    expect(screen.getAllByRole('region')).toHaveLength(1);
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
   });
 });
 
-describe('collapsed indicator', () => {
-  it('is all that shows when nothing needs attention', async () => {
-    const { user } = setup(normal());
-    expect(screen.queryByRole('region')).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'Worth It: Reviewed 3 items. Open review' }));
-    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Worth It' }));
+describe('nothing to show', () => {
+  it('renders nothing at all: no pill, no panel', () => {
+    const { container } = render(<CheckoutPanel store={withReview(normal())} reducedMotion openOnLoad onDismiss={vi.fn()} onAnswer={vi.fn()} onSkipQuestion={vi.fn()} />);
+    expect(container.innerHTML).toBe('');
+  });
+
+  it('still says so plainly if it is opened anyway', () => {
+    const { store } = setup(normal(), { reducedMotion: true });
+    act(() => store.requestOpen());
     expect(screen.getByText('Reviewed 3 items. Nothing here needs a second look.')).toBeTruthy();
     expect(screen.queryByRole('toolbar', { name: 'Recap controls' })).toBeNull();
   });
@@ -68,8 +99,11 @@ describe('collapsed indicator', () => {
 describe('animated recap', () => {
   it('opens on its own with the reflection prompt and recap controls', () => {
     setup(mixed());
-    const panel = screen.getByRole('region', { name: 'Worth It' });
+    const panel = screen.getByRole('dialog', { name: 'Worth It' });
     expect(within(panel).getByText('Before you check out, 3 things are worth a second thought.', { selector: '.wi-scene-title' })).toBeTruthy();
+    // Every cart item appears in the opening scene, and the three highlights light up.
+    expect(panel.querySelectorAll('.wi-constellation .wi-thumb')).toHaveLength(7);
+    expect(panel.querySelectorAll('.wi-constellation .wi-star-lit')).toHaveLength(3);
     for (const name of ['Pause recap', 'Replay recap', 'Captions', 'Skip recap', 'Next scene', 'Previous scene']) {
       expect(within(panel).getByRole('button', { name })).toBeTruthy();
     }
@@ -79,7 +113,15 @@ describe('animated recap', () => {
     setup(mixed(), { fakeTimers: true });
     await act(() => vi.advanceTimersByTimeAsync(SCENE_MS.opening));
     expect(screen.getByText('Stanley Quencher H2.0 FlowState Tumbler, 30 oz', { selector: '.wi-scene-item' })).toBeTruthy();
+    expect(screen.getByText('Already have one?', { selector: '.wi-verdict' })).toBeTruthy();
+    // The product's own Walmart thumbnail, requested as a crisp square.
+    const hero = document.querySelector<HTMLImageElement>('.wi-hero-thumb img')!;
+    expect(hero.getAttribute('src')).toBe('https://i5.walmartimages.com/seo/Stanley-Quencher-H2-0-FlowState-Tumbler-30-oz_fixture.jpeg?odnHeight=480&odnWidth=480&odnBg=FFFFFF');
+    expect(hero.getAttribute('alt')).toBe('');
+    // The amount counts up, then settles on the exact figure.
+    await act(() => vi.advanceTimersByTimeAsync(1400));
     expect(screen.getByText('$24.97', { selector: '.wi-amount-chip' })).toBeTruthy();
+    expect(screen.getByText('$24.97', { selector: '.wi-meter-label strong', exact: false })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Replacing a worn one' })).toBeTruthy();
     // The tumbler asks a question, so the recap waits for the shopper.
     await act(() => vi.advanceTimersByTimeAsync(SCENE_MS.highlight * 3));
@@ -109,9 +151,17 @@ describe('animated recap', () => {
   it('ends with the savings total, the investment sentence, and a hand-back', async () => {
     const { user } = setup(mixed(), { fakeTimers: true });
     for (let i = 0; i < 4; i++) await user.click(screen.getByRole('button', { name: 'Next scene' }));
-    expect(screen.getByText('You also had 3 other items you could reconsider or swap for a different one, worth about $4.81 more.', { selector: '.wi-scene-title' })).toBeTruthy();
+    expect(screen.getByText('You also had 3 other items you could reconsider or swap for a different one, worth about $4.81 more.', { selector: '.wi-scene-caption' })).toBeTruthy();
+    expect(screen.getByText('+3 more', { selector: '.wi-grouped-big', exact: false })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Next scene' }));
+    // The savings count up, then the growth chart draws to the exact illustrated amount.
+    await act(() => vi.advanceTimersByTimeAsync(1300 + GROWTH_DRAW_MS + 200));
     expect(screen.getByText('$38.72', { selector: '.wi-amount-chip' })).toBeTruthy();
+    expect(screen.getByText('$1,752.44', { selector: '.wi-growth-value' })).toBeTruthy();
+    expect(screen.getByText('45× what you kept', { selector: '.wi-growth-multiple' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: /\$38\.72 at 10% a year becomes about \$1,752\.44 after 40 years/ })).toBeTruthy();
+    // At the end, the full analysis is offered.
+    expect(document.querySelector('.wi-footer-ready .wi-analysis-button')).toBeTruthy();
     expect(
       screen.getByText(
         'By following these suggestions, you would save $38.72. If you invested that $38.72 at an assumed 10% annual return, compounded annually, it could grow to about $1,752.44 in 40 years (before inflation; returns are not guaranteed).',
@@ -145,6 +195,27 @@ describe('static view (reduced motion)', () => {
     expect(screen.queryByRole('button', { name: 'Replay recap' })).toBeNull();
   });
 
+  it('shows each highlight with its thumbnail, verdict, and amount, then the drawn growth chart', () => {
+    setup(mixed(), { reducedMotion: true });
+    const cards = within(screen.getByRole('list', { name: 'Worth a second thought' })).getAllByRole('listitem');
+    expect(cards[0]!.querySelector('img')?.getAttribute('src')).toContain('https://i5.walmartimages.com/seo/Stanley');
+    expect(cards[0]!.querySelector('.wi-verdict')?.textContent).toBe('Already have one?');
+    expect(cards[0]!.querySelector('.wi-finding-amount')?.textContent).toBe('$24.97 off your cart if you skip it');
+    // No usable image (Squishmallows' is from another host): an illustration instead.
+    expect(cards[2]!.querySelector('img')).toBeNull();
+    expect(cards[2]!.querySelector('.wi-thumb-empty svg')).toBeTruthy();
+    // Without motion the chart is complete at once.
+    expect(screen.getByText('$1,752.44', { selector: '.wi-growth-value' })).toBeTruthy();
+    expect(screen.getAllByText(/could grow to about/, { selector: '.wi-closing-sentence' })).toHaveLength(1);
+  });
+
+  it('shows the savings without a chart when the investment illustration is off', () => {
+    setup(reviewCart(walkthroughSnapshot(), reviewContext({ history: [tumblerReceipt()], investmentIllustration: false })), { reducedMotion: true });
+    expect(document.querySelector('.wi-growth')).toBeNull();
+    expect(screen.getByText('$38.72', { selector: '.wi-amount-chip' })).toBeTruthy();
+    expect(screen.getByText('By following these suggestions, you would save $38.72.')).toBeTruthy();
+  });
+
   it('groups the rest behind one line, including the no-savings paper-towel note', async () => {
     const { user } = setup(mixed(), { reducedMotion: true });
     expect(screen.queryByText(/Bounty Essentials/)).toBeNull();
@@ -157,7 +228,7 @@ describe('static view (reduced motion)', () => {
 
   it('keeps evidence behind "Why?" and shows no scores, classes, criteria, or tables by default', async () => {
     const { user } = setup(mixed(), { reducedMotion: true });
-    const panel = screen.getByRole('region', { name: 'Worth It' });
+    const panel = screen.getByRole('dialog', { name: 'Worth It' });
     const text = panel.textContent ?? '';
     for (const hidden of ['Purpose class', 'Discretionary', 'Essential', 'Store-brand value', 'Recent similar purchase', 'No concern', 'Share of your cart', 'score']) {
       expect(text).not.toContain(hidden);
@@ -228,17 +299,17 @@ describe('See full analysis: every possible saving', () => {
 
 describe('closing the panel', () => {
   it('Continue, Dismiss, and Escape only close Worth It and record the dismissal', async () => {
-    const { user, onDismiss } = setup(mixed(), { reducedMotion: true });
+    const { user, store, onDismiss } = setup(mixed(), { reducedMotion: true });
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    expect(screen.queryByRole('region')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect(onDismiss).toHaveBeenCalledTimes(1);
-    expect(document.activeElement).toBe(screen.getByRole('button', { name: /Reviewed 7 items/ }));
 
-    await user.click(screen.getByRole('button', { name: /Reviewed 7 items/ }));
+    act(() => store.requestOpen());
     await user.click(screen.getByRole('button', { name: 'Dismiss Worth It panel' }));
-    await user.click(screen.getByRole('button', { name: /Reviewed 7 items/ }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    act(() => store.requestOpen());
     await user.keyboard('{Escape}');
-    expect(screen.queryByRole('region')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect(onDismiss).toHaveBeenCalledTimes(3);
   });
 
@@ -246,9 +317,9 @@ describe('closing the panel', () => {
     const { user, store } = setup(unreadable(), { reducedMotion: true });
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     act(() => store.set({ ...unreadable() }));
-    expect(screen.queryByRole('region')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
     act(() => store.set(mixed()));
-    expect(screen.getByRole('region', { name: 'Worth It' })).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Worth It' })).toBeTruthy();
   });
 
   it('answering a question reports it to the controller', async () => {
@@ -261,16 +332,19 @@ describe('closing the panel', () => {
     );
   });
 
-  it('is keyboard operable', async () => {
-    const { user } = setup(normal());
-    await user.tab();
-    await user.keyboard('{Enter}');
-    expect(screen.getByRole('region', { name: 'Worth It' })).toBeTruthy();
+  it('is keyboard operable and keeps Tab inside the full-screen view', async () => {
+    const { user, store } = setup(normal(), { openOnLoad: false });
+    act(() => store.requestOpen());
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Worth It' }));
     await user.tab();
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Dismiss Worth It panel' }));
     await user.tab();
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'See full analysis' }));
     await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Continue' }));
+    await user.tab();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Dismiss Worth It panel' }));
+    await user.tab({ shift: true });
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Continue' }));
   });
 });

@@ -7,6 +7,7 @@ import { PURCHASE_STATUS_LABELS } from '../../domain/history';
 import type { CartReview } from '../../domain/review';
 import { formatCents } from '../../shared/currency';
 import { INVESTMENT_ASSUMPTIONS } from '../../shared/calculations';
+import { Thumb } from './Thumb';
 
 const STATUS_LABELS: Record<CriterionStatus, string> = {
   finding: 'Finding',
@@ -90,7 +91,10 @@ function ItemAnalysis({ item, merchant }: { item: ItemAssessment; merchant: Merc
   const ownPageUrl = merchant === 'walmart' && item.retailerItemId ? `https://www.walmart.com/ip/${item.retailerItemId}` : undefined;
   return (
     <li className="wi-full-item">
-      <h4>{item.itemName}</h4>
+      <div className="wi-full-item-head">
+        <Thumb src={item.imageUrl} kind="opening" initial={item.itemName} size="sm" />
+        <h4>{item.itemName}</h4>
+      </div>
       <dl className="wi-full-facts">
         <Row label="Purpose class" value={PURPOSE_CLASS_LABELS[item.purposeClass]} />
         <Row label="Price" value={item.linePriceCents === null ? 'Unknown' : formatCents(item.linePriceCents)} />

@@ -102,8 +102,8 @@ Worth It's job is to create a brief moment of reflection before purchase, the wa
 
 - **Highlight the few things that matter.** The checkout panel leads with at most three highlighted items, the ones with the biggest potential savings. Everything else is rolled into one line that counts the other items the shopper could reconsider or swap for a different one and totals what they add (for example, “You also had 3 other items you could reconsider or swap for a different one, worth about $4.81 more.”); the shopper can expand it. The single investment illustration then covers the whole cart total.
 - **Speak as an advisor.** Each highlight is one or two short sentences in plain, second-person language and ends with either a question ("Do you need another one?") or one clear suggested action ("Consider skipping it").
-- **Keep the analysis one step away.** The default view shows no scores, purpose classes (such as essential or discretionary), criterion names, per-item tables, or charts. Evidence for a highlight is one tap away under "Why?", and a "See full analysis" option opens the deeper view for shoppers who want it: every reviewed item, including ones with nothing to flag, with its checks and results, purpose class, prices and unit prices, store-brand comparison, purchase-history match, added-sugar status, evidence, sources, price check dates, and certainty. Opening it is always the shopper's choice.
-- **End with a nudge, not a report.** The recap closes with the savings sentence and the investment illustration, then leaves the decision to the shopper.
+- **Keep the analysis one step away.** The default view shows no scores, purpose classes (such as essential or discretionary), criterion names, or per-item tables. Its visuals are limited to each item's own retailer thumbnail, a running savings meter, and the single animated chart of the investment illustration at the end. Evidence for a highlight is one tap away under "Why?", and a "See full analysis" option opens the deeper view for shoppers who want it: every reviewed item, including ones with nothing to flag, with its checks and results, purpose class, prices and unit prices, store-brand comparison, purchase-history match, added-sugar status, evidence, sources, price check dates, and certainty. Opening it is always the shopper's choice.
+- **End with a nudge, not a report.** The recap closes with the savings total and the investment illustration, drawn as one animated growth chart (the cart's savings compounding over 40 years against the same amount kept as cash) with the approved sentence beneath it, then leaves the decision to the shopper and offers “See full analysis.”
 
 ---
 
@@ -153,7 +153,7 @@ The evaluation should consider:
 - Whether the purchase appears unusual relative to previous behavior.
 - Whether a cheaper product could meet substantially the same need.
 
-When no meaningful issue is detected, the shopping experience should continue without interruption: no recap plays, no panel opens on its own, and the checkout click is not held. A small, collapsed indicator may confirm that the cart was reviewed.
+When no meaningful issue is detected, the shopping experience should continue without interruption: nothing from Worth It appears on the page, no recap plays, and the checkout click is not held.
 
 When intervention is warranted, Worth It should display a compact, contextual panel on the shopping website.
 
@@ -863,7 +863,7 @@ It should provide:
 
 ### 10.1.1 Checkout User Journey
 
-1. On the supported cart page, nothing pops up on its own: a small collapsed indicator shows that the cart was reviewed. When the shopper clicks the retailer's checkout control and there is something to show, Worth It holds that first click once and opens a short animated recap of only the cart items that merit attention (the owner confirmed this is acceptable because the checkout link only leads to the page where payment is finalized). If nothing merits attention, nothing is held and no recap plays.
+1. On the supported cart page, nothing from Worth It is visible (no pill or indicator). When the shopper clicks the retailer's checkout control and there is something to show, Worth It holds that first click once and fills the screen with a short animated presentation, which starts playing on its own, of only the cart items that merit attention, each with its own retailer thumbnail (the owner confirmed this is acceptable because the checkout link only leads to the page where payment is finalized). If nothing merits attention, nothing is held and no recap plays.
 2. Each item has been assessed against defined criteria; the recap shows only applicable findings and groups related points into a concise cart-level explanation.
 3. The recap explains what Worth It noticed and why. For example, it may show the price difference for a store-brand suggestion or remind the shopper about a similar recent purchase.
 4. For a food whose label shows an approved concern (added sugar, a non-sugar sweetener, cured meat, and so on), it gives a brief, evidence-based tip with its source. Whole foods and other items with nothing flagged receive no health warning.

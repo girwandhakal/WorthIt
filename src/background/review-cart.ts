@@ -71,6 +71,7 @@ export function unreadLinesFinding(snapshot: CartSnapshot): ReviewFinding | null
     position: Number.MAX_SAFE_INTEGER,
     kind: 'uncertain',
     itemName: 'Your cart',
+    imageUrl: null,
     text:
       snapshot.items.length === 0
         ? `${store} shows ${displayed} ${displayed === 1 ? 'item' : 'items'} in your cart, but Worth It couldn't read any of them. ${store}'s page may have changed, so Worth It isn't guessing.`
