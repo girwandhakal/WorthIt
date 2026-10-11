@@ -7,8 +7,13 @@ import { VERDICTS, amountLabel, swapTarget, toneOf } from '../checkout/verdict';
 import { AnimatedNumber } from './AnimatedNumber';
 import { GrowthChart } from './GrowthChart';
 
-/** How long each scene stays up before advancing, in milliseconds. */
-export const SCENE_MS = { opening: 3200, highlight: 6000, grouped: 4000 } as const;
+/**
+ * How long each scene stays up before advancing, in milliseconds. The shopper
+ * cannot skip ahead, so the end-to-end tests (built with `--mode e2e`) play
+ * the same scenes four times faster instead of waiting out the real timings.
+ */
+const SPEED = import.meta.env.MODE === 'e2e' ? 0.25 : 1;
+export const SCENE_MS = { opening: 3200 * SPEED, highlight: 6000 * SPEED, grouped: 4000 * SPEED } as const;
 
 /** Most cart thumbnails shown in the opening scene. */
 const OPENING_THUMBS = 12;
@@ -30,8 +35,6 @@ export function scenesFor(summary: CartSummary): Scene[] {
 
 export interface RecapProps extends FindingHandlers {
   review: CartReview;
-  /** Switches to the equivalent static view. */
-  onSkip: () => void;
   /** Called with true once the closing scene is up. */
   onEnded?: (ended: boolean) => void;
 }
@@ -39,10 +42,11 @@ export interface RecapProps extends FindingHandlers {
 /**
  * The full-screen pre-checkout presentation: a short sequence of scenes built
  * from the deterministic summary (no generated video). It plays on its own and
- * is pausable, replayable, and skippable, with captions and a live region so it
- * reads the same without animation.
+ * is pausable and replayable, with captions and a live region so it reads the
+ * same without animation. There is deliberately no way to skip ahead: the
+ * shopper has to sit through it (reduced-motion shoppers get the static view).
  */
-export function Recap({ review, onSkip, onEnded, onAnswer, onSkipQuestion }: RecapProps) {
+export function Recap({ review, onEnded, onAnswer, onSkipQuestion }: RecapProps) {
   const { summary } = review;
   const scenes = scenesFor(summary);
   const [index, setIndex] = useState(0);
@@ -123,9 +127,6 @@ export function Recap({ review, onSkip, onEnded, onAnswer, onSkipQuestion }: Rec
         >
           <ControlIcon name={playing && !atEnd ? 'pause' : 'play'} />
         </button>
-        <button type="button" className="wi-control" onClick={() => setIndex((value) => Math.min(scenes.length - 1, value + 1))} disabled={atEnd} aria-label="Next scene">
-          <ControlIcon name="next" />
-        </button>
         <span className="wi-control-gap" aria-hidden="true" />
         <button
           type="button"
@@ -140,9 +141,6 @@ export function Recap({ review, onSkip, onEnded, onAnswer, onSkipQuestion }: Rec
         </button>
         <button type="button" className="wi-control wi-control-text" aria-label="Captions" aria-pressed={captions} onClick={() => setCaptions((value) => !value)}>
           CC
-        </button>
-        <button type="button" className="wi-control wi-control-text" aria-label="Skip recap" onClick={onSkip}>
-          Skip
         </button>
       </div>
     </div>
@@ -332,10 +330,9 @@ function captionFor(scene: Scene, summary: CartSummary): string {
   }
 }
 
-function ControlIcon({ name }: { name: 'prev' | 'next' | 'play' | 'pause' | 'replay' }) {
+function ControlIcon({ name }: { name: 'prev' | 'play' | 'pause' | 'replay' }) {
   const paths = {
     prev: <path d="M15 6l-6 6 6 6" />,
-    next: <path d="M9 6l6 6-6 6" />,
     play: <path d="M8 5.5v13l11-6.5z" className="wi-fill" />,
     pause: (
       <>

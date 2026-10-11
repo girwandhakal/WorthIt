@@ -26,7 +26,7 @@ This document turns the current PRD into a buildable plan. It recommends a narro
 | Personal finance | No account connection, balance, budget, or cash-flow data |
 | Investment illustration | One aggregate-cart projection, on by default (can be turned off in settings), using 10% assumed yearly return, annual compounding, 40 years, before inflation |
 | Cart control | Read-only. Never add, remove, replace, or purchase an item |
-| Animation | Short, skippable animated recap with captions and equivalent text |
+| Animation | Short animated recap that plays to the end (no skip), with captions and equivalent text; reduced motion gets the static view |
 | Release | Load unpacked for the hackathon; Chrome Web Store publication is a later step requiring listing assets and Google OAuth review for Gmail scope |
 
 Worth It uses deterministic, versioned criteria to assess each item and calculate scores, prices, savings, and grouped cart statistics. An LLM API is used only to phrase already-verified findings and summary text in natural language. It must not select or change criteria, assign scores, classify purchases, calculate or alter numbers, invent evidence or sources, or add unsupported advice. Item names, numeric values, findings, and citations remain code-controlled fields. If the LLM is unavailable or its response fails validation, Worth It uses reviewed deterministic text templates.
@@ -78,7 +78,7 @@ Use items from [Walmart reference products](WALMART_REFERENCE_PRODUCTS.md), quan
    - Skittles: the label lists added sugar, so Worth It shows the added-sugar note and suggests skipping it or choosing a smaller amount ($4.97).
    - Combined potential reduction and illustration: “By following these suggestions, you would save $38.72. If you invested that $38.72 at an assumed 10% annual return, compounded annually, it could grow to about $1,752.44 in 40 years (before inflation; returns are not guaranteed).”
 4. **Clarification:** Answer “Replacing a worn one” for the tumbler. The skip suggestion is withdrawn and the Ozark Trail tumbler is suggested instead ($12.00 less). The total becomes $25.75, and the illustration becomes about $1,165.43.
-5. **Control:** Pause, replay, and skip the recap, then press Continue. The panel closes; the Walmart cart is unchanged and checkout still works normally.
+5. **Control:** Pause and replay the recap (there is no skip, and Continue stays disabled until it ends), then press Continue. The panel closes; the Walmart cart is unchanged and checkout still works normally.
 6. **Purchase recording:** Open the Walmart purchase-history page, choose “Record these purchases,” review the parsed items, and save them as observed purchases.
 
 Start with one retailer and a small set of product categories that can be demonstrated reliably. Walmart US is first because the grocery examples depend on grocery data; add Amazon through a separate adapter after the first full flow works.
@@ -365,7 +365,7 @@ On the cart page, when at least one finding or material uncertainty exists, the 
 4. **Why?:** every highlight has a “Why?” control that reveals its evidence, source link, price check date, and certainty. Evidence is never shown by default.
 5. **Closing nudge:** the cart's savings total counts up, then (unless turned off) the investment illustration draws as one animated growth chart: the savings compounding at 10% a year for 40 years against the same amount kept as cash, with the value climbing to the calculated amount, its multiple of the savings, and a hover readout per year. The approved sentence and assumptions sit beneath it, then a short hand-back such as “It's your call.”, and the “See full analysis” control is emphasized. A running savings meter fills during the highlight scenes.
 6. **See full analysis (on request):** a secondary “See full analysis” control, available from the recap and the static view, opens the deeper view inside the panel without leaving the cart. It lists every reviewed item, including no-concern and unknown items, with each criterion's result (finding, no concern, not applicable, unknown), purpose class, price, quantity, unit price, store-brand comparison and price check date, purchase-history match, added-sugar status, evidence and source links, certainty, and the item's share of the cart, plus the cart totals and the investment assumptions. It is rendered from the same deterministic assessment results; the LLM does not write it. A “Back to highlights” control returns to the default view. It never opens automatically. It also has an “Every possible saving” list: every suggestion with an amount, biggest first, marking the one per item that the total counts and showing the rest as alternatives that are never added together.
-7. **Controls:** pause, replay, captions, dismiss, and continue. Continue and dismiss only close Worth It's panel; a dismissed panel stays collapsed for that cart unless a new finding appears.
+7. **Controls:** pause, replay, captions, previous scene, dismiss, and continue. There is no skip or next-scene control: while the animation plays for the first time, Continue, dismiss, Escape, and “See full analysis” are locked (and the e2e build, `--mode e2e`, plays the scenes at 4× speed instead). Once it has ended they unlock for good for that opening, and replaying does not lock it again; reduced motion starts in the static view, unlocked. Continue and dismiss only close Worth It's panel; a dismissed panel stays collapsed for that cart unless a new finding appears.
 
 Wording rules:
 
@@ -465,7 +465,7 @@ Gmail API uses an OAuth extension client ID and your consent, not an API key. Ba
 | Health overclaim | Label-based triggers only, one verified source each, fixed reviewed wording calibrated to the source (“may”, “conditional”, “a whole diet, not one item”), no Daily Value claims, no inference from title |
 | Retailer bot detection | Gentle product-page reads: low concurrency, spacing, per-review cap, cache, and a circuit breaker at the first bot check; unread items are `unknown` |
 | Broad extension access | One retailer permission at a time; explain and request only required host access |
-| Animation obscures details | Captions, text equivalent, reduced motion, pause/skip, accessible focus order |
+| Animation obscures details | Captions, text equivalent, reduced motion, pause, accessible focus order (the animation itself cannot be skipped by owner decision; reduced motion gets the static view) |
 | LLM wording changes or invents facts | Keep criteria and calculations deterministic, validate wording against structured findings, render numeric/source fields from code, and fall back to reviewed templates |
 | Reference data drifts from the live site | Record check dates; label reference prices as last-checked; treat unmatched items as unknown |
 | OpenAI key exposure or cost | Owner-only key in local settings, never in source or exports; low OpenAI spending limit; output caps; template fallback; server-side proxy before public release |

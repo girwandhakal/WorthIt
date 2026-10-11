@@ -109,16 +109,22 @@ test.describe('Walmart cart panel', () => {
     expect(await retailerClicks(page)).toBe(0); // both held clicks never reached the page
   });
 
-  test('Escape closes the panel and nothing on the page is clicked', async ({ context }) => {
+  test('Escape does nothing while the presentation plays, then closes it without clicking the page', async ({ context }) => {
     await serveWalmart(context, { '/cart': 'cart-missing-data.html' });
     const page = await context.newPage();
     await page.goto('https://www.walmart.com/cart');
     await waitForReview(page);
     const before = await retailerMarkup(page);
     await clickCheckout(page);
+    const panel = page.getByRole('dialog', { name: 'Worth It' });
     await expect(page.getByRole('heading', { name: 'Worth It' })).toBeFocused();
+    await expect(panel.getByRole('button', { name: 'Continue' })).toBeDisabled();
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog', { name: 'Worth It' })).toHaveCount(0);
+    await expect(panel).toBeVisible();
+    // Once it has finished, Escape closes it like Continue does.
+    await expect(panel.getByRole('button', { name: 'Continue' })).toBeEnabled({ timeout: 15_000 });
+    await page.keyboard.press('Escape');
+    await expect(panel).toHaveCount(0);
     expect(await retailerClicks(page)).toBe(0);
     expect(await retailerMarkup(page)).toBe(before);
   });
