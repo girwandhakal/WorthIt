@@ -4,53 +4,60 @@ import { checkoutButton, clickCheckout, daysAgo, expect, expectNothingShown, ret
 const INVESTMENT_SENTENCE = (x: string, y: string) =>
   `By following these suggestions, you would save ${x}. If you invested that ${x} at an assumed 10% annual return, compounded annually, it could grow to about ${y} in 40 years (before inflation; returns are not guaranteed).`;
 
-async function openMixedCart(context: BrowserContext, extensionId: string, serviceWorker: Worker, preferences: Record<string, unknown> = {}): Promise<Page> {
+async function openMixedCart(
+  context: BrowserContext,
+  extensionId: string,
+  serviceWorker: Worker,
+  preferences: Record<string, unknown> = {},
+  options: { reducedMotion?: boolean } = {},
+): Promise<Page> {
   await setPreferences(serviceWorker, preferences);
   await seedHistory(context, extensionId, [
     storedPurchase({ title: 'Stanley Quencher H2.0 FlowState Tumbler, 30 oz', purchasedOn: daysAgo(20), retailerItemId: '18256507800' }),
   ]);
   await serveWalmart(context, { '/cart': 'cart-mixed.html' });
   const page = await context.newPage();
+  if (options.reducedMotion) await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('https://www.walmart.com/cart');
   await clickCheckout(page);
   return page;
 }
 
-test('acceptance walkthrough: recap, clarification, totals, full analysis, and control', async ({ context, extensionId, serviceWorker }) => {
+test('acceptance walkthrough: the presentation cannot be skipped, takes the answer, and ends with the totals', async ({ context, extensionId, serviceWorker }) => {
   const page = await openMixedCart(context, extensionId, serviceWorker);
   const before = await retailerMarkup(page);
   const panel = page.getByRole('dialog', { name: 'Worth It' });
 
-  // The recap opens on its own with the reflection prompt.
+  // The recap opens on its own with the reflection prompt, and offers no way out.
   await expect(panel.locator('.wi-scene-title')).toHaveText('Before you check out, 3 things are worth a second thought.');
-  await panel.getByRole('button', { name: 'Pause recap' }).click();
-  await panel.getByRole('button', { name: 'Next scene' }).click();
+  await expect(panel.getByRole('button', { name: 'Continue' })).toBeDisabled();
+  await expect(panel.getByRole('button', { name: 'See full analysis' })).toBeDisabled();
+  await expect(panel.getByRole('button', { name: 'Dismiss Worth It panel' })).toHaveCount(0);
+  await expect(panel.getByRole('button', { name: 'Skip recap' })).toHaveCount(0);
+  await expect(panel.getByRole('button', { name: 'Next scene' })).toHaveCount(0);
+
+  // The tumbler comes first and waits on its question.
   await expect(panel.locator('.wi-scene-item')).toHaveText('Stanley Quencher H2.0 FlowState Tumbler, 30 oz');
   await expect(panel.locator('.wi-hero-thumb img')).toHaveAttribute('src', /^https:\/\/i5\.walmartimages\.com\/seo\/Stanley.*odnHeight=480/);
   await expect(panel.locator('.wi-amount-chip')).toHaveText('$24.97');
-  await panel.getByRole('button', { name: 'Next scene' }).click();
-  await expect(panel.locator('.wi-scene-item')).toHaveText('Skittles Original Fruity Candy, Sharing Size, 15.6 oz');
-  await panel.getByRole('button', { name: 'Next scene' }).click();
-  await expect(panel.locator('.wi-scene-item')).toHaveText('Squishmallows FuzzAMallow 5 inch Plush');
-  await panel.getByRole('button', { name: 'Next scene' }).click();
-  await expect(panel.locator('.wi-scene-caption')).toHaveText('You also had 3 other items you could reconsider or swap for a different one, worth about $4.81 more.');
-  await panel.getByRole('button', { name: 'Next scene' }).click();
-  await expect(panel.locator('.wi-closing-sentence')).toHaveText(INVESTMENT_SENTENCE('$38.72', '$1,752.44'));
-  // The growth chart draws to the illustrated amount, and the full analysis is offered.
-  await expect(panel.locator('.wi-growth-value')).toHaveText('$1,752.44', { timeout: 10_000 });
-  await expect(panel.locator('.wi-footer-ready').getByRole('button', { name: 'See full analysis' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole('button', { name: 'Continue' })).toBeDisabled();
 
-  // Replay, then skip to the static view.
+  // Clarification: the tumbler is replacing a worn one, and the presentation plays on.
+  await panel.getByRole('button', { name: 'Replacing a worn one' }).click();
+  await expect(panel.locator('.wi-scene-item')).toHaveText('Skittles Original Fruity Candy, Sharing Size, 15.6 oz');
+  await expect(panel.locator('.wi-scene-item')).toHaveText('Squishmallows FuzzAMallow 5 inch Plush');
+  await expect(panel.locator('.wi-closing-sentence')).toHaveText(INVESTMENT_SENTENCE('$25.75', '$1,165.43'));
+  // The growth chart draws to the illustrated amount, and only now can the shopper leave.
+  await expect(panel.locator('.wi-growth-value')).toHaveText('$1,165.43', { timeout: 10_000 });
+  await expect(panel.locator('.wi-footer-ready').getByRole('button', { name: 'See full analysis' })).toBeVisible();
+  await expect(panel.getByRole('button', { name: 'Continue' })).toBeEnabled();
+
+  // Replaying does not lock it again.
   await panel.getByRole('button', { name: 'Replay recap' }).click();
   await expect(panel.locator('.wi-scene-title')).toHaveText('Before you check out, 3 things are worth a second thought.');
-  await panel.getByRole('button', { name: 'Skip recap' }).click();
-  await expect(panel.getByRole('list', { name: 'Worth a second thought' }).getByRole('listitem')).toHaveCount(3);
-  await expect(panel.getByText('Bounty Essentials Select-A-Size Paper Towels, 6 Double Rolls')).toHaveCount(0);
-
-  // Clarification: the tumbler is replacing a worn one.
-  await panel.getByRole('button', { name: 'Replacing a worn one' }).click();
-  await expect(panel.locator('.wi-closing-sentence')).toHaveText(INVESTMENT_SENTENCE('$25.75', '$1,165.43'));
-  await expect(panel.getByText(/Ozark Trail Insulated Tumbler with Handle, 30 oz/).first()).toBeVisible();
+  await expect(panel.getByRole('button', { name: 'Continue' })).toBeEnabled();
 
   // Full analysis on request.
   await panel.getByRole('button', { name: 'See full analysis' }).click();
@@ -63,6 +70,27 @@ test('acceptance walkthrough: recap, clarification, totals, full analysis, and c
   await expect(panel).toHaveCount(0);
   expect(await retailerClicks(page)).toBe(0);
   expect(await retailerMarkup(page)).toBe(before);
+});
+
+test('static view (reduced motion): the same totals before and after the clarification', async ({ context, extensionId, serviceWorker }) => {
+  await setPreferences(serviceWorker, {});
+  await seedHistory(context, extensionId, [
+    storedPurchase({ title: 'Stanley Quencher H2.0 FlowState Tumbler, 30 oz', purchasedOn: daysAgo(20), retailerItemId: '18256507800' }),
+  ]);
+  await serveWalmart(context, { '/cart': 'cart-mixed.html' });
+  const page = await context.newPage();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('https://www.walmart.com/cart');
+  await clickCheckout(page);
+  const panel = page.getByRole('dialog', { name: 'Worth It' });
+  await expect(panel.getByRole('button', { name: 'Continue' })).toBeEnabled();
+  await expect(panel.getByRole('list', { name: 'Worth a second thought' }).getByRole('listitem')).toHaveCount(3);
+  await expect(panel.locator('.wi-closing-sentence')).toHaveText(INVESTMENT_SENTENCE('$38.72', '$1,752.44'));
+  await expect(panel.getByText('Bounty Essentials Select-A-Size Paper Towels, 6 Double Rolls')).toHaveCount(0);
+
+  await panel.getByRole('button', { name: 'Replacing a worn one' }).click();
+  await expect(panel.locator('.wi-closing-sentence')).toHaveText(INVESTMENT_SENTENCE('$25.75', '$1,165.43'));
+  await expect(panel.getByText(/Ozark Trail Insulated Tumbler with Handle, 30 oz/).first()).toBeVisible();
 });
 
 test('reduced motion shows the static view, and the illustration can be turned off', async ({ context, extensionId, serviceWorker }) => {
@@ -113,10 +141,10 @@ test('OpenAI wording (stubbed) is validated and filled with real values; nothing
     });
     await route.fulfill({ json: { choices: [{ message: { content } }] } });
   });
-  const page = await openMixedCart(context, extensionId, serviceWorker, { investmentIllustration: true });
+  // Reduced motion opens the static view, which carries the same wording without the timed presentation.
+  const page = await openMixedCart(context, extensionId, serviceWorker, { investmentIllustration: true }, { reducedMotion: true });
   const panel = page.getByRole('dialog', { name: 'Worth It' });
-  await expect(panel.locator('.wi-scene-title')).toHaveText('Hold on a moment: 3 things are worth a second thought.');
-  await panel.getByRole('button', { name: 'Skip recap' }).click();
+  await expect(panel.getByText('Hold on a moment: 3 things are worth a second thought.')).toBeVisible();
   await expect(panel.getByText('You already picked up this 20 days ago. Is a second one needed? Leaving it saves $24.97.')).toBeVisible();
   // The invalid rephrasing (it added a number) falls back to the reviewed template.
   await expect(panel.getByText('This looks like a novelty item with no practical use, so it’s probably not worth it. Consider skipping it to take $3.97 off your cart.')).toBeVisible();

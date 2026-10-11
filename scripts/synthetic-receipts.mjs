@@ -1,10 +1,41 @@
 // Prints the fictional receipt emails for the hackathon walkthrough, with order
 // dates relative to today. It sends nothing: paste each one into a new Gmail
-// message addressed to yourself. Template: docs/SYNTHETIC_RECEIPTS.md
+// message addressed to yourself, or pass --to to print a Gmail compose link per
+// receipt (address, subject, and body prefilled; you still click Send). Add
+// --open to launch the links in your default browser.
+// Template: docs/SYNTHETIC_RECEIPTS.md
 //
 //   node scripts/synthetic-receipts.mjs
+//   node scripts/synthetic-receipts.mjs --to you@gmail.com [--open]
+
+import { execFile } from 'node:child_process';
 
 const MARKER = '[Worth It Test Receipt]';
+const args = process.argv.slice(2);
+const toIndex = args.indexOf('--to');
+const recipient = toIndex >= 0 ? args[toIndex + 1] : null;
+if (toIndex >= 0 && !recipient?.includes('@')) {
+  console.error('Usage: node scripts/synthetic-receipts.mjs --to you@gmail.com [--open]');
+  process.exit(1);
+}
+const shouldOpen = args.includes('--open');
+// --only 2,3 limits the output to those receipts (1-based), e.g. to resend failed ones.
+const onlyIndex = args.indexOf('--only');
+const only = onlyIndex >= 0 ? new Set((args[onlyIndex + 1] ?? '').split(',').map(Number)) : null;
+if (only && ![...only].every((n) => Number.isInteger(n) && n >= 1 && n <= 5)) {
+  console.error('Usage: --only 2,3 (receipt numbers 1 to 5)');
+  process.exit(1);
+}
+let opened = 0;
+const composeUrl = (to, subject, body) =>
+  `https://mail.google.com/mail/?${new URLSearchParams({ view: 'cm', fs: '1', authuser: to, to, su: subject, body })}`;
+const openInBrowser = (url) => {
+  // Staggered so Gmail isn't asked to load every composer at once.
+  setTimeout(() => {
+    if (process.platform === 'win32') execFile('cmd', ['/c', 'start', '', url.replace(/&/g, '^&')]);
+    else execFile(process.platform === 'darwin' ? 'open' : 'xdg-open', [url]);
+  }, opened++ * 5000);
+};
 
 const receipts = [
   {
@@ -49,7 +80,8 @@ const isoDaysAgo = (days) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
 
-for (const receipt of receipts) {
+for (const [index, receipt] of receipts.entries()) {
+  if (only && !only.has(index + 1)) continue;
   const lines = [
     'WORTH IT TEST RECEIPT (synthetic, fictional)',
     'Merchant: Walmart',
@@ -60,12 +92,23 @@ for (const receipt of receipts) {
     'Item ID | Item | Qty | Price | Status',
     ...receipt.items.map((item) => item.join(' | ')),
   ];
+  const subject = `${MARKER} Walmart order ${receipt.order}`;
+  if (recipient) {
+    const url = composeUrl(recipient, subject, lines.join('\n'));
+    console.log(`${subject}\n${url}\n`);
+    if (shouldOpen) openInBrowser(url);
+    continue;
+  }
   console.log('='.repeat(72));
   console.log('To:      (your own Gmail address)');
-  console.log(`Subject: ${MARKER} Walmart order ${receipt.order}`);
+  console.log(`Subject: ${subject}`);
   console.log('-'.repeat(72));
   console.log(lines.join('\n'));
   console.log('');
 }
-console.log('='.repeat(72));
-console.log(`${receipts.length} emails. Send each to yourself, then use Worth It settings > Import from Gmail.`);
+if (!recipient) console.log('='.repeat(72));
+console.log(
+  recipient
+    ? `${only ? only.size : receipts.length} compose links. Click Send on each, then use Worth It settings > Import from Gmail.`
+    : `${receipts.length} emails. Send each to yourself, then use Worth It settings > Import from Gmail.`,
+);

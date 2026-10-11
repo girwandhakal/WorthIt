@@ -44,9 +44,25 @@ node scripts/synthetic-receipts.mjs
 
 Send each printed email from your Gmail account to yourself, with the subject and body exactly as printed (see [SYNTHETIC_RECEIPTS.md](SYNTHETIC_RECEIPTS.md)).
 
+To skip the copy-paste, pass your address and the script prints (or, with `--open`, opens) a Gmail compose link per receipt with the subject and body prefilled. You still click **Send** on each; nothing is sent for you and no credentials are used:
+
+```sh
+node scripts/synthetic-receipts.mjs --to you@gmail.com --open
+```
+
 ## 4. Import
 
 Use Google Chrome signed in to the same Google account. Open Worth It settings → **Import from Gmail**, pick a date range that covers the receipts, and choose **Connect Gmail and find receipts**. Approve Google's consent screen (it warns the app is unverified while in Testing; that is expected for a private test app). Review the items, then save. They appear in **Purchase history** labeled **Synthetic test receipt (Gmail)**.
+
+## Troubleshooting sign-in
+
+If Connect shows "This build has a Gmail client ID, but Chrome or Google rejected it", the build is fine but the Google side does not match. The message prints this extension's ID and Chrome's own error. Check that:
+
+- the ID shown equals the one in `chrome://extensions` (a different ID means you loaded a copy built without your `WXT_EXTENSION_PUBLIC_KEY`, or from another folder);
+- the OAuth client's **Application type** is *Chrome extension* and its **Item ID** is exactly that ID;
+- the client is not brand new (it can take a few minutes to start working), the Gmail API is enabled, and your account is a **Test user**.
+
+If the button is disabled and the page says "no OAuth client ID", the build itself lacks `WXT_GOOGLE_OAUTH_CLIENT_ID`: set it in `.env.local`, rebuild, and reload.
 
 ## Disconnecting and revoking
 

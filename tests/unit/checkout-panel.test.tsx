@@ -11,6 +11,12 @@ import { line, snapshot, tumblerReceipt, walkthroughSnapshot } from '../helpers/
 import { reviewContext } from '../helpers/background';
 
 const mixed = () => reviewCart(walkthroughSnapshot(), reviewContext({ history: [tumblerReceipt()] }));
+/** Same cart, but the tumbler question has been answered or skipped, so the presentation plays straight through. */
+const settled = () =>
+  reviewCart(
+    walkthroughSnapshot(),
+    reviewContext({ history: [tumblerReceipt()], skippedQuestions: new Set(['repeat_purpose:walmart:18256507800']) }),
+  );
 const normal = () => reviewCart(snapshot([line('10315798'), line('145051970', {}, 1), line('10315395', {}, 2)]), reviewContext());
 const unreadable = () => reviewCart(snapshot([line('10315798', { linePriceCents: null })]), reviewContext());
 
@@ -32,6 +38,11 @@ function withReview(review: CartReview) {
 }
 
 afterEach(() => vi.useRealTimers());
+
+/** Lets each scene's timer fire in its own act, so React re-renders (and schedules the next scene) in between. */
+async function playScenes(...durations: number[]) {
+  for (const ms of durations) await act(() => vi.advanceTimersByTimeAsync(ms));
+}
 
 describe('opening on the checkout click', () => {
   it('shows nothing on the page until asked, even with findings, then fills the screen', async () => {
@@ -104,9 +115,11 @@ describe('animated recap', () => {
     // Every cart item appears in the opening scene, and the three highlights light up.
     expect(panel.querySelectorAll('.wi-constellation .wi-thumb')).toHaveLength(7);
     expect(panel.querySelectorAll('.wi-constellation .wi-star-lit')).toHaveLength(3);
-    for (const name of ['Pause recap', 'Replay recap', 'Captions', 'Skip recap', 'Next scene', 'Previous scene']) {
+    for (const name of ['Pause recap', 'Replay recap', 'Captions', 'Previous scene']) {
       expect(within(panel).getByRole('button', { name })).toBeTruthy();
     }
+    // There is no way to skip ahead.
+    for (const name of ['Skip recap', 'Next scene']) expect(within(panel).queryByRole('button', { name })).toBeNull();
   });
 
   it('advances to highlights in ranking order and waits on a question', async () => {
@@ -128,9 +141,9 @@ describe('animated recap', () => {
     expect(screen.getByText('Stanley Quencher H2.0 FlowState Tumbler, 30 oz', { selector: '.wi-scene-item' })).toBeTruthy();
   });
 
-  it('can be paused, moved, replayed, and captioned', async () => {
-    const { user } = setup(mixed(), { fakeTimers: true });
-    for (let i = 0; i < 3; i++) await user.click(screen.getByRole('button', { name: 'Next scene' }));
+  it('can be paused, replayed, and captioned', async () => {
+    const { user } = setup(settled(), { fakeTimers: true });
+    await playScenes(SCENE_MS.opening, SCENE_MS.highlight, SCENE_MS.highlight);
     expect(screen.getByText('Squishmallows FuzzAMallow 5 inch Plush', { selector: '.wi-scene-item' })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Pause recap' }));
     await act(() => vi.advanceTimersByTimeAsync(SCENE_MS.highlight * 2));
@@ -149,11 +162,11 @@ describe('animated recap', () => {
   });
 
   it('ends with the savings total, the investment sentence, and a hand-back', async () => {
-    const { user } = setup(mixed(), { fakeTimers: true });
-    for (let i = 0; i < 4; i++) await user.click(screen.getByRole('button', { name: 'Next scene' }));
+    setup(settled(), { fakeTimers: true });
+    await playScenes(SCENE_MS.opening, SCENE_MS.highlight, SCENE_MS.highlight, SCENE_MS.highlight);
     expect(screen.getByText('You also had 3 other items you could reconsider or swap for a different one, worth about $4.81 more.', { selector: '.wi-scene-caption' })).toBeTruthy();
     expect(screen.getByText('+3 more', { selector: '.wi-grouped-big', exact: false })).toBeTruthy();
-    await user.click(screen.getByRole('button', { name: 'Next scene' }));
+    await act(() => vi.advanceTimersByTimeAsync(SCENE_MS.grouped));
     // The savings count up, then the growth chart draws to the exact illustrated amount.
     await act(() => vi.advanceTimersByTimeAsync(1300 + GROWTH_DRAW_MS + 200));
     expect(screen.getByText('$38.72', { selector: '.wi-amount-chip' })).toBeTruthy();
@@ -173,12 +186,33 @@ describe('animated recap', () => {
     expect(screen.getAllByText(/could grow to about/, { selector: '.wi-closing-sentence' })).toHaveLength(1);
   });
 
-  it('Skip recap shows the equivalent static view', async () => {
-    const { user } = setup(mixed());
-    await user.click(screen.getByRole('button', { name: 'Skip recap' }));
-    expect(screen.queryByRole('toolbar', { name: 'Recap controls' })).toBeNull();
-    expect(screen.getByRole('list', { name: 'Worth a second thought' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Replay recap' })).toBeTruthy();
+  it('cannot be skipped: Continue, Dismiss, full analysis and Escape stay locked until it ends', async () => {
+    const { user, onDismiss } = setup(settled(), { fakeTimers: true });
+    const disabled = (name: string) => (screen.getByRole('button', { name }) as HTMLButtonElement).disabled;
+    expect(disabled('Continue')).toBe(true);
+    expect(disabled('See full analysis')).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Dismiss Worth It panel' })).toBeNull();
+    expect(screen.getByText('Continue unlocks when the presentation ends.')).toBeTruthy();
+
+    await user.keyboard('{Escape}');
+    expect(screen.getByRole('dialog', { name: 'Worth It' })).toBeTruthy();
+    expect(onDismiss).not.toHaveBeenCalled();
+
+    // Mid-way is still locked.
+    await playScenes(SCENE_MS.opening, SCENE_MS.highlight, SCENE_MS.highlight);
+    expect(disabled('Continue')).toBe(true);
+
+    await playScenes(SCENE_MS.highlight, SCENE_MS.grouped);
+    expect(disabled('Continue')).toBe(false);
+    expect(disabled('See full analysis')).toBe(false);
+    expect(screen.getByRole('button', { name: 'Dismiss Worth It panel' })).toBeTruthy();
+
+    // Stepping back after watching it does not lock it again.
+    await user.click(screen.getByRole('button', { name: 'Previous scene' }));
+    expect(disabled('Continue')).toBe(false);
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 });
 

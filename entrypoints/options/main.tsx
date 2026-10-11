@@ -24,6 +24,7 @@ const services: OptionsServices = {
   } satisfies IdentityApi,
   fetch: (input, init) => fetch(input, init),
   gmailConfigured: isGmailConfigured(browser.runtime.getManifest() as { oauth2?: { client_id?: string } }),
+  extensionId: browser.runtime.id,
   wordingProxy: WORDING_PROXY_URL !== null,
   now: () => new Date(),
 };

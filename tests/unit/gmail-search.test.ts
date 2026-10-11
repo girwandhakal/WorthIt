@@ -124,6 +124,25 @@ describe('Chrome identity', () => {
     await expect(getGmailToken(declined, true)).rejects.toEqual(new GmailError('declined', 'Gmail access was not granted.'));
   });
 
+  it.each([
+    ["OAuth2 request failed: Service responded with error: 'bad client id: 123-abc.apps.googleusercontent.com'"],
+    ['Invalid OAuth2 Client ID.'],
+    ['OAuth2 client_id is not specified in the manifest'],
+  ])('reports a rejected OAuth client, keeping Chrome’s message: %s', async (message) => {
+    const rejected = identity(async () => {
+      throw new Error(message);
+    });
+    await expect(getGmailToken(rejected, true)).rejects.toMatchObject({ kind: 'client_rejected', detail: message });
+  });
+
+  it('keeps Chrome’s message for other sign-in failures and strips token-shaped text', async () => {
+    const failing = identity(async () => {
+      throw new Error('Something broke ya29.SECRET-TOKEN_value here');
+    });
+    const error = await getGmailToken(failing, true).catch((caught: GmailError) => caught);
+    expect(error).toMatchObject({ kind: 'auth', detail: 'Something broke [token] here' });
+  });
+
   it('disconnect clears the cached token without needing consent', async () => {
     const api = identity(async (details) => {
       expect(details.interactive).toBe(false);

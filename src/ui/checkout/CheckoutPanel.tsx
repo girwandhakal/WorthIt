@@ -109,7 +109,13 @@ function PanelForReview({
     return () => reportOpen(false);
   }, [open, reportOpen]);
 
-  const onRecapEnded = useCallback((ended: boolean) => setRecapEnded(ended), []);
+  // Sticky: once the shopper has sat through the presentation, stepping back or replaying does not lock it again.
+  const onRecapEnded = useCallback((ended: boolean) => {
+    if (ended) setRecapEnded(true);
+  }, []);
+
+  // While the animated presentation is still playing for the first time, the shopper cannot leave it or jump past it.
+  const locked = mode === 'recap' && !recapEnded;
 
   const close = () => {
     const ids = review.findings.map((finding) => finding.id);
@@ -129,7 +135,7 @@ function PanelForReview({
   const trapFocus = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === 'Escape') {
       event.stopPropagation();
-      close();
+      if (!locked) close();
       return;
     }
     if (event.key !== 'Tab' || !overlayRef.current) return;
@@ -148,7 +154,7 @@ function PanelForReview({
     }
   };
 
-  const ready = mode !== 'recap' || recapEnded;
+  const ready = !locked;
 
   return (
     <section ref={overlayRef} className="wi-overlay" role="dialog" aria-modal="true" aria-labelledby="wi-panel-title" onKeyDown={trapFocus}>
@@ -158,15 +164,16 @@ function PanelForReview({
           <span className="wi-logo" aria-hidden="true" />
           Worth It
         </h2>
-        <button type="button" className="wi-icon-button" aria-label="Dismiss Worth It panel" onClick={close}>
-          <span aria-hidden="true">×</span>
-        </button>
+        {!locked && (
+          <button type="button" className="wi-icon-button" aria-label="Dismiss Worth It panel" onClick={close}>
+            <span aria-hidden="true">×</span>
+          </button>
+        )}
       </header>
       <div className={`wi-body wi-body-${mode}`}>
         {mode === 'recap' && (
           <Recap
             review={review}
-            onSkip={() => setMode('static')}
             onEnded={onRecapEnded}
             onAnswer={handlers.onAnswer}
             onSkipQuestion={handlers.onSkipQuestion}
@@ -186,15 +193,19 @@ function PanelForReview({
       </div>
       <footer className={`wi-footer ${ready ? 'wi-footer-ready' : ''}`}>
         {mode !== 'full' ? (
-          <button type="button" className="wi-secondary wi-analysis-button" onClick={() => setMode('full')}>
+          <button type="button" className="wi-secondary wi-analysis-button" onClick={() => setMode('full')} disabled={locked}>
             See full analysis
           </button>
         ) : (
           <span className="wi-handback">Worth It never changes your cart.</span>
         )}
         <span className="wi-footer-end">
-          {focusOnOpen && <span className="wi-footer-hint">Your next checkout click goes straight through.</span>}
-          <button type="button" className="wi-primary" onClick={close}>
+          {locked ? (
+            <span className="wi-footer-hint">Continue unlocks when the presentation ends.</span>
+          ) : (
+            focusOnOpen && <span className="wi-footer-hint">Your next checkout click goes straight through.</span>
+          )}
+          <button type="button" className="wi-primary" onClick={close} disabled={locked}>
             Continue
           </button>
         </span>

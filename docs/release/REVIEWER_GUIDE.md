@@ -6,7 +6,7 @@ No account with Worth It is needed. A Walmart or Amazon account is not required 
 
 1. Install Worth It. Onboarding opens; choose **Finish setup**.
 2. On walmart.com, add to the cart: Horizon Organic Vitamin D Whole Milk 64 fl oz, Stanley Quencher 30 oz tumbler, Squishmallows 5" plush, and Skittles Original Sharing Size. Open the cart.
-3. A recap opens: "Before you check out, 3 things are worth a second thought." Use **Pause**, **Next**, **Replay**, **Captions**, and **Skip recap**. Open **Why?** on a highlight and **See full analysis**.
+3. A recap opens: "Before you check out, 3 things are worth a second thought." It cannot be skipped: use **Pause**, **Replay**, and **Captions** while it plays; **Continue** and **See full analysis** unlock when it ends. Open **Why?** on a highlight and **See full analysis**.
 4. Press **Continue**. The panel closes; the cart is unchanged and checkout works normally. Worth It does not appear on checkout pages.
 5. A cart with only Great Value milk, eggs, and rice shows only "Worth It · Reviewed 3 items".
 

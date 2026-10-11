@@ -64,7 +64,7 @@ export const LOOKBACK_DAYS = {
   household: 90,
   useful: 90,
   discretionary: 90,
-  /** Unknown category: only exact repeats, and only to ask, never to suggest skipping. */
+  /** Unknown category: only exact or similar-looking repeats, and only to ask, never to suggest skipping. */
   unknownExact: 90,
 } as const;
 

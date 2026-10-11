@@ -88,7 +88,7 @@ Health and nutrition information should be general and evidence-based, not a dia
 
 Worth It is an assistant, not a purchasing restriction system.
 
-Users should always be able to dismiss recommendations and continue shopping.
+Users should always be able to dismiss recommendations and continue shopping, once the animated presentation has played to the end (it cannot be skipped).
 
 The product should avoid guilt-inducing, judgmental, or overly restrictive messaging.
 
@@ -868,7 +868,7 @@ It should provide:
 3. The recap explains what Worth It noticed and why. For example, it may show the price difference for a store-brand suggestion or remind the shopper about a similar recent purchase.
 4. For a food whose label shows an approved concern (added sugar, a non-sugar sweetener, cured meat, and so on), it gives a brief, evidence-based tip with its source. Whole foods and other items with nothing flagged receive no health warning.
 5. The recap totals the potential reduction if the shopper follows its suggestions. It then shows one hypothetical investment illustration based on that combined amount, for example: “By following these suggestions, you would save $X. If you invested that $X at an assumed 10% annual return, compounded annually, it could grow to about $Y in 40 years (before inflation; returns are not guaranteed).” The shopper can turn this off in settings.
-6. The shopper may pause, replay, read captions, review supporting details, skip the recap, or continue checkout. "Continue" closes Worth It's panel; it never clicks the retailer's checkout or cart controls, so the shopper clicks Checkout again and that click goes straight through. Only real user clicks are held (never scripted ones), only once per set of findings, and only when the panel is actually able to open. After the shopper has seen and closed the panel, later checkout clicks on that page visit are not held unless a new finding appears; reloading or reopening the cart page starts a new visit, so the first click is held again. The shopper decides whether to make any changes. The recap is an animated presentation inside the checkout panel, populated with the current review's findings rather than an AI-generated video.
+6. The shopper may pause, replay, and read captions while the recap plays; it cannot be skipped, so Continue, dismiss, and the full analysis unlock only when it has finished (reduced-motion shoppers get the static view with nothing to wait for). Afterwards the shopper may review supporting details or continue checkout. "Continue" closes Worth It's panel; it never clicks the retailer's checkout or cart controls, so the shopper clicks Checkout again and that click goes straight through. Only real user clicks are held (never scripted ones), only once per set of findings, and only when the panel is actually able to open. After the shopper has seen and closed the panel, later checkout clicks on that page visit are not held unless a new finding appears; reloading or reopening the cart page starts a new visit, so the first click is held again. The shopper decides whether to make any changes. The recap is an animated presentation inside the checkout panel, populated with the current review's findings rather than an AI-generated video.
 
 ### 10.2 Purchase Insight Panel
 
@@ -919,7 +919,7 @@ The Hacklanta MVP should demonstrate the product's primary capabilities without 
 6. A single contextual clarification question when missing user context could change an assessment.
 7. At least one working, evidence-backed grocery value or nutrition insight based on actual product and label data, showing the store-brand recommendation, its actual price difference, and quantified potential savings when it costs less.
 8. A functional, evidence-backed lower-cost alternative recommendation for at least one supported product category.
-9. A short, polished animated pre-checkout recap that explains flagged items and potential cart reduction, with captions and controls to pause, replay, skip, or continue checkout.
+9. A short, polished animated pre-checkout recap that explains flagged items and potential cart reduction, with captions and controls to pause and replay; it cannot be skipped, and Continue unlocks when it ends.
 10. A clear, user-controlled checkout recommendation panel with source details and uncertainty available.
 11. One cart-level investment illustration, on by default, that states the total potential savings and what it could grow to under the stated assumptions.
 

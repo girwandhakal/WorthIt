@@ -26,14 +26,14 @@ On first install Worth It opens onboarding. Read the disclosure, turn on **Offer
 Recheck reference prices first; the amounts below use the 2026-10-09 prices in [WALMART_REFERENCE_PRODUCTS.md](WALMART_REFERENCE_PRODUCTS.md).
 
 1. **History:** import the synthetic receipts (or add the tumbler manually). Purchase history shows them labeled **Synthetic test receipt (Gmail)**.
-Open each cart and note that nothing from Worth It appears on the page. Click **Continue to checkout**: the first click is held once and the screen fills with Worth It's presentation, which plays on its own (close it with **Continue**, then click checkout again to go through). A cart with nothing to show never holds the click.
+Open each cart and note that nothing from Worth It appears on the page. Click **Continue to checkout**: the first click is held once and the screen fills with Worth It's presentation, which plays on its own and cannot be skipped: **Continue** unlocks when it ends. Then click **Continue** and click checkout again to go through. A cart with nothing to show never holds the click.
 
 2. **Normal cart:** Great Value milk (`10315798`), eggs (`145051970`), long-grain rice (`10315395`). Open the cart: only "Worth It · Reviewed 3 items". No recap.
 **Note on live numbers.** The amounts below are what the fixture pages produce, where each product page cannot be read and the reviewed reference data alone drives the result. On live walmart.com Worth It also reads each item's own product page, so label-based notes appear and some totals change: for example Diet Coke lists aspartame, so it gets the sweetener note (full price counted, no store-brand swap) instead of the $1.81 swap, and any reviewed item whose live label shows another approved concern is flagged. Recheck the totals against what the panel shows rather than the figures here.
 
 3. **Mixed cart:** Horizon milk (`10309701`), Kraft cheddar (`47088920`), Bounty Essentials (`5308263928`), Diet Coke (`15610624`), Stanley tumbler (`18256507800`), Squishmallows 5" (`17741466139`), Skittles (`656700117`). The recap opens: "Before you check out, 3 things are worth a second thought." → the three biggest savings, in order: tumbler (bought 20 days ago, $24.97, with a question) → Skittles (added-sugar note, $4.97) → plush ($3.97) → "You also had 3 other items you could reconsider or swap for a different one, worth about $4.81 more." → "…you would save $38.72… about $1,752.44 in 40 years…".
 4. **Clarification:** answer **Replacing a worn one**. The tumbler now suggests Ozark Trail ($12.00 less); the total becomes $25.75 → about $1,165.43.
-5. **Control:** Pause, Replay, Skip recap, open **See full analysis** and **Back to highlights**, then **Continue**. The panel closes, the Walmart cart is unchanged, and checkout works normally.
+5. **Control:** Pause and Replay (there is no skip; Continue and **See full analysis** stay disabled until the presentation ends), then open **See full analysis** and **Back to highlights**, then **Continue**. The panel closes, the Walmart cart is unchanged, and checkout works normally.
 6. **Purchase recording:** open Walmart's purchase history (`/orders`), choose **Record these purchases**, review, and save. They appear as **Recorded from order page**.
 
 ## 4. Verification record
@@ -67,6 +67,6 @@ Open each cart and note that nothing from Worth It appears on the page. Click **
 - Amazon has no product-page reader, so Amazon food items are not label-checked yet.
 - Product pages are re-read each time the cart page loads (cached only while the page stays open).
 - Reference prices and label facts must be rechecked before the walkthrough; store-brand savings are estimates from last-checked prices.
-- Similar-item matching covers reviewed item types and a few keyword groups (tumblers, plush, LED strip lights, t-shirts).
+- Similar-item matching for reviewed products uses their item type and a few keyword groups (tumblers, plush, LED strip lights, t-shirts). For any other item, Worth It compares the cart item's name (plus its own Walmart category, when the page was read) with past purchases using on-device cosine similarity over the words, ignoring sizes, units, and colors. It only ever asks "you bought something similar N days ago; replacement, extra, or different?", never suggests skipping, and is a heuristic: unrelated products with overlapping words can occasionally be asked about, and similar products with no shared words are missed. No data leaves the browser.
 - The OpenAI key lives in the browser for this single-user build; a public release needs a server-side proxy ([#11](https://github.com/girwandhakal/WorthIt/issues/11)).
 - Amazon carts are reviewed through their own adapter, but no Amazon products are in the reviewed reference data yet, so Amazon reviews cover readability, history repeats, and unread rows only ([AMAZON.md](AMAZON.md)).

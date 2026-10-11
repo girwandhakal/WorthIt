@@ -35,6 +35,31 @@ describe('scripts/synthetic-receipts.mjs', () => {
     expect(emails.every((email) => email.subject.startsWith('[Worth It Test Receipt] Walmart order WI-TEST-'))).toBe(true);
   });
 
+  it('with --to prints one Gmail compose link per receipt that carries the same subject and body', () => {
+    const linked = execFileSync(process.execPath, ['scripts/synthetic-receipts.mjs', '--to', 'me@example.com'], { encoding: 'utf8' });
+    const urls = linked.split('\n').filter((line) => line.startsWith('https://mail.google.com/mail/?'));
+    expect(urls).toHaveLength(5);
+    urls.forEach((line, index) => {
+      const params = new URL(line).searchParams;
+      expect(params.get('to')).toBe('me@example.com');
+      expect(params.get('su')).toBe(emails[index]!.subject);
+      expect(params.get('body')).toBe(emails[index]!.body);
+    });
+  });
+
+  it('with --only prints links just for the chosen receipts', () => {
+    const linked = execFileSync(process.execPath, ['scripts/synthetic-receipts.mjs', '--to', 'me@example.com', '--only', '2,3'], {
+      encoding: 'utf8',
+    });
+    const subjects = linked.split('\n').filter((line) => line.startsWith('[Worth It Test Receipt]'));
+    expect(subjects).toEqual([emails[1]!.subject, emails[2]!.subject]);
+    expect(() => execFileSync(process.execPath, ['scripts/synthetic-receipts.mjs', '--only', '9'], { stdio: 'pipe' })).toThrow();
+  });
+
+  it('rejects --to without an address', () => {
+    expect(() => execFileSync(process.execPath, ['scripts/synthetic-receipts.mjs', '--to'], { stdio: 'pipe' })).toThrow();
+  });
+
   it('parses as sent from Gmail (HTML + hard-wrapped plain text), with the tumbler dated 20 days ago', () => {
     const outcomes = emails.map((email, index) =>
       parseGmailMessage({

@@ -500,6 +500,14 @@ select {
   transform: translateY(-1px);
 }
 
+.wi-overlay .wi-primary:disabled,
+.wi-overlay .wi-secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .wi-overlay .wi-secondary {
   padding: 11px 22px;
   border: 1px solid var(--wi-border);
