@@ -1,9 +1,10 @@
 import { CART_SNAPSHOT_VERSION, type CartItem, type CartSnapshot, type ExtractionIssue } from '../../domain/cart';
-import { findAllPricesInCents, parsePriceToCents } from '../../shared/currency';
+import { findAllPricesInCents, findPriceMentions, parsePriceToCents } from '../../shared/currency';
 import { WORTH_IT_HOST_TAG, cleanText } from '../retailer-adapter';
 import {
   BRAND_SELECTORS,
   CART_COUNT_PATTERN,
+  CURRENT_PRICE_LABEL,
   CART_HEADING_SELECTORS,
   CURRENT_QUANTITY_PATTERN,
   EXCLUDED_REGION_SELECTORS,
@@ -16,11 +17,16 @@ import {
   PRODUCT_LINK_SELECTOR,
   QUANTITY_INPUT_SELECTORS,
   QUANTITY_TEXT_SELECTORS,
+  SAVING_LABEL,
+  SAVING_TEXT,
+  STRIKE_SELECTORS,
   SUBTOTAL_SELECTORS,
   TITLE_SELECTORS,
   UNAVAILABLE_PATTERN,
   UNIT_PRICE_SELECTORS,
   UNIT_PRICE_TEXT,
+  UNIT_SUFFIX,
+  WAS_PRICE_LABEL,
   WAS_PRICE_SELECTORS,
   WAS_PRICE_TEXT,
 } from './selectors';
@@ -167,23 +173,19 @@ interface PriceReading {
 }
 
 function readPrices(line: Element, quantity: number | null): PriceReading {
-  const wasLinePriceCents = firstPrice(line, WAS_PRICE_SELECTORS);
+  let wasLinePriceCents = firstPrice(line, WAS_PRICE_SELECTORS);
   let unitPriceCents = firstPrice(line, UNIT_PRICE_SELECTORS);
   let linePriceCents = firstPrice(line, LINE_PRICE_SELECTORS);
 
   if (linePriceCents === null) {
-    // Fallback: collect price text that is neither a was/strikethrough price
-    // nor a per-unit price. Use it only when exactly one candidate remains.
-    const candidates = new Set<number>();
-    for (const text of priceTextNodes(line)) {
-      const parentText = text.parentElement?.textContent ?? '';
-      if (isInside(text, WAS_PRICE_SELECTORS) || WAS_PRICE_TEXT.test(parentText)) continue;
-      if (UNIT_PRICE_TEXT.test(parentText)) {
-        unitPriceCents ??= parsePriceToCents(text.textContent);
-        continue;
-      }
-      for (const cents of findAllPricesInCents(text.textContent ?? '')) candidates.add(cents);
-    }
+    // Fallback: read each dollar amount with the words around it, and use only the amount that is the price
+    // now. A "Was" price, a "You save" amount, a struck-through price, and a per-unit price are all set aside.
+    const mentions = priceMentions(line);
+    wasLinePriceCents ??= mentions.find((mention) => mention.role === 'was')?.cents ?? null;
+    unitPriceCents ??= mentions.find((mention) => mention.role === 'unit')?.cents ?? null;
+    // An amount the page labels "current price" beats any unlabeled one.
+    const labeled = new Set(mentions.filter((mention) => mention.role === 'current').map((mention) => mention.cents));
+    const candidates = labeled.size > 0 ? labeled : new Set(mentions.filter((mention) => mention.role === 'plain').map((mention) => mention.cents));
     if (candidates.size === 1) {
       linePriceCents = [...candidates][0] ?? null;
     } else if (candidates.size > 1) {
@@ -207,6 +209,73 @@ function readPrices(line: Element, quantity: number | null): PriceReading {
     };
   }
   return { linePriceCents: null, unitPriceCents, wasLinePriceCents, source: 'unknown', issue: 'missing_price' };
+}
+
+type PriceRole = 'current' | 'was' | 'saving' | 'unit' | 'plain';
+
+/** Every dollar amount in the line, each with what it is according to its label, markup, and surroundings. */
+function priceMentions(line: Element): Array<{ cents: number; role: PriceRole }> {
+  const mentions: Array<{ cents: number; role: PriceRole }> = [];
+  for (const node of priceTextNodes(line)) {
+    const text = node.textContent ?? '';
+    let previousEnd = 0;
+    for (const { cents, start, end } of findPriceMentions(text)) {
+      mentions.push({ cents, role: roleOfAmount(node, text.slice(previousEnd, start), text.slice(end)) });
+      previousEnd = end;
+    }
+  }
+  return mentions;
+}
+
+/** `before` and `after` are the words next to the amount inside its own text node. */
+function roleOfAmount(node: Text, before: string, after: string): PriceRole {
+  // The words right before it name it ("Current price", "Was", "You save").
+  if (CURRENT_PRICE_LABEL.test(before)) return 'current';
+  if (WAS_PRICE_LABEL.test(before)) return 'was';
+  if (SAVING_LABEL.test(before)) return 'saving';
+  const parent = node.parentElement;
+  const parentText = parent?.textContent ?? '';
+  if (UNIT_SUFFIX.test(after) || UNIT_PRICE_TEXT.test(parentText)) return 'unit';
+  // Old prices: <s>, <del>, a "strike" class, or text drawn with a line through it.
+  if (parent && (isStruck(parent) || isInside(node, WAS_PRICE_SELECTORS))) return 'was';
+  // The nearest label on an enclosing element ("Was $4.43", "You save $0.46").
+  const label = nearestAmountLabel(parent);
+  if (label !== null) {
+    if (WAS_PRICE_TEXT.test(label)) return 'was';
+    if (SAVING_TEXT.test(label)) return 'saving';
+  }
+  if (WAS_PRICE_TEXT.test(parentText)) return 'was';
+  if (parent && isSavingContext(parent)) return 'saving';
+  return 'plain';
+}
+
+function isStruck(el: Element): boolean {
+  if (STRIKE_SELECTORS.some((selector) => el.closest(selector) !== null)) return true;
+  try {
+    return el.ownerDocument.defaultView?.getComputedStyle(el).textDecorationLine.includes('line-through') ?? false;
+  } catch {
+    return false;
+  }
+}
+
+/** The aria-label of the closest enclosing element whose label itself holds an amount (not a product-level label). */
+function nearestAmountLabel(el: Element | null): string | null {
+  for (let current = el; current; current = current.parentElement) {
+    const label = current.getAttribute('aria-label');
+    if (label && findPriceMentions(label).length > 0 && label.length <= 80) return label;
+    if (current.matches('li, [data-testid="product-tile-container"], main')) break;
+  }
+  return null;
+}
+
+/** True when the amount sits in a short block of text that says it is a saving ("You save" next to "$0.46"). */
+function isSavingContext(el: Element): boolean {
+  for (let current: Element | null = el, depth = 0; current && depth < 3; current = current.parentElement, depth++) {
+    const text = current.textContent ?? '';
+    if (text.length > 40 || new Set(findPriceMentions(text).map((mention) => mention.cents)).size > 1) return false;
+    if (SAVING_TEXT.test(text)) return true;
+  }
+  return false;
 }
 
 /** The line's product thumbnail, only from Walmart's image CDN over https. */

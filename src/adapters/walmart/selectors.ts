@@ -125,3 +125,17 @@ export const SUBTOTAL_SELECTORS = ['[data-testid="subtotal-value"]', '[data-auto
 /** Text that marks a price as a per-unit or reference price, not the line price. */
 export const UNIT_PRICE_TEXT = /\/\s*(ea|each|oz|fl oz|ct|lb|count|100)\b|¢\s*\//i;
 export const WAS_PRICE_TEXT = /\b(was|list price|reg(ular)?\.?)\b/i;
+
+/**
+ * What the words just before a dollar amount say it is. Walmart's accessible price text puts several in one
+ * sentence ("Current price $3.97, Was $4.43, You save $0.46"), so each amount is read with its own label.
+ */
+export const CURRENT_PRICE_LABEL = /\b(current price|sale price|now)\s*:?\s*$/i;
+export const WAS_PRICE_LABEL = /\b(was|list price|reg(ular)?\.?|original price)\s*:?\s*$/i;
+export const SAVING_LABEL = /\b(you save|save|savings|off|discount|rebate)\s*:?\s*$/i;
+/** Text around an amount that makes it a saving, not a price ("You save" + $0.46). */
+export const SAVING_TEXT = /\b(you save|save|savings)\b/i;
+/** What follows a per-unit price: "/oz", "/ea", "¢/oz". */
+export const UNIT_SUFFIX = /^\s*(\/\s*(ea|each|oz|fl oz|ct|lb|count|100)\b|¢)/i;
+/** Markers for struck-through (old) prices when the markup uses a class instead of <s>. */
+export const STRIKE_SELECTORS = ['.strike', '[class~="strike"]', 's', 'del', 'strike'] as const;
