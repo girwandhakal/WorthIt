@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   BLOCKED_COOLDOWN_MS,
   BlockedError,
@@ -170,5 +170,55 @@ describe('loadProductFacts', () => {
       });
       expect(spaced[2]! - spaced[0]!).toBeGreaterThanOrEqual(70);
     });
+  });
+});
+
+describe('loadProductFacts: overlapping and transient failures', () => {
+  const page = (id: string) => productPageHtml({ id, name: 'Item ' + id, path: ['Food'], ingredients: 'WATER', nutrition: null });
+
+  it('an overlapping review waits for in-flight pages instead of asking Walmart again', async () => {
+    const fetchHtml = vi.fn(async (id: string) => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      return page(id);
+    });
+    const cache = new Map<string, ProductFacts | null>();
+    const [first, second] = await Promise.all([
+      loadProductFacts(['40000001', '40000002'], { fetchHtml, cache, spacingMs: 0 }),
+      loadProductFacts(['40000001', '40000002'], { fetchHtml, cache, spacingMs: 0 }),
+    ]);
+    expect(fetchHtml).toHaveBeenCalledTimes(2);
+    expect(Object.keys(first).sort()).toEqual(['40000001', '40000002']);
+    expect(Object.keys(second).sort()).toEqual(['40000001', '40000002']);
+  });
+
+  it('retries an item after a transient error but remembers a page that does not exist', async () => {
+    const cache = new Map<string, ProductFacts | null>();
+    const fetchHtml = vi.fn(async (id: string): Promise<string | null> => {
+      if (id === '40000003') throw new Error('HTTP 503');
+      return null; // 404
+    });
+    await loadProductFacts(['40000003', '40000004'], { fetchHtml, cache, spacingMs: 0 });
+    await loadProductFacts(['40000003', '40000004'], { fetchHtml, cache, spacingMs: 0 });
+    expect(fetchHtml.mock.calls.filter(([id]) => id === '40000003')).toHaveLength(2); // transient: asked again
+    expect(fetchHtml.mock.calls.filter(([id]) => id === '40000004')).toHaveLength(1); // 404: remembered
+  });
+});
+
+describe('Walmart adapter product-page fetch', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('does not cache a 503, caches a 404, and stops at a 429', async () => {
+    const { walmartAdapter } = await import('../../src/adapters/walmart');
+    const statuses: Record<string, number> = { '50000001': 503, '50000002': 404 };
+    const fetchMock = vi.fn(async (url: string) => {
+      const id = url.split('/').pop()!;
+      return new Response('', { status: statuses[id] ?? 200 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    await walmartAdapter.loadProductFacts!(['50000001', '50000002']);
+    await walmartAdapter.loadProductFacts!(['50000001', '50000002']);
+    const calls = fetchMock.mock.calls.map(([url]) => String(url).split('/').pop());
+    expect(calls.filter((id) => id === '50000001')).toHaveLength(2);
+    expect(calls.filter((id) => id === '50000002')).toHaveLength(1);
   });
 });

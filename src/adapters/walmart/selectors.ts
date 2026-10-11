@@ -39,7 +39,7 @@ export const ORDER_EXCLUDED_REGIONS = [
 
 /** Product links look like `/ip/<slug>/<itemId>` or `/ip/<itemId>`. */
 /** Walmart's checkout control on the cart page (plus a label check in matchesCheckoutControl). */
-export const CHECKOUT_CONTROL_SELECTORS = ['[data-automation-id="checkout"]', '[data-testid="checkout-button"]'] as const;
+export const CHECKOUT_CONTROL_SELECTORS = ['[data-automation-id="checkout"]'] as const;
 
 export const ITEM_ID_FROM_URL = /\/ip\/(?:[^/?#]+\/)?(\d{5,15})(?:[/?#]|$)/;
 

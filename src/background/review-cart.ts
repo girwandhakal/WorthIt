@@ -49,7 +49,8 @@ export function reviewCart(snapshot: CartSnapshot, context: ReviewContext): Cart
     findings,
     summary: summarizeCart(assessment, findings, { investmentIllustration: context.investmentIllustration }),
     assessment,
-    autoOpen: findings.some((finding) => !context.dismissedIds.has(finding.id)),
+    // A store-brand option with no savings is only a footnote; it never warrants interrupting checkout.
+    autoOpen: findings.some((finding) => finding.kind !== 'store_brand_note' && !context.dismissedIds.has(finding.id)),
   };
 }
 

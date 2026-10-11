@@ -291,6 +291,30 @@ describe('startReviewController', () => {
       stop();
     });
 
+    it('a review that was in flight when the shopper dismissed does not re-arm the hold', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      let release!: () => void;
+      let calls = 0;
+      const send = vi.fn(async (request: ContentRequest) => {
+        if (request.type !== 'cart/review') return { ok: true };
+        const review = reviewCart(request.snapshot, reviewContext());
+        if (calls++ === 1) await new Promise<void>((resolve) => (release = resolve)); // the second review stays in flight
+        return { ok: true, review };
+      });
+      const { handlers, open, stop } = startWithPanel({ send });
+      await vi.advanceTimersByTimeAsync(50); // first review: armed
+      document.querySelector('[data-testid="line-price"]')!.textContent = '$9.00';
+      await vi.advanceTimersByTimeAsync(50); // second review now in flight
+      handlers().onDismiss(['a']); // the shopper closes the panel meanwhile
+      release();
+      await vi.advanceTimersByTimeAsync(50);
+      expect(click(checkout())).toBe(true); // not held again
+      expect(open).not.toHaveBeenCalled();
+      stop();
+    });
+
     it('does not hold a click while the panel is already open', async () => {
       vi.useFakeTimers();
       history.replaceState({}, '', '/cart');

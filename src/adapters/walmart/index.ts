@@ -25,7 +25,9 @@ export const walmartAdapter: RetailerAdapter = {
       fetchHtml: async (itemId, signal) => {
         const response = await fetch(`${WALMART_ORIGIN}/ip/${itemId}`, { credentials: 'same-origin', headers: { accept: 'text/html' }, signal });
         if ([403, 412, 429].includes(response.status)) throw new BlockedError(String(response.status));
-        return response.ok ? response.text() : null;
+        if (response.status === 404) return null; // the page really doesn't exist: remember that
+        if (!response.ok) throw new Error(`HTTP ${response.status}`); // transient: leave it uncached so a later review retries
+        return response.text();
       },
     }),
 };

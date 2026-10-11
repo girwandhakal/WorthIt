@@ -53,6 +53,8 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
    * this goes false so the next click goes straight through.
    */
   let armed = false;
+  /** Counts dismissals, so a review that was already in flight when one happened can't re-arm the hold. */
+  let dismissals = 0;
   /** The mounted panel, once it exists. A click is held only when this can open. */
   let mounted: PanelHandle | null = null;
 
@@ -60,6 +62,7 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
   const handlers: PanelHandlers = {
     onDismiss: (ids) => {
       armed = false; // the shopper has seen it and closed it
+      dismissals += 1;
       deps.diagnose?.({ checkout: 'closed-by-shopper' });
       void deps.send({ type: 'panel/dismiss', findingIds: ids }).catch(ignore);
     },
@@ -152,6 +155,7 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
       readableItems: snapshot.items.filter(isFullyReadable).length, displayedItems: snapshot.displayedItemCount ?? null,
     });
     const requestId = ++latestRequest;
+    const dismissalsAtStart = dismissals;
     // Read each item's own product page (ingredients, Nutrition Facts, category). Never fatal.
     const itemIds = snapshot.items.flatMap((item) => (item.retailerItemId ? [item.retailerItemId] : []));
     const facts = deps.adapter.loadProductFacts && itemIds.length > 0 ? await deps.adapter.loadProductFacts(itemIds).catch(() => ({})) : {};
@@ -175,7 +179,8 @@ export function startReviewController(deps: ReviewControllerDeps): () => void {
     const handle = await panel;
     if (myGeneration !== generation || !handle) return;
     handle.show(response.review);
-    armed = response.review.autoOpen; // something un-dismissed to show: hold the first checkout click
+    // Something un-dismissed to show: hold the first checkout click (unless they dismissed while this was in flight).
+    armed = response.review.autoOpen && dismissals === dismissalsAtStart;
     deps.diagnose?.({ checkout: armed ? 'armed' : 'nothing-to-show' });
     deps.diagnose?.({ review: 'delivered', error: 'none' });
   };

@@ -204,3 +204,16 @@ describe('reviewed items whose product page is also read', () => {
     expect(result.findings.map((finding) => finding.kind)).toEqual(['cheaper_alternative']);
   });
 });
+
+describe('what is worth interrupting checkout for', () => {
+  it('a lone store-brand note with no savings never arms the checkout hold', () => {
+    const result = reviewCart(snapshot([line('5308263928')]), reviewContext());
+    expect(result.findings.map((finding) => finding.kind)).toEqual(['store_brand_note']);
+    expect(result.summary.highlights).toEqual([]);
+    expect(result.autoOpen).toBe(false);
+  });
+
+  it('something the shopper could act on does arm it', () => {
+    expect(reviewCart(snapshot([line('656700117')]), reviewContext()).autoOpen).toBe(true);
+  });
+});

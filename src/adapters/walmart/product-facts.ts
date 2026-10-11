@@ -125,6 +125,9 @@ export interface LoadFactsOptions {
   now?: () => number;
 }
 
+/** Fetches in progress, per cache, so an overlapping review waits for them instead of asking Walmart again. */
+const inFlight = new WeakMap<Map<string, ProductFacts | null>, Map<string, Promise<void>>>();
+
 /**
  * Loads facts for the given item IDs. Never throws and never blocks the review
  * for long: an item that is slow, blocked, or unreadable is simply absent from
@@ -139,8 +142,32 @@ export async function loadProductFacts(itemIds: readonly string[], options: Load
   const cooling = breaker.trippedAt !== null && now() - breaker.trippedAt < BLOCKED_COOLDOWN_MS;
   if (!cooling) breaker.trippedAt = null; // cooldown over (or never tripped): ask again
   const pending = cooling ? [] : wanted.filter((id) => !cache.has(id)).slice(0, MAX_PAGES_PER_REVIEW);
+  const flights = inFlight.get(cache) ?? new Map<string, Promise<void>>();
+  inFlight.set(cache, flights);
   const overall = new AbortController();
   const deadline = setTimeout(() => overall.abort(), options.totalTimeoutMs ?? 15_000);
+
+  const fetchOne = async (id: string): Promise<void> => {
+    const controller = new AbortController();
+    const stop = () => controller.abort();
+    overall.signal.addEventListener('abort', stop, { once: true });
+    const timer = setTimeout(stop, options.pageTimeoutMs ?? 8_000);
+    try {
+      const html = await options.fetchHtml(id, controller.signal);
+      const facts = html === null ? null : parseProductPage(html, id);
+      if (html !== null && facts === null && BOT_CHECK.test(html.slice(0, 4000))) {
+        breaker.trippedAt = now();
+      } else {
+        cache.set(id, facts);
+      }
+    } catch (error) {
+      // Blocked: stop everywhere. Timed out or offline: leave it uncached so a later review can retry.
+      if (error instanceof BlockedError) breaker.trippedAt = now();
+    } finally {
+      clearTimeout(timer);
+      overall.signal.removeEventListener('abort', stop);
+    }
+  };
 
   let next = 0;
   const worker = async () => {
@@ -150,25 +177,14 @@ export async function loadProductFacts(itemIds: readonly string[], options: Load
       first = false;
       if (overall.signal.aborted || breaker.trippedAt !== null) break;
       const id = pending[next++]!;
-      const controller = new AbortController();
-      const stop = () => controller.abort();
-      overall.signal.addEventListener('abort', stop, { once: true });
-      const timer = setTimeout(stop, options.pageTimeoutMs ?? 8_000);
-      try {
-        const html = await options.fetchHtml(id, controller.signal);
-        const facts = html === null ? null : parseProductPage(html, id);
-        if (html !== null && facts === null && BOT_CHECK.test(html.slice(0, 4000))) {
-          breaker.trippedAt = now();
-        } else {
-          cache.set(id, facts);
-        }
-      } catch (error) {
-        // Blocked: stop everywhere. Timed out or offline: leave it uncached so a later review can retry.
-        if (error instanceof BlockedError) breaker.trippedAt = now();
-      } finally {
-        clearTimeout(timer);
-        overall.signal.removeEventListener('abort', stop);
+      const running = flights.get(id);
+      if (running) {
+        await running; // another review is already fetching this item
+        continue;
       }
+      const flight = fetchOne(id);
+      flights.set(id, flight);
+      await flight.finally(() => flights.delete(id));
     }
   };
   await Promise.all(Array.from({ length: Math.min(options.concurrency ?? 2, pending.length) }, worker));

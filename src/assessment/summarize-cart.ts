@@ -62,7 +62,7 @@ export function summarizeCart(
 /** The other items worth reconsidering, and what they add to the cart's potential reduction. */
 function restTotals(rest: readonly ReviewFinding[]): { itemCount: number; amountCents: number } {
   const items = rest.filter(isHighlightable);
-  return { itemCount: items.length, amountCents: items.reduce((sum, finding) => sum + (finding.amountCents ?? 0), 0) };
+  return { itemCount: new Set(items.map((finding) => finding.itemKey)).size, amountCents: items.reduce((sum, finding) => sum + (finding.amountCents ?? 0), 0) };
 }
 
 /**
