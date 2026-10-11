@@ -42,7 +42,7 @@ export const DIETARY_LABELS: Record<DietaryPreference, string> = {
 
 export const preferencesSchema = z.object({
   onboardingComplete: z.boolean(),
-  /** Checkout prompts on/off. Off: only the collapsed indicator, never auto-open. */
+  /** Checkout prompts on/off. Off: nothing is shown and the checkout click is never held. */
   promptsEnabled: z.boolean(),
   /** Opt-in: read item rows on order confirmation / purchase-history pages. */
   recordPurchases: z.boolean(),

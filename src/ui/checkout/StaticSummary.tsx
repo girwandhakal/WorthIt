@@ -1,5 +1,6 @@
 import { useId, useState } from 'react';
 import type { CartReview } from '../../domain/review';
+import { Finale } from '../animation/Recap';
 import { FindingCard, type FindingHandlers } from './FindingCard';
 
 export interface StaticSummaryProps extends FindingHandlers {
@@ -12,7 +13,6 @@ export function StaticSummary({ review, onReplay, ...handlers }: StaticSummaryPr
   const { summary } = review;
   const [expanded, setExpanded] = useState(false);
   const groupId = useId();
-  const sentence = summary.investment?.sentence ?? summary.savingsSentence;
 
   if (review.findings.length === 0) {
     return (
@@ -51,16 +51,15 @@ export function StaticSummary({ review, onReplay, ...handlers }: StaticSummaryPr
           )}
         </div>
       )}
-      {sentence && <p className="wi-closing-sentence">{sentence}</p>}
+      <Finale summary={summary} captions animate={false} />
       {summary.totals.uncountedItems > 0 && (
         <p className="wi-muted">
           {summary.totals.uncountedItems} {summary.totals.uncountedItems === 1 ? 'suggestion has' : 'suggestions have'} no
           amount because a price couldn’t be read.
         </p>
       )}
-      <p className="wi-handback-line">{summary.handBack}</p>
       {onReplay && (
-        <button type="button" className="wi-link" onClick={onReplay}>
+        <button type="button" className="wi-link wi-replay" onClick={onReplay}>
           Replay recap
         </button>
       )}

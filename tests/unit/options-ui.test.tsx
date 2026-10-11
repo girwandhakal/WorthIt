@@ -171,3 +171,14 @@ describe('OpenAI key', () => {
     await waitFor(async () => expect(await getOpenAiKey(local)).toBeNull());
   });
 });
+
+describe('delete everything', () => {
+  it('also forgets the product labels saved from Walmart pages', async () => {
+    window.location.hash = '#privacy';
+    const { local, user } = await setup();
+    await local.set({ walmartProductFacts: { '90000001': { at: Date.now(), facts: {} } } });
+    await user.click(await screen.findByRole('button', { name: 'Delete all Worth It data' }));
+    await user.click(await screen.findByRole('button', { name: 'Yes, delete all Worth It data' }));
+    await waitFor(() => expect(local.data.has('walmartProductFacts')).toBe(false));
+  });
+});

@@ -33,7 +33,7 @@ To add an ASIN: open the Amazon product page, confirm it is the same brand, size
 ## Manual smoke check (read-only)
 
 1. Build and load the extension (`npm run build`, load `dist/chrome-mv3`).
-2. Add two or three items to your own Amazon cart and open the cart. Expect "Worth It · Reviewed N items" with N equal to your cart lines; open it and choose **See full analysis** to confirm names, quantities, and prices match the page.
-3. Change a quantity; the indicator and analysis update.
+2. Add two or three items to your own Amazon cart and open the cart. Nothing from Worth It appears on the page. In the console report (see the README), expect `extractedItems` equal to your cart lines; if there is something to show, click checkout, choose **See full analysis**, and confirm names, quantities, and prices match the page.
+3. Change a quantity; the review updates (open it with the checkout click to see the analysis).
 4. Proceed toward checkout: Worth It must not appear on any checkout page.
 5. With purchase recording on, open Your Orders, choose **Record these purchases**, and check the review list shows only item rows (no address or payment details).

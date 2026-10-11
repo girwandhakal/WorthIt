@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { clearStoredFacts } from '../../adapters/walmart/facts-store';
 import { clearOpenAiKey, updatePreferences, DEFAULT_PREFERENCES } from '../../storage/preferences';
 import { useServices } from './context';
 
@@ -32,6 +33,10 @@ export function PrivacySummary() {
         <ul className="wi-list">
           <li>Purchase history, clarification answers, and feedback: in this browser’s extension storage (IndexedDB).</li>
           <li>Preferences, allergies, and your OpenAI key: in <code>chrome.storage.local</code> on this device.</li>
+          <li>
+            Ingredient and nutrition labels Worth It read from Walmart product pages for items in your cart: kept on this device for a
+            day so the next visit is quicker. They are public product information and say nothing about you.
+          </li>
           <li>Nothing is synced to other devices or sent to a Worth It server (there isn’t one).</li>
           <li>Email bodies and attachments are never stored.</li>
         </ul>
@@ -58,7 +63,7 @@ export function ResetAllData() {
 
   const reset = async () => {
     const { purchases, clarifications, feedback } = await repositories();
-    await Promise.all([purchases.deleteAll(), clarifications.deleteAll(), feedback.deleteAll(), clearOpenAiKey(local)]);
+    await Promise.all([purchases.deleteAll(), clarifications.deleteAll(), feedback.deleteAll(), clearOpenAiKey(local), clearStoredFacts(local)]);
     await updatePreferences(local, { ...DEFAULT_PREFERENCES, onboardingComplete: true });
     setConfirming(false);
     setDone(true);
@@ -68,7 +73,7 @@ export function ResetAllData() {
     <div className="wi-card wi-danger-zone">
       <h3>Delete everything</h3>
       <p className="wi-hint">
-        Deletes purchase history, clarification answers, feedback, your OpenAI key, and resets preferences. Gmail access
+        Deletes purchase history, clarification answers, feedback, saved product labels, your OpenAI key, and resets preferences. Gmail access
         is managed separately under “Import from Gmail.”
       </p>
       {confirming ? (

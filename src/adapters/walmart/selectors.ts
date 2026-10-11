@@ -94,6 +94,9 @@ export const QUANTITY_TEXT_SELECTORS = [
   '[aria-label^="Quantity" i]',
 ] as const;
 
+/** Product thumbnails come from Walmart's own image CDN; anything else is ignored. */
+export const IMAGE_HOST = /(^|\.)walmartimages\.com$/i;
+
 export const PACKAGE_SIZE_SELECTORS = ['[data-testid="product-size"]', '[data-automation-id="product-variant"]'] as const;
 
 /** Lines inside these regions are not part of the active cart. */

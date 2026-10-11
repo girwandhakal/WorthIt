@@ -1,39 +1,49 @@
-import { useEffect, useState } from 'react';
-import type { CartSummary, ReviewFinding } from '../../domain/review';
+import { useEffect, useState, type CSSProperties } from 'react';
+import type { CartReview, CartSummary, ReviewFinding } from '../../domain/review';
 import { formatCents } from '../../shared/currency';
 import { FindingBody, type FindingHandlers } from '../checkout/FindingCard';
-import { SceneIcon } from './icons';
+import { Thumb } from '../checkout/Thumb';
+import { VERDICTS, amountLabel, swapTarget, toneOf } from '../checkout/verdict';
+import { AnimatedNumber } from './AnimatedNumber';
+import { GrowthChart } from './GrowthChart';
 
 /** How long each scene stays up before advancing, in milliseconds. */
-export const SCENE_MS = { opening: 2800, highlight: 6000, grouped: 4000 } as const;
+export const SCENE_MS = { opening: 3200, highlight: 6000, grouped: 4000 } as const;
+
+/** Most cart thumbnails shown in the opening scene. */
+const OPENING_THUMBS = 12;
 
 type Scene =
   | { type: 'opening' }
-  | { type: 'highlight'; finding: ReviewFinding }
+  | { type: 'highlight'; finding: ReviewFinding; number: number }
   | { type: 'grouped' }
   | { type: 'closing' };
 
 export function scenesFor(summary: CartSummary): Scene[] {
   return [
     { type: 'opening' },
-    ...summary.highlights.map((finding) => ({ type: 'highlight' as const, finding })),
+    ...summary.highlights.map((finding, index) => ({ type: 'highlight' as const, finding, number: index + 1 })),
     ...(summary.grouped ? [{ type: 'grouped' as const }] : []),
     { type: 'closing' },
   ];
 }
 
 export interface RecapProps extends FindingHandlers {
-  summary: CartSummary;
+  review: CartReview;
   /** Switches to the equivalent static view. */
   onSkip: () => void;
+  /** Called with true once the closing scene is up. */
+  onEnded?: (ended: boolean) => void;
 }
 
 /**
- * The animated pre-checkout recap: a short sequence of scenes built from the
- * deterministic summary (no generated video). Pausable, replayable, skippable,
- * with captions and a live region so it reads the same without animation.
+ * The full-screen pre-checkout presentation: a short sequence of scenes built
+ * from the deterministic summary (no generated video). It plays on its own and
+ * is pausable, replayable, and skippable, with captions and a live region so it
+ * reads the same without animation.
  */
-export function Recap({ summary, onSkip, onAnswer, onSkipQuestion }: RecapProps) {
+export function Recap({ review, onSkip, onEnded, onAnswer, onSkipQuestion }: RecapProps) {
+  const { summary } = review;
   const scenes = scenesFor(summary);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
@@ -42,70 +52,81 @@ export function Recap({ summary, onSkip, onAnswer, onSkipQuestion }: RecapProps)
   const atEnd = index >= scenes.length - 1;
   // A question waits for the shopper; it never advances away on its own.
   const waiting = current.type === 'highlight' && current.finding.question !== null;
+  const duration = current.type === 'opening' ? SCENE_MS.opening : current.type === 'grouped' ? SCENE_MS.grouped : SCENE_MS.highlight;
 
   useEffect(() => {
     if (!playing || atEnd || waiting) return;
-    const duration = current.type === 'opening' ? SCENE_MS.opening : current.type === 'grouped' ? SCENE_MS.grouped : SCENE_MS.highlight;
     const timer = setTimeout(() => setIndex((value) => value + 1), duration);
     return () => clearTimeout(timer);
-  }, [playing, atEnd, waiting, current, index]);
+  }, [playing, atEnd, waiting, duration, index]);
+
+  useEffect(() => onEnded?.(atEnd), [atEnd, onEnded]);
 
   const caption = captionFor(current, summary);
+  const savedSoFar = runningSavings(scenes, index, summary);
 
   return (
     <div className="wi-recap">
+      <div className="wi-story" aria-hidden="true">
+        {scenes.map((_, dot) => (
+          <span key={dot} className="wi-story-seg">
+            <span
+              key={dot === index ? `active-${index}` : 'idle'}
+              className={dot < index || (dot === index && atEnd) ? 'wi-story-fill wi-story-done' : dot === index ? 'wi-story-fill wi-story-active' : 'wi-story-fill'}
+              style={
+                {
+                  '--wi-scene-ms': `${duration}ms`,
+                  animationPlayState: playing && !waiting ? 'running' : 'paused',
+                } as CSSProperties
+              }
+            />
+          </span>
+        ))}
+      </div>
+
       <div className="wi-stage" aria-roledescription="recap scene" aria-label={`Scene ${index + 1} of ${scenes.length}`}>
-        <div className="wi-scene" key={index}>
-          <SceneIcon kind={current.type === 'highlight' ? current.finding.kind : current.type} />
-          {current.type === 'opening' && <p className="wi-scene-title">{summary.opening}</p>}
+        <div className={`wi-scene wi-scene-${current.type}`} key={index}>
+          {current.type === 'opening' && <OpeningScene review={review} />}
           {current.type === 'highlight' && (
-            <div className="wi-scene-highlight">
-              <p className="wi-scene-item">{current.finding.itemName}</p>
-              {current.finding.amountCents !== null && (
-                <span className="wi-amount-chip">{formatCents(current.finding.amountCents)}</span>
-              )}
-              <div className="wi-scene-body">
-                <FindingBody
-                  finding={current.finding}
-                  showName={false}
-                  showText={captions}
-                  onAnswer={onAnswer}
-                  onSkipQuestion={onSkipQuestion}
-                  onWhyOpened={() => setPlaying(false)}
-                />
-              </div>
-            </div>
+            <HighlightScene
+              finding={current.finding}
+              number={current.number}
+              of={summary.highlights.length}
+              captions={captions}
+              onAnswer={onAnswer}
+              onSkipQuestion={onSkipQuestion}
+              onWhyOpened={() => setPlaying(false)}
+            />
           )}
-          {current.type === 'grouped' && summary.grouped && <p className="wi-scene-title">{summary.grouped.label}</p>}
-          {current.type === 'closing' && <ClosingScene summary={summary} captions={captions} />}
+          {current.type === 'grouped' && summary.grouped && <GroupedScene summary={summary} captions={captions} />}
+          {current.type === 'closing' && <Finale summary={summary} captions={captions} animate />}
         </div>
         <p className="wi-sr-only" aria-live="polite">
           {caption}
         </p>
       </div>
 
-      <div className="wi-progress" aria-hidden="true">
-        {scenes.map((_, dot) => (
-          <span key={dot} className={dot === index ? 'wi-dot wi-dot-active' : dot < index ? 'wi-dot wi-dot-done' : 'wi-dot'} />
-        ))}
-      </div>
+      {summary.totals.combinedCents > 0 && current.type !== 'opening' && current.type !== 'closing' && (
+        <SavingsMeter scenes={scenes} index={index} summary={summary} savedCents={savedSoFar} />
+      )}
 
       <div className="wi-controls" role="toolbar" aria-label="Recap controls">
         <button type="button" className="wi-control" onClick={() => setIndex((value) => Math.max(0, value - 1))} disabled={index === 0} aria-label="Previous scene">
-          ‹
+          <ControlIcon name="prev" />
         </button>
         <button
           type="button"
-          className="wi-control"
+          className="wi-control wi-control-main"
           onClick={() => setPlaying((value) => !value)}
           disabled={atEnd}
-          aria-label={playing ? 'Pause recap' : 'Play recap'}
+          aria-label={playing && !atEnd ? 'Pause recap' : 'Play recap'}
         >
-          {playing && !atEnd ? 'Pause' : 'Play'}
+          <ControlIcon name={playing && !atEnd ? 'pause' : 'play'} />
         </button>
         <button type="button" className="wi-control" onClick={() => setIndex((value) => Math.min(scenes.length - 1, value + 1))} disabled={atEnd} aria-label="Next scene">
-          ›
+          <ControlIcon name="next" />
         </button>
+        <span className="wi-control-gap" aria-hidden="true" />
         <button
           type="button"
           className="wi-control"
@@ -115,28 +136,187 @@ export function Recap({ summary, onSkip, onAnswer, onSkipQuestion }: RecapProps)
           }}
           aria-label="Replay recap"
         >
-          Replay
+          <ControlIcon name="replay" />
         </button>
-        <button type="button" className="wi-control" aria-pressed={captions} onClick={() => setCaptions((value) => !value)}>
-          Captions
+        <button type="button" className="wi-control wi-control-text" aria-label="Captions" aria-pressed={captions} onClick={() => setCaptions((value) => !value)}>
+          CC
         </button>
-        <button type="button" className="wi-control wi-control-skip" onClick={onSkip}>
-          Skip recap
+        <button type="button" className="wi-control wi-control-text" aria-label="Skip recap" onClick={onSkip}>
+          Skip
         </button>
       </div>
     </div>
   );
 }
 
-function ClosingScene({ summary, captions }: { summary: CartSummary; captions: boolean }) {
-  const sentence = summary.investment?.sentence ?? summary.savingsSentence;
+/** Every item in the cart flies in; the ones worth a second thought light up. */
+function OpeningScene({ review }: { review: CartReview }) {
+  const flagged = new Set(review.summary.highlights.map((finding) => finding.itemKey));
+  const kinds = new Map(review.summary.highlights.map((finding) => [finding.itemKey, finding.kind]));
+  const items = review.assessment.items.slice(0, OPENING_THUMBS);
+  const more = review.assessment.items.length - items.length;
   return (
-    <div className="wi-scene-closing">
-      {summary.totals.combinedCents > 0 && <span className="wi-amount-chip wi-amount-total">{formatCents(summary.totals.combinedCents)}</span>}
-      {captions && sentence && <p className="wi-closing-sentence">{sentence}</p>}
-      <p className="wi-handback-line">{summary.handBack}</p>
+    <div className="wi-opening">
+      <p className="wi-eyebrow">Worth It reviewed {review.itemCount} {review.itemCount === 1 ? 'item' : 'items'}</p>
+      <p className="wi-scene-title">{review.summary.opening}</p>
+      <div className="wi-constellation" aria-hidden="true">
+        {items.map((item, i) => (
+          <Thumb
+            key={item.itemKey}
+            src={item.imageUrl}
+            kind={kinds.get(item.itemKey) ?? 'opening'}
+            initial={item.itemName}
+            size="sm"
+            className={flagged.has(item.itemKey) ? `wi-star wi-star-lit wi-tone-${toneOf(kinds.get(item.itemKey)!)}` : 'wi-star wi-star-dim'}
+            style={{ '--i': i } as CSSProperties}
+          />
+        ))}
+        {more > 0 && <span className="wi-star wi-star-more">+{more}</span>}
+      </div>
     </div>
   );
+}
+
+function HighlightScene({
+  finding,
+  number,
+  of,
+  captions,
+  onWhyOpened,
+  ...handlers
+}: FindingHandlers & { finding: ReviewFinding; number: number; of: number; captions: boolean; onWhyOpened: () => void }) {
+  const tone = toneOf(finding.kind);
+  const swap = swapTarget(finding);
+  return (
+    <div className={`wi-highlight wi-tone-${tone}`}>
+      <div className="wi-highlight-visual">
+        <Thumb src={finding.imageUrl} kind={finding.kind} size="lg" className="wi-hero-thumb" />
+        {swap && (
+          <div className="wi-swap" aria-hidden="true">
+            <span className="wi-swap-arrow">→</span>
+            <span className="wi-swap-target">
+              <span className="wi-swap-badge">Store brand</span>
+              {swap}
+            </span>
+          </div>
+        )}
+      </div>
+      <div className="wi-highlight-text">
+        <p className="wi-eyebrow">
+          {number} of {of}
+        </p>
+        <span className="wi-verdict">{VERDICTS[finding.kind]}</span>
+        <p className="wi-scene-item">{finding.itemName}</p>
+        {finding.amountCents !== null && (
+          <p className="wi-amount-line">
+            <AnimatedNumber className="wi-amount-chip" cents={finding.amountCents} delayMs={350} />
+            <span className="wi-amount-label">{amountLabel(finding)}</span>
+          </p>
+        )}
+        <div className="wi-scene-body">
+          <FindingBody finding={finding} showName={false} showText={captions} onWhyOpened={onWhyOpened} {...handlers} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GroupedScene({ summary, captions }: { summary: CartSummary; captions: boolean }) {
+  const grouped = summary.grouped!;
+  const thumbs = [...new Map(grouped.findings.map((finding) => [finding.itemKey, finding])).values()].slice(0, 8);
+  return (
+    <div className="wi-grouped-scene">
+      <div className="wi-grouped-thumbs" aria-hidden="true">
+        {thumbs.map((finding, i) => (
+          <Thumb
+            key={finding.itemKey}
+            src={finding.imageUrl}
+            kind={finding.kind}
+            initial={finding.itemName}
+            size="sm"
+            className="wi-star wi-star-lit wi-tone-muted"
+            style={{ '--i': i } as CSSProperties}
+          />
+        ))}
+      </div>
+      {grouped.itemCount > 0 ? (
+        <p className="wi-grouped-big">
+          +{grouped.itemCount} more
+          {grouped.amountCents > 0 && (
+            <>
+              {' · '}
+              <AnimatedNumber cents={grouped.amountCents} delayMs={300} />
+            </>
+          )}
+        </p>
+      ) : (
+        <p className="wi-grouped-big">A few notes</p>
+      )}
+      {captions && <p className="wi-scene-caption">{grouped.label}</p>}
+    </div>
+  );
+}
+
+/**
+ * The closing scene (and the end of the static view): the cart's potential
+ * savings, then the one investment illustration, then the hand-back.
+ */
+export function Finale({ summary, captions, animate }: { summary: CartSummary; captions: boolean; animate: boolean }) {
+  const total = summary.totals.combinedCents;
+  const sentence = summary.investment?.sentence ?? summary.savingsSentence;
+  return (
+    <div className={`wi-finale ${summary.investment ? 'wi-finale-split' : ''}`}>
+      <div className="wi-finale-text">
+        {total > 0 && (
+          <div className="wi-finale-save">
+            <span className="wi-eyebrow">Follow this advice and keep</span>
+            <AnimatedNumber className="wi-amount-chip wi-amount-total" cents={total} durationMs={1100} animate={animate} />
+          </div>
+        )}
+        {captions && sentence && <p className="wi-closing-sentence">{sentence}</p>}
+        <p className="wi-handback-line">{summary.handBack}</p>
+      </div>
+      {summary.investment && <GrowthChart investment={summary.investment} animate={animate} delayMs={animate ? 1300 : 0} />}
+    </div>
+  );
+}
+
+/** A thin track that fills, one segment per highlight, as the savings add up. */
+function SavingsMeter({ scenes, index, summary, savedCents }: { scenes: Scene[]; index: number; summary: CartSummary; savedCents: number }) {
+  const total = summary.totals.combinedCents;
+  const segments = scenes.flatMap((scene, at) => {
+    const cents = sceneAmount(scene, summary);
+    return cents > 0 ? [{ at, cents, tone: scene.type === 'highlight' ? toneOf(scene.finding.kind) : 'muted' }] : [];
+  });
+  return (
+    <div className="wi-meter" aria-hidden="true">
+      <div className="wi-meter-label">
+        <span>Potential savings</span>
+        <strong>
+          {formatCents(savedCents)} <span className="wi-meter-of">of {formatCents(total)}</span>
+        </strong>
+      </div>
+      <div className="wi-meter-track">
+        {segments.map((segment) => (
+          <span
+            key={segment.at}
+            className={`wi-meter-seg wi-tone-${segment.tone} ${segment.at <= index ? 'wi-meter-seg-on' : ''}`}
+            style={{ flexGrow: segment.cents } as CSSProperties}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function sceneAmount(scene: Scene, summary: CartSummary): number {
+  if (scene.type === 'highlight') return scene.finding.amountCents ?? 0;
+  if (scene.type === 'grouped') return summary.grouped?.amountCents ?? 0;
+  return 0;
+}
+
+function runningSavings(scenes: Scene[], index: number, summary: CartSummary): number {
+  return scenes.slice(0, index + 1).reduce((sum, scene) => sum + sceneAmount(scene, summary), 0);
 }
 
 function captionFor(scene: Scene, summary: CartSummary): string {
@@ -150,4 +330,29 @@ function captionFor(scene: Scene, summary: CartSummary): string {
     case 'closing':
       return [summary.investment?.sentence ?? summary.savingsSentence, summary.handBack].filter(Boolean).join(' ');
   }
+}
+
+function ControlIcon({ name }: { name: 'prev' | 'next' | 'play' | 'pause' | 'replay' }) {
+  const paths = {
+    prev: <path d="M15 6l-6 6 6 6" />,
+    next: <path d="M9 6l6 6-6 6" />,
+    play: <path d="M8 5.5v13l11-6.5z" className="wi-fill" />,
+    pause: (
+      <>
+        <path d="M9 6v12" />
+        <path d="M15 6v12" />
+      </>
+    ),
+    replay: (
+      <>
+        <path d="M4 12a8 8 0 1 0 2.4-5.7" />
+        <path d="M4 4v4h4" />
+      </>
+    ),
+  };
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" className="wi-control-icon">
+      {paths[name]}
+    </svg>
+  );
 }

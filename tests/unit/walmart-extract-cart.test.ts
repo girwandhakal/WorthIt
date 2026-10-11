@@ -67,6 +67,17 @@ describe('extractWalmartCart', () => {
     });
   });
 
+  it('reads product thumbnails only from Walmart’s image CDN', () => {
+    const items = extract('cart-mixed.html').items;
+    const image = (id: string) => items.find((item) => item.retailerItemId === id)?.imageUrl;
+    expect(image('18256507800')).toBe('https://i5.walmartimages.com/seo/Stanley-Quencher-H2-0-FlowState-Tumbler-30-oz_fixture.jpeg?odnHeight=117&odnWidth=117&odnBg=FFFFFF');
+    // A lazy-loaded image: the placeholder data URI is skipped and data-src is used.
+    expect(image('656700117')).toBe('https://i5.walmartimages.com/asr/skittles-fixture.jpeg');
+    // Another host is never loaded.
+    expect(image('17741466139')).toBeNull();
+    expect(image('10309701')).toBeNull();
+  });
+
   it('records a quantity change and keeps the displayed line price', () => {
     const doc = loadRetailerDocument('walmart', 'cart-mixed.html');
     const firstLine = doc.querySelector('[data-testid="cart-line-item"]')!;

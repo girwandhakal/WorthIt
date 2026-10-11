@@ -16,7 +16,7 @@ Worth It is a pre-checkout advisor for Walmart and Amazon carts. When you open y
 - items whose labels list added sugar, with a short CDC-cited note;
 - one hypothetical illustration of what the cart's total potential savings could grow to (you can turn it off).
 
-Ordinary carts get only a small "Reviewed N items" note. Worth It never adds, removes, or replaces items, never clicks checkout, and never connects to bank or retailer accounts. Purchase history stays on your device; Gmail import is optional and read-only.
+Ordinary carts see nothing at all. Worth It never adds, removes, or replaces items, never clicks checkout, and never connects to bank or retailer accounts. Purchase history stays on your device; Gmail import is optional and read-only.
 
 ## Single purpose
 

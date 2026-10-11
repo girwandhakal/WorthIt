@@ -102,6 +102,8 @@ export interface ItemAssessment {
   itemName: string;
   position: number;
   retailerItemId: string | null;
+  /** The retailer's product thumbnail, when the cart line showed one. */
+  imageUrl: string | null;
   quantity: number | null;
   linePriceCents: number | null;
   unitPriceCents: number | null;

@@ -30,11 +30,11 @@ npm run test:e2e       # builds, then runs Playwright against local fixture page
 1. Run `npm run build`.
 2. Open `chrome://extensions` in Google Chrome and turn on **Developer mode**.
 3. Choose **Load unpacked** and select the `dist/chrome-mv3` folder.
-4. Open `https://www.walmart.com/cart` (or your Amazon cart). Worth It reviews the cart and shows a small "Reviewed N items" indicator, or opens its panel when something merits a second look.
+4. Open `https://www.walmart.com/cart` (or your Amazon cart). Worth It reviews the cart quietly; nothing appears on the page. When something merits a second look, clicking **Checkout** fills the screen with a short animated presentation (with product thumbnails and an animated savings-growth chart). Close it with **Continue**; your next checkout click goes straight through.
 
 On first install Worth It opens a short onboarding page that explains what it reads and lets you choose settings. Everything else (purchase history, Gmail import, the OpenAI key, privacy and deletion) is in the extension's settings page.
 
-### Debug a missing cart indicator
+### Debug a presentation that does not open
 
 After rebuilding, reload Worth It on `chrome://extensions` **and refresh the Walmart/Amazon tab**. Old tabs can retain scripts from the previous build and report `Extension context invalidated`. Check the original Chrome profile, not just a separate test window, and load the production `dist/chrome-mv3` folder from the checkout you rebuilt.
 
@@ -52,7 +52,7 @@ console.log(JSON.parse(document.documentElement.getAttribute('data-worth-it-debu
 - `background: "unavailable"`: messaging failed; `error: "context-invalidated"` specifically means reload the retailer tab.
 - `background: "invalid-response"`: the background returned a rejected or unrecognized response.
 - `extractedItems` smaller than `displayedItems`: the cart markup may have changed or some lines could not be read.
-- `panel: "mounted"`, `background: "ok"`, `review: "delivered"`: the controller handed a review to the UI. If the indicator is still missing, inspect layout/filtering or test other shopping/adblock extensions one at a time, refreshing between tests.
+- `panel: "mounted"`, `background: "ok"`, `review: "delivered"`: the controller handed a review to the UI. Then `checkout: "armed"` means the next checkout click opens the presentation, and `checkout: "nothing-to-show"` means there was nothing to show. If it still does not open, inspect layout/filtering or test other shopping/adblock extensions one at a time, refreshing between tests.
 
 The report is a current snapshot, not a history, and is cleared by a page reload. It is local diagnostic text; the shared page can read the status codes and aggregate item counts.
 

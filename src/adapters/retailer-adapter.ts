@@ -21,6 +21,13 @@ export interface RetailerAdapter {
    * can't read is simply left out and reported as unknown.
    */
   loadProductFacts?(itemIds: readonly string[]): Promise<ProductFactsMap>;
+  /** Loads anything saved from earlier visits (product labels) so the first review starts with it. Never throws. */
+  warmUp?(): Promise<void>;
+  /**
+   * The product facts already read, with no request. `complete` is true when nothing is left to load, so
+   * the review can start at once from the cart page and add the rest when it arrives.
+   */
+  knownProductFacts?(itemIds: readonly string[]): { facts: ProductFactsMap; complete: boolean };
   /**
    * True when the click target is the retailer's checkout control. Worth It holds that
    * first click once, when it has something to show, and never clicks anything itself.

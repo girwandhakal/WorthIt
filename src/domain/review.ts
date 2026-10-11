@@ -40,6 +40,8 @@ export interface ReviewFinding {
   position: number;
   kind: ReviewFindingKind;
   itemName: string;
+  /** The retailer's product thumbnail, when the cart line showed one. */
+  imageUrl: string | null;
   /** Short advisor text built from verified fields. */
   text: string;
   /** How `text` was built, when it may be rephrased; null for fixed wording. */

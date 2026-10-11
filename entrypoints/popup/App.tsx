@@ -18,8 +18,8 @@ export function App() {
     <main className="wi-page wi-popup">
       <h1>Worth It</h1>
       <p>
-        Open your Walmart or Amazon cart and Worth It reviews it: a small “Reviewed N items” note, or a short recap when a few items
-        deserve a second thought. It never changes your cart.
+        Open your Walmart or Amazon cart and Worth It reviews it quietly. When a few items deserve a second thought, it shows a short
+        recap when you click checkout. It never changes your cart.
       </p>
       <label className="wi-check">
         <input
@@ -29,7 +29,7 @@ export function App() {
         />
         <span>
           <strong>Checkout prompts</strong>
-          <span className="wi-hint">Off: only the small indicator, never an automatic recap.</span>
+          <span className="wi-hint">Off: Worth It never opens at checkout.</span>
         </span>
       </label>
       <div className="wi-actions">

@@ -1,6 +1,6 @@
 import type { PageSpec } from '../helpers/product-page';
 import { PAGES } from '../helpers/product-page';
-import { clickCheckout, expect, retailerClicks, retailerMarkup, serveWalmart, test } from './extension';
+import { clickCheckout, debugReport, expect, expectNothingShown, retailerClicks, retailerMarkup, serveWalmart, test, waitForArmed, waitForReview } from './extension';
 
 /**
  * The decision tree in the real extension: every cart item's own product page
@@ -22,9 +22,11 @@ test('reads product pages and shows the decision tree result: whole foods quiet,
   const page = await context.newPage();
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('https://www.walmart.com/cart');
+  // Every finding in this cart comes from a product page's label, which loads after the first pass.
+  await waitForArmed(page);
   await clickCheckout(page);
   const before = await retailerMarkup(page);
-  const panel = page.getByRole('region', { name: 'Worth It' });
+  const panel = page.getByRole('dialog', { name: 'Worth It' });
 
   await expect(panel.getByText('Before you check out, 3 things are worth a second thought.')).toBeVisible();
   const highlights = panel.getByRole('list', { name: 'Worth a second thought' }).getByRole('listitem');
@@ -71,10 +73,30 @@ test('reads product pages and shows the decision tree result: whole foods quiet,
   expect(await retailerMarkup(page)).toBe(before);
 });
 
+test('a repeat visit starts with the saved labels: no product pages are read and checkout is armed at once', async ({ context }) => {
+  const requested = await serveWalmart(context, { '/cart': 'cart-decision-tree.html' }, products);
+  const page = await context.newPage();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('https://www.walmart.com/cart');
+  await waitForArmed(page);
+  expect(new Set(requested).size).toBe(7);
+  const readOnFirstVisit = requested.length;
+
+  // Reloading the cart is a new page load: the labels come from this device, not from Walmart.
+  await page.reload();
+  await expect.poll(async () => (await debugReport(page)).checkout, { timeout: 2000 }).toBe('armed');
+  await page.waitForTimeout(1500);
+  expect(requested).toHaveLength(readOnFirstVisit);
+  await clickCheckout(page);
+  const panel = page.getByRole('dialog', { name: 'Worth It' });
+  await expect(panel.getByText('Before you check out, 3 things are worth a second thought.')).toBeVisible();
+});
+
 test('when product pages cannot be read, Worth It says nothing it cannot support', async ({ context }) => {
   await serveWalmart(context, { '/cart': 'cart-decision-tree.html' }, []); // every product page is a 404
   const page = await context.newPage();
   await page.goto('https://www.walmart.com/cart');
-  await expect(page.getByRole('button', { name: 'Worth It: Reviewed 7 items. Open review' })).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Worth It' })).toHaveCount(0);
+  await waitForReview(page);
+  expect(await debugReport(page)).toMatchObject({ checkout: 'nothing-to-show', extractedItems: 7 });
+  await expectNothingShown(page);
 });
