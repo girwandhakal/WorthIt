@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Walmart three-product cart fixture</title></head>
+<body>
+<!-- Synthetic cart using public reviewed product facts and the grouped list
+     structure reported on 2026-10-10. No account or tracking attributes. -->
+<main>
+  <h1>Cart (3 items)</h1>
+  <div data-testid="product-tile-container"><ul>
+    <li>
+      <a href="/ip/seort/16275314128"><div data-testid="productName">Hostess Donettes Frightfully Frosted Mini Donuts, 10 oz Bag</div></a>
+      <div><span>$2.68</span><div aria-hidden="true"><span>$</span><span>2</span><span>68</span></div></div>
+      <span data-testid="quantity-label">1</span>
+      <button class="retailer-control">Remove</button>
+    </li>
+    <li>
+      <a href="/ip/seort/43981978"><div data-testid="productName">Kraft Natural Mild Cheddar Shredded Cheese, 16 oz Bag</div></a>
+      <div><span>$5.64</span><div aria-hidden="true"><span>$</span><span>5</span><span>64</span></div></div>
+      <span data-testid="quantity-label">1</span>
+      <button class="retailer-control">Remove</button>
+    </li>
+    <li>
+      <a href="/ip/seort/10309701"><div data-testid="productName">Horizon Organic Vitamin D Whole Milk, Vitamin D Whole, 64 fl oz Carton</div></a>
+      <div><span>$5.96</span><div aria-hidden="true"><span>$</span><span>5</span><span>96</span></div></div>
+      <span data-testid="quantity-label">1</span>
+      <button class="retailer-control">Remove</button>
+    </li>
+  </ul></div>
+  <button class="retailer-control">Continue to checkout</button>
+</main>
+<script>
+  window.__retailerClicks = 0;
+  document.addEventListener('click', (event) => {
+    if (event.target.closest('.retailer-control')) window.__retailerClicks += 1;
+  }, true);
+</script>
+</body>
+</html>

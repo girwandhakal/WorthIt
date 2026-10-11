@@ -132,6 +132,24 @@ const PRODUCTS: ReferenceProduct[] = [
     ),
   },
   {
+    itemId: '43981978',
+    name: 'Kraft Natural Mild Cheddar Shredded Cheese, 16 oz Bag',
+    brand: 'Kraft',
+    storeBrand: false,
+    category: 'grocery_staple',
+    itemType: 'shredded cheese',
+    size: { amount: 16, unit: 'oz' },
+    priceCents: 564,
+    storeBrandAlternativeId: '10452370',
+    label: food(
+      NO_SUGAR,
+      ['cheddar cheese', 'modified cornstarch', 'natamycin'],
+      ['milk'],
+      CHEESE,
+    ),
+    note: 'The store brand is finely shredded; this Kraft cheese is regular shredded.',
+  },
+  {
     itemId: '10452370',
     name: 'Great Value Mild Cheddar Finely Shredded Cheese, 8 oz',
     brand: 'Great Value',
@@ -563,6 +581,17 @@ const PRODUCTS: ReferenceProduct[] = [
     priceCents: 1297,
   },
   // Unpaired walkthrough items
+  {
+    itemId: '16275314128',
+    name: 'Hostess Donettes Frightfully Frosted Mini Donuts, 10 oz Bag',
+    brand: 'Hostess',
+    storeBrand: false,
+    category: 'snack',
+    itemType: 'mini donuts',
+    size: { amount: 10, unit: 'oz' },
+    priceCents: 268,
+    label: food(17, null, null, UNKNOWN_DIET),
+  },
   {
     itemId: '17741466139',
     name: 'Squishmallows FuzzAMallow 5 in plush',

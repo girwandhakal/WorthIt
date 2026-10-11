@@ -52,6 +52,15 @@ const ICONS: Record<IconKind, ReactElement> = {
       <path d="M20 26l12 7 12-7M32 33v14" />
     </g>
   ),
+  // A leaf-and-label: ingredients and nutrition.
+  reduce_food_concern: (
+    <g {...stroke}>
+      <path d="M22 20h20v26a4 4 0 0 1-4 4H26a4 4 0 0 1-4-4z" />
+      <line x1="27" y1="28" x2="37" y2="28" />
+      <line x1="27" y1="34" x2="37" y2="34" />
+      <line x1="27" y1="40" x2="33" y2="40" />
+    </g>
+  ),
   // A price tag.
   cheaper_alternative: (
     <g {...stroke}>

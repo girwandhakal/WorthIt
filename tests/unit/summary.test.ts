@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { panelFindings } from '../../src/assessment/describe';
 import { investmentIllustration } from '../../src/assessment/investment';
-import { summarizeCart } from '../../src/assessment/summarize-cart';
+import { groupedLabel, summarizeCart } from '../../src/assessment/summarize-cart';
+import type { ReviewFinding } from '../../src/domain/review';
 import { futureValueCents, shareBps } from '../../src/shared/calculations';
 import { answer, assess, line, snapshot, tumblerReceipt, walkthroughSnapshot } from '../helpers/assessment';
 
@@ -47,8 +48,8 @@ describe('summarizeCart', () => {
   it('matches the walkthrough: three highlights, grouped swaps, $38.72 → about $1,752.44', () => {
     const summary = summaryFor();
     expect(summary.opening).toBe('Before you check out, 3 things are worth a second thought.');
-    expect(summary.highlights.map((h) => h.itemName.split(' ')[0])).toEqual(['Stanley', 'Squishmallows', 'Skittles']);
-    expect(summary.grouped?.label).toBe('Also: 3 store-brand swaps could save $4.81');
+    expect(summary.highlights.map((h) => h.itemName.split(' ')[0])).toEqual(['Stanley', 'Skittles', 'Squishmallows']);
+    expect(summary.grouped).toMatchObject({ label: 'You also had 3 other items you could reconsider or swap for a different one, worth about $4.81 more.', itemCount: 3, amountCents: 481 });
     expect(summary.grouped?.findings.map((f) => f.kind)).toEqual([
       'cheaper_alternative',
       'cheaper_alternative',
@@ -65,7 +66,7 @@ describe('summarizeCart', () => {
     const summary = summaryFor(walkthroughSnapshot(), { history: [tumblerReceipt()], clarifications: [answer('18256507800', 'replacement')] });
     expect(summary.totals.combinedCents).toBe(2575);
     expect(summary.investment?.sentence).toContain('could grow to about $1,165.43 in 40 years');
-    expect(summary.highlights.map((h) => h.itemName.split(' ')[0])).toEqual(['Squishmallows', 'Skittles', 'Stanley']);
+    expect(summary.highlights.map((h) => h.itemName.split(' ')[0])).toEqual(['Stanley', 'Skittles', 'Squishmallows']);
   });
 
   it('counts each item once even when it has two options (skip and cheaper)', () => {
@@ -99,5 +100,29 @@ describe('summarizeCart', () => {
   it('breaks ranking ties by cart order', () => {
     const cart = snapshot([line('656700117'), line('17569970321', { linePriceCents: 497 }, 1)]);
     expect(summaryFor(cart, {}).highlights.map((h) => h.position)).toEqual([0, 1]);
+  });
+});
+
+describe('groupedLabel when only notes are left', () => {
+  const note = (kind: ReviewFinding['kind']) => ({ kind }) as ReviewFinding;
+
+  it('says what the notes are instead of counting them', () => {
+    expect(groupedLabel([note('uncertain'), note('uncertain')])).toBe(
+      'Also: Worth It couldn’t read 2 things in your cart reliably, so this review may be incomplete.',
+    );
+    expect(groupedLabel([note('uncertain')])).toBe('Also: Worth It couldn’t read one thing in your cart reliably, so this review may be incomplete.');
+    expect(groupedLabel([note('store_brand_note')])).toBe('Also: 1 store-brand option with no savings.');
+    expect(groupedLabel([note('uncertain'), note('store_brand_note'), note('store_brand_note')])).toBe(
+      'Also: Worth It couldn’t read one thing in your cart reliably, so this review may be incomplete · 2 store-brand options with no savings.',
+    );
+  });
+});
+
+describe('groupedLabel counts items, not findings', () => {
+  it('an item with a cheaper option and a question is one item', () => {
+    const finding = (kind: ReviewFinding['kind'], amountCents: number | null) => ({ kind, itemKey: 'walmart:1', amountCents }) as ReviewFinding;
+    expect(groupedLabel([finding('cheaper_alternative', 150), finding('repeat_question', null)])).toBe(
+      'You also had 1 other item you could reconsider or swap for a different one, worth about $1.50 more.',
+    );
   });
 });

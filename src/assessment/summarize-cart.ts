@@ -50,7 +50,7 @@ export function summarizeCart(
   return {
     opening,
     highlights,
-    grouped: rest.length > 0 ? { label: groupedLabel(rest), findings: rest } : null,
+    grouped: rest.length > 0 ? { label: groupedLabel(rest), findings: rest, ...restTotals(rest) } : null,
     totals: { combinedCents, alternativeCents, skipCents, uncountedItems },
     savingsSentence: investment ? null : savingsOnlySentence(combinedCents),
     investment,
@@ -59,17 +59,33 @@ export function summarizeCart(
   };
 }
 
-/** e.g. "Also: 3 store-brand swaps could save $4.81" */
+/** The other items worth reconsidering, and what they add to the cart's potential reduction. */
+function restTotals(rest: readonly ReviewFinding[]): { itemCount: number; amountCents: number } {
+  const items = rest.filter(isHighlightable);
+  return { itemCount: new Set(items.map((finding) => finding.itemKey)).size, amountCents: items.reduce((sum, finding) => sum + (finding.amountCents ?? 0), 0) };
+}
+
+/**
+ * The line that rolls up everything not highlighted, e.g.
+ * "You also had 3 other items you could reconsider or swap for a different one, worth about $4.81 more."
+ * When nothing else is left, it says what the notes are (something Worth It couldn't read, or a store-brand option with no savings); the details stay in the expanded list.
+ */
 export function groupedLabel(rest: readonly ReviewFinding[]): string {
-  const swaps = rest.filter((finding) => finding.kind === 'cheaper_alternative');
-  const swapCents = swaps.reduce((sum, finding) => sum + (finding.amountCents ?? 0), 0);
-  const others = rest.filter((finding) => isHighlightable(finding) && finding.kind !== 'cheaper_alternative');
-  const notes = rest.filter((finding) => !isHighlightable(finding));
+  const { itemCount, amountCents } = restTotals(rest);
+  if (itemCount === 0) return `Also: ${noteSummary(rest)}`;
+  const items = `You also had ${itemCount} other ${itemCount === 1 ? 'item' : 'items'} you could reconsider or swap for a different one`;
+  const worth = amountCents > 0 ? `, worth about ${formatCents(amountCents)} more` : '';
+  return `${items}${worth}.`;
+}
+
+/** Says what the notes are, not just how many: unread items and store-brand options with no savings. */
+function noteSummary(rest: readonly ReviewFinding[]): string {
+  const unread = rest.filter((finding) => finding.kind === 'uncertain').length;
+  const storeBrand = rest.filter((finding) => finding.kind === 'store_brand_note').length;
   const parts: string[] = [];
-  if (swaps.length > 0) {
-    parts.push(`${swaps.length} store-brand ${swaps.length === 1 ? 'swap' : 'swaps'} could save ${formatCents(swapCents)}`);
+  if (unread > 0) {
+    parts.push(`Worth It couldn’t read ${unread === 1 ? 'one thing' : `${unread} things`} in your cart reliably, so this review may be incomplete`);
   }
-  if (others.length > 0) parts.push(`${others.length} more ${others.length === 1 ? 'item' : 'items'} to think about`);
-  if (parts.length === 0) parts.push(`${notes.length} ${notes.length === 1 ? 'note' : 'notes'}`);
-  return `Also: ${parts.join(' · ')}`;
+  if (storeBrand > 0) parts.push(`${storeBrand} store-brand ${storeBrand === 1 ? 'option' : 'options'} with no savings`);
+  return `${parts.join(' · ')}.`;
 }

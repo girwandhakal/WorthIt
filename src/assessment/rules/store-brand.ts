@@ -1,10 +1,12 @@
 import type { CartItem } from '../../domain/cart';
+import type { ProductFacts } from '../../domain/product-facts';
 import { CRITERIA_VERSION, type AlternativeInfo, type CriterionResult, type Evidence } from '../../domain/finding';
 import { formatCents } from '../../shared/currency';
 import { ALLERGEN_LABELS, type Allergen, type DietaryPreference } from '../../storage/preferences';
 import { CATEGORIES, STORE_BRAND_MIN_SAVINGS_RATIO } from '../reference/categories';
 import { PRICES_CHECKED_ON, referenceUrl, storeBrandAlternative, type ReferenceProduct } from '../reference/products';
-import { hasNoAddedSugar } from './nutrition';
+import { CONCERN_INFO, evaluateFood } from './food-quality';
+import { foodViewFor, hasNoAddedSugar } from './nutrition';
 
 export interface ShopperPreferences {
   allergens: readonly Allergen[];
@@ -21,7 +23,12 @@ const SIMILAR_INGREDIENTS_THRESHOLD = 0.8;
  * unknown amount), and flags allergy or dietary conflicts instead of
  * suggesting the product.
  */
-export function assessStoreBrand(item: CartItem, reference: ReferenceProduct | null, preferences: ShopperPreferences): CriterionResult {
+export function assessStoreBrand(
+  item: CartItem,
+  reference: ReferenceProduct | null,
+  preferences: ShopperPreferences,
+  facts: ProductFacts | null = null,
+): CriterionResult {
   const base = { criterion: 'store_brand' as const, version: CRITERIA_VERSION };
   if (!reference) {
     return { ...base, status: 'unknown', summary: 'No reviewed product data, so no store-brand comparison.', evidence: [], confidence: 'low' };
@@ -44,6 +51,34 @@ export function assessStoreBrand(item: CartItem, reference: ReferenceProduct | n
       ...base,
       status: 'no_concern',
       summary: `No store-brand switch suggested: ${alternative.name} isn’t suggested because ${reason}.`,
+      evidence: [{ label: 'Store brand', value: alternative.name, source: 'walmart_reference' }],
+      confidence: 'high',
+    };
+  }
+
+  // The same decision tree applies to the alternative: never suggest a food Worth It would flag itself.
+  const flagged = isFood
+    ? evaluateFood({ ingredients: alternative.label?.ingredients?.join(', ') ?? null, addedSugarG: null, sodiumMg: null, transFatG: null, context: alternative.name.toLowerCase() }).filter(
+        (concern) => concern.id !== 'ultra_processed',
+      )
+    : [];
+  // If the cart item itself has such a concern, an alternative whose ingredients aren't recorded can't be vouched for.
+  const ownView = isFood ? foodViewFor(reference, facts) : null;
+  const ownConcerns = ownView ? evaluateFood(ownView.inputs).filter((concern) => concern.id !== 'added_sugar' && concern.id !== 'ultra_processed') : [];
+  if (flagged.length === 0 && ownConcerns.length > 0 && alternative.label?.ingredients == null) {
+    return {
+      ...base,
+      status: 'no_concern',
+      summary: `No store-brand switch suggested: this item’s label shows ${ownConcerns.map((concern) => CONCERN_INFO[concern.id].label.toLowerCase()).join(', ')}, and ${alternative.name}’s ingredients aren’t recorded, so it can’t be checked for the same thing.`,
+      evidence: [{ label: 'Store brand', value: alternative.name, source: 'walmart_reference' }],
+      confidence: 'medium',
+    };
+  }
+  if (flagged.length > 0) {
+    return {
+      ...base,
+      status: 'no_concern',
+      summary: `No store-brand switch suggested: ${alternative.name} isn’t suggested because its ingredients include ${flagged.map((concern) => CONCERN_INFO[concern.id].label.toLowerCase()).join(', ')}.`,
       evidence: [{ label: 'Store brand', value: alternative.name, source: 'walmart_reference' }],
       confidence: 'high',
     };

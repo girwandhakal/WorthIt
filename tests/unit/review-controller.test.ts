@@ -6,6 +6,7 @@ import type { CartReview } from '../../src/domain/review';
 import type { ContentRequest } from '../../src/messaging/messages';
 import { reviewContext } from '../helpers/background';
 import { readFixture } from '../helpers/fixtures';
+import { PAGES, factsFor } from '../helpers/product-page';
 
 function loadIntoDocument(file: string) {
   const parsed = new DOMParser().parseFromString(readFixture('retailer', 'walmart', file), 'text/html');
@@ -21,7 +22,12 @@ describe('startReviewController', () => {
 
   function start(overrides: Partial<ReviewControllerDeps> = {}) {
     // jsdom's origin is localhost, so route checks use the path only.
-    const adapter = { ...walmartAdapter, isCartRoute: (url: URL) => /^\/cart\/?$/.test(url.pathname) };
+    const adapter = {
+      ...walmartAdapter,
+      isCartRoute: (url: URL) => /^\/cart\/?$/.test(url.pathname),
+      // No live product-page reads in unit tests.
+      loadProductFacts: async () => ({}),
+    };
     const shown: CartReview[] = [];
     const mounted: string[] = [];
     const sent: ContentRequest[] = [];
@@ -31,7 +37,7 @@ describe('startReviewController', () => {
     });
     const mountPanel = vi.fn(async (): Promise<PanelHandle> => {
       mounted.push('mount');
-      return { show: (review) => shown.push(review), remove: () => mounted.push('remove') };
+      return { show: (review) => shown.push(review), open: () => undefined, isOpen: () => false, remove: () => mounted.push('remove') };
     });
     const diagnose = vi.fn();
     const stop = startReviewController({ win: window, adapter, send, mountPanel, debounceMs: 10, routePollMs: 50, diagnose, ...overrides });
@@ -143,11 +149,258 @@ describe('startReviewController', () => {
     await vi.advanceTimersByTimeAsync(50);
     history.pushState({}, '', '/checkout');
     await vi.advanceTimersByTimeAsync(100);
-    resolvePanel({ show, remove });
+    resolvePanel({ show, open: vi.fn(), isOpen: () => false, remove });
     await vi.advanceTimersByTimeAsync(50);
     expect(show).not.toHaveBeenCalled();
     expect(remove).toHaveBeenCalledOnce();
     expect(diagnose).not.toHaveBeenCalledWith({ review: 'delivered', error: 'none' });
+    stop();
+  });
+
+  describe('product pages', () => {
+    const cartAdapter = (loadProductFacts: NonNullable<typeof walmartAdapter.loadProductFacts>) => ({
+      ...walmartAdapter,
+      isCartRoute: (url: URL) => /^\/cart\/?$/.test(url.pathname),
+      loadProductFacts,
+    });
+
+    it('reads the product page of every cart item and sends the facts with the review', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-normal.html');
+      const loadProductFacts = vi.fn(async (ids: readonly string[]) => ({ [ids[0]!]: factsFor({ ...PAGES.milk, id: ids[0]! }) }));
+      const { sent, stop } = start({ adapter: cartAdapter(loadProductFacts) });
+      await vi.advanceTimersByTimeAsync(50);
+      expect(loadProductFacts).toHaveBeenCalledWith(['10315798', '145051970', '10315395']);
+      const request = sent[0]!;
+      expect(request.type).toBe('cart/review');
+      expect(request.type === 'cart/review' && Object.keys(request.facts ?? {})).toEqual(['10315798']);
+      stop();
+    });
+
+    it('still reviews the cart, without facts, when product pages cannot be read', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-normal.html');
+      const { sent, shown, stop } = start({ adapter: cartAdapter(async () => Promise.reject(new Error('blocked'))) });
+      await vi.advanceTimersByTimeAsync(50);
+      expect(sent).toHaveLength(1);
+      expect(sent[0]).not.toHaveProperty('facts');
+      expect(shown).toHaveLength(1);
+      stop();
+    });
+
+    it('drops a slow, older review when a newer cart read has replaced it', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-normal.html');
+      let release!: () => void;
+      let calls = 0;
+      const loadProductFacts = vi.fn(async () => {
+        if (calls++ === 0) await new Promise<void>((resolve) => { release = resolve; });
+        return {};
+      });
+      const { sent, shown, stop } = start({ adapter: cartAdapter(loadProductFacts) });
+      await vi.advanceTimersByTimeAsync(50);
+      document.querySelector('[data-testid="line-price"]')!.textContent = '$9.00';
+      await vi.advanceTimersByTimeAsync(50);
+      expect(sent).toHaveLength(1); // the newer read finished first
+      release();
+      await vi.advanceTimersByTimeAsync(50);
+      expect(sent).toHaveLength(1); // the older one never sends
+      expect(shown).toHaveLength(1);
+      stop();
+    });
+  });
+
+  describe('holding the first checkout click', () => {
+    /** Clicks like a shopper would; returns true when the page's own handlers would still run. */
+    const click = (element: Element) => element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    const checkout = () => document.getElementById('checkout')!;
+
+    function startWithPanel(overrides: Partial<ReviewControllerDeps> = {}) {
+      const open = vi.fn();
+      let isOpen = false;
+      let handlers!: Parameters<ReviewControllerDeps['mountPanel']>[0];
+      const pageClicks = vi.fn();
+      document.addEventListener('click', pageClicks); // stands in for the retailer's own handler
+      const mountPanel = vi.fn(async (given: typeof handlers): Promise<PanelHandle> => {
+        handlers = given;
+        return { show: () => undefined, open: () => ((isOpen = true), open()), isOpen: () => isOpen, remove: () => undefined };
+      });
+      const started = start({ mountPanel, trustedClicksOnly: false, ...overrides });
+      return { ...started, open, pageClicks, handlers: () => handlers, setOpen: (value: boolean) => (isOpen = value) };
+    }
+
+    it('holds the first click once, opens the panel, and lets the next click through', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      const { open, pageClicks, stop, diagnose } = startWithPanel();
+      await vi.advanceTimersByTimeAsync(50);
+      expect(diagnose).toHaveBeenCalledWith({ checkout: 'armed' });
+
+      expect(click(checkout())).toBe(false); // held: default prevented
+      expect(diagnose).toHaveBeenLastCalledWith({ checkout: 'held' });
+      expect(open).toHaveBeenCalledTimes(1);
+      expect(pageClicks).not.toHaveBeenCalled(); // the page never saw it
+
+      expect(click(checkout())).toBe(true); // the shopper's second click goes through
+      expect(diagnose).toHaveBeenLastCalledWith({ checkout: 'passed-through-not-armed' });
+      expect(open).toHaveBeenCalledTimes(1);
+      expect(pageClicks).toHaveBeenCalledTimes(1);
+      stop();
+    });
+
+    it('never holds anything when there is nothing to show', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-normal.html');
+      const { open, stop, diagnose } = startWithPanel();
+      await vi.advanceTimersByTimeAsync(50);
+      expect(diagnose).toHaveBeenCalledWith({ checkout: 'nothing-to-show' });
+      const button = document.createElement('button');
+      button.id = 'checkout';
+      button.textContent = 'Continue to checkout';
+      document.body.append(button);
+      expect(click(button)).toBe(true);
+      expect(open).not.toHaveBeenCalled();
+      stop();
+    });
+
+    it('ignores other buttons on the page', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      const { open, stop } = startWithPanel();
+      await vi.advanceTimersByTimeAsync(50);
+      expect(click(document.querySelector('button.retailer-control:not(#checkout)')!)).toBe(true);
+      expect(open).not.toHaveBeenCalled();
+      stop();
+    });
+
+    it('does not hold a click after the shopper has already seen and closed the panel', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      const { open, handlers, stop } = startWithPanel();
+      await vi.advanceTimersByTimeAsync(50);
+      handlers().onDismiss(['a']);
+      expect(click(checkout())).toBe(true);
+      expect(open).not.toHaveBeenCalled();
+      stop();
+    });
+
+    it('a review that was in flight when the shopper dismissed does not re-arm the hold', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      let release!: () => void;
+      let calls = 0;
+      const send = vi.fn(async (request: ContentRequest) => {
+        if (request.type !== 'cart/review') return { ok: true };
+        const review = reviewCart(request.snapshot, reviewContext());
+        if (calls++ === 1) await new Promise<void>((resolve) => (release = resolve)); // the second review stays in flight
+        return { ok: true, review };
+      });
+      const { handlers, open, stop } = startWithPanel({ send });
+      await vi.advanceTimersByTimeAsync(50); // first review: armed
+      document.querySelector('[data-testid="line-price"]')!.textContent = '$9.00';
+      await vi.advanceTimersByTimeAsync(50); // second review now in flight
+      handlers().onDismiss(['a']); // the shopper closes the panel meanwhile
+      release();
+      await vi.advanceTimersByTimeAsync(50);
+      expect(click(checkout())).toBe(true); // not held again
+      expect(open).not.toHaveBeenCalled();
+      stop();
+    });
+
+    it('does not hold a click while the panel is already open', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      const { open, setOpen, stop } = startWithPanel();
+      await vi.advanceTimersByTimeAsync(50);
+      setOpen(true);
+      expect(click(checkout())).toBe(true);
+      expect(open).not.toHaveBeenCalled();
+      stop();
+    });
+
+    it('never holds a click it cannot show a panel for', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      const { stop } = startWithPanel({ mountPanel: () => Promise.reject(new Error('no UI')) });
+      await vi.advanceTimersByTimeAsync(50);
+      expect(click(checkout())).toBe(true);
+      stop();
+    });
+
+    it('ignores scripted clicks (only real user clicks are held)', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      const { open, stop, diagnose } = startWithPanel({ trustedClicksOnly: true });
+      await vi.advanceTimersByTimeAsync(50);
+      expect(click(checkout())).toBe(true); // jsdom events are never trusted
+      expect(diagnose).toHaveBeenLastCalledWith({ checkout: 'passed-through-scripted-click' });
+      expect(open).not.toHaveBeenCalled();
+      stop();
+    });
+
+    it('stops listening once the shopper leaves the cart', async () => {
+      vi.useFakeTimers();
+      history.replaceState({}, '', '/cart');
+      loadIntoDocument('cart-mixed.html');
+      const { open, stop } = startWithPanel();
+      await vi.advanceTimersByTimeAsync(50);
+      history.pushState({}, '', '/checkout');
+      await vi.advanceTimersByTimeAsync(100);
+      expect(click(checkout())).toBe(true);
+      expect(open).not.toHaveBeenCalled();
+      stop();
+    });
+  });
+
+  it('marks only the first review of each visit to the cart page as fresh', async () => {
+    vi.useFakeTimers();
+    history.replaceState({}, '', '/cart');
+    loadIntoDocument('cart-normal.html');
+    const { sent, stop } = start();
+    await vi.advanceTimersByTimeAsync(50);
+    expect(sent[0]).toMatchObject({ type: 'cart/review', fresh: true });
+
+    document.querySelector('[data-testid="line-price"]')!.textContent = '$9.00';
+    await vi.advanceTimersByTimeAsync(50);
+    expect(sent).toHaveLength(2);
+    expect(sent[1]).not.toHaveProperty('fresh');
+
+    // Leaving the cart and coming back is a new visit.
+    history.pushState({}, '', '/checkout');
+    await vi.advanceTimersByTimeAsync(100);
+    history.pushState({}, '', '/cart');
+    await vi.advanceTimersByTimeAsync(100);
+    expect(sent.at(-1)).toMatchObject({ fresh: true });
+    stop();
+  });
+
+  it('keeps asking for a fresh start until a review actually comes back', async () => {
+    vi.useFakeTimers();
+    history.replaceState({}, '', '/cart');
+    loadIntoDocument('cart-normal.html');
+    let attempts = 0;
+    const sent: ContentRequest[] = [];
+    const send = vi.fn(async (request: ContentRequest) => {
+      sent.push(request);
+      if (attempts++ === 0) throw new Error('background asleep');
+      return request.type === 'cart/review' ? { ok: true, review: reviewCart(request.snapshot, reviewContext()) } : { ok: true };
+    });
+    const { stop } = start({ send });
+    await vi.advanceTimersByTimeAsync(50);
+    document.querySelector('[data-testid="line-price"]')!.textContent = '$9.00';
+    await vi.advanceTimersByTimeAsync(50);
+    expect(sent.map((request) => request.type === 'cart/review' && request.fresh === true)).toEqual([true, true]);
     stop();
   });
 });

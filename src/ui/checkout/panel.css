@@ -589,6 +589,13 @@ select {
   padding-left: 14px;
 }
 
+.wi-savings-list {
+  margin: 6px 0 10px;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+}
+
 .wi-full-totals dl {
   display: grid;
   gap: 2px;

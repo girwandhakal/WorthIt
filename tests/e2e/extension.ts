@@ -1,6 +1,7 @@
 import { test as base, chromium, type BrowserContext, type Page, type Worker } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { productPageHtml, type PageSpec } from '../helpers/product-page';
 
 // Built by `wxt build --mode e2e` (placeholder OAuth client; see wxt.config.ts).
 const EXTENSION_PATH = path.join(process.cwd(), 'dist', 'chrome-mv3-e2e');
@@ -45,10 +46,22 @@ export const test = base.extend<ExtensionFixtures>({
 
 export const expect = test.expect;
 
-/** Serves synthetic fixture pages for the given Walmart paths. */
-export async function serveWalmart(context: BrowserContext, pages: Record<string, string>) {
+/**
+ * Serves synthetic fixture pages for the given Walmart paths. Product pages
+ * (`/ip/<id>`) come from `products` when given; any other product page is a 404,
+ * like an unreadable page on the real site.
+ */
+export async function serveWalmart(context: BrowserContext, pages: Record<string, string>, products: readonly PageSpec[] = []) {
+  const requested: string[] = [];
   await context.route('https://www.walmart.com/**', async (route) => {
     const url = new URL(route.request().url());
+    const productId = /^\/ip\/(?:[^/]+\/)?(\d+)$/.exec(url.pathname)?.[1];
+    if (productId) {
+      requested.push(productId);
+      const spec = products.find((candidate) => candidate.id === productId);
+      if (!spec) return route.fulfill({ status: 404, body: 'Not found (fixture)' });
+      return route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: productPageHtml(spec) });
+    }
     const file = pages[url.pathname] ?? pages['*'];
     if (!file) return route.fulfill({ status: 404, body: 'Not found (fixture)' });
     return route.fulfill({
@@ -57,6 +70,16 @@ export async function serveWalmart(context: BrowserContext, pages: Record<string
       body: readFileSync(path.join(FIXTURES, 'walmart', file), 'utf8'),
     });
   });
+  return requested;
+}
+
+/**
+ * A real click on the retailer's checkout control. Worth It holds the first one, once, when it
+ * has something to show, and opens its panel; it never clicks anything itself.
+ */
+export async function clickCheckout(page: Page) {
+  await expect(page.getByRole('button', { name: /^Worth It: Reviewed/ })).toBeVisible();
+  await page.getByRole('button', { name: /^(continue to |proceed to )?check ?out/i }).first().click();
 }
 
 /** The cart page markup, excluding Worth It's own panel host. */

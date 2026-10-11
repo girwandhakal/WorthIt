@@ -3,7 +3,8 @@
  * suggested action. `{slot}` placeholders are filled from verified data in
  * code; neither these templates nor any rephrasing ever carry real values.
  *
- * Fixed texts that are never rephrased: the added-sugar note, store-brand
+ * Fixed texts that are never rephrased: the health notes (added sugar and the other
+ * label concerns, each with its source), store-brand
  * notes without savings, uncertainty notes, and the investment sentence.
  */
 
@@ -15,8 +16,8 @@ export const TEMPLATES = {
   skip_redundant_no_amount: 'You bought {what} {when}. Do you need another one?',
   skip_redundant_extra: 'You bought {what} {when} and said this one is an extra. Consider skipping it to take {amount} off your cart.',
 
-  skip_novelty: 'This is a collectible without a practical use. Consider skipping it to take {amount} off your cart.',
-  skip_novelty_no_amount: 'This is a collectible without a practical use. Consider skipping it.',
+  skip_novelty: 'This looks like a novelty item with no practical use, so it’s probably not worth it. Consider skipping it to take {amount} off your cart.',
+  skip_novelty_no_amount: 'This looks like a novelty item with no practical use, so it’s probably not worth it. Consider skipping it.',
 
   cheaper_similar: '{alternative} has similar ingredients and costs about {amount} less for the same amount. Try the store brand?',
   cheaper_different: '{alternative} has some ingredient differences but costs about {amount} less for the same amount. Try the store brand?',

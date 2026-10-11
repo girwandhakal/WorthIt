@@ -15,7 +15,7 @@ import {
   walkthroughSnapshot,
 } from '../helpers/assessment';
 
-const ALL_CRITERIA: CriterionId[] = ['readability', 'purpose', 'repeat_purchase', 'store_brand', 'added_sugar'];
+const ALL_CRITERIA: CriterionId[] = ['readability', 'purpose', 'repeat_purchase', 'store_brand', 'added_sugar', 'food_quality'];
 const totalOfPrimaries = (items: ReturnType<typeof assess>['items']) =>
   items.reduce((sum, item) => sum + (item.primary?.amountCents ?? 0), 0);
 
@@ -89,12 +89,12 @@ describe('mixed walkthrough cart (TECH_SPEC section 2)', () => {
     expect(assess(walkthroughSnapshot(), { history })).toEqual(result);
   });
 
-  it('ranks panel findings: skips, added sugar, cheaper by amount, then notes', () => {
+  it('ranks panel findings by potential savings, biggest first, then notes', () => {
     const findings = panelFindings(result, walkthroughSnapshot().items);
     expect(findings.map((f) => [f.kind, f.itemName.split(' ')[0]])).toEqual([
       ['skip_redundant', 'Stanley'],
-      ['skip_novelty', 'Squishmallows'],
       ['reduce_added_sugar', 'Skittles'],
+      ['skip_novelty', 'Squishmallows'],
       ['cheaper_alternative', 'Horizon'],
       ['cheaper_alternative', 'Diet'],
       ['cheaper_alternative', 'Kraft'],
@@ -222,6 +222,30 @@ describe('history matching', () => {
 });
 
 describe('store-brand value', () => {
+  it('recognizes the reviewed 16 oz cheese separately from the 8 oz variant', () => {
+    const cheese = assess(snapshot([line('43981978')])).items[0]!;
+    expect(cheese.purposeClass).toBe('essential_consumable');
+    expect(criterion(cheese, 'added_sugar').status).toBe('no_concern');
+    expect(cheese.primary).toMatchObject({ kind: 'cheaper_alternative', amountCents: 170 });
+    expect(cheese.primary?.alternative).toMatchObject({ itemId: '10452370', similarity: 'different_ingredients' });
+    expect(cheese.primary?.alternative?.differences).toContain('The store brand is finely shredded; this Kraft cheese is regular shredded.');
+    expect(cheese.primary?.alternative?.differences.join(' ')).toMatch(/8 oz vs 16 oz/);
+    expect(criterion(cheese, 'store_brand').evidence.map(e => e.label)).toContain('Store-brand price (last checked 2026-10-09)');
+  });
+
+  it('keeps the 16 oz cheese cart price unknown when it cannot be extracted', () => {
+    const cheese = assess(snapshot([line('43981978', { linePriceCents: null })])).items[0]!;
+    expect(cheese.purposeClass).toBe('essential_consumable');
+    expect(criterion(cheese, 'readability').status).toBe('unknown');
+    expect(criterion(cheese, 'store_brand').status).toBe('unknown');
+    expect(cheese.primary).toBeNull();
+  });
+
+  it('uses the live 16 oz cheese price rather than its published reference price', () => {
+    const cheese = assess(snapshot([line('43981978', { linePriceCents: 450 })])).items[0]!;
+    expect(cheese.primary).toMatchObject({ kind: 'cheaper_alternative', amountCents: 56 });
+  });
+
   it('coffee: unit prices within 5% are "about the same", with no savings', () => {
     const coffee = criterion(assess(snapshot([line('578550306')])).items[0]!, 'store_brand');
     expect(coffee.suggestion).toMatchObject({ kind: 'store_brand_note', amountCents: null });
@@ -293,6 +317,26 @@ describe('store-brand value', () => {
 });
 
 describe('added-sugar rule (the only health rule)', () => {
+  it('assesses all three reported cart products using their exact reviewed IDs', () => {
+    const result = assess(snapshot([line('16275314128'), line('43981978'), line('10309701')]));
+    expect(result.items.map((item) => [item.purposeClass, item.primary?.kind, item.primary?.amountCents])).toEqual([
+      ['discretionary', 'reduce_added_sugar', 268],
+      ['essential_consumable', 'cheaper_alternative', 170],
+      ['essential_consumable', 'cheaper_alternative', 199],
+    ]);
+    expect(result.readableTotalCents).toBe(1428);
+    expect(totalOfPrimaries(result.items)).toBe(637);
+    expect(criterion(result.items[0]!, 'added_sugar').summary).toBe(ADDED_SUGAR_NOTE);
+    expect(criterion(result.items[0]!, 'store_brand').status).toBe('not_applicable');
+  });
+
+  it('does not copy seasonal donut label facts to an unreviewed ID with the same title', () => {
+    const donut = assess(snapshot([line('99999999', { title: referenceProduct('16275314128')!.name })])).items[0]!;
+    expect(donut.purposeClass).toBe('unknown');
+    expect(criterion(donut, 'added_sugar').status).toBe('unknown');
+    expect(donut.primary).toBeNull();
+  });
+
   it('0 g: no note', () => {
     const dietCoke = assess(snapshot([line('15610624')])).items[0]!;
     expect(criterion(dietCoke, 'added_sugar').status).toBe('no_concern');
@@ -344,6 +388,7 @@ describe('insufficient evidence', () => {
       repeat_purchase: 'unknown',
       store_brand: 'unknown',
       added_sugar: 'unknown',
+      food_quality: 'unknown',
     });
     expect(item.primary).toBeNull();
     expect(panelFindings(assess(snapshot([line('99999999')])), [line('99999999')])).toEqual([]);

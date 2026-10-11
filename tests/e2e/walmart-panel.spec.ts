@@ -1,4 +1,4 @@
-import { expect, retailerClicks, retailerMarkup, serveWalmart, test } from './extension';
+import { clickCheckout, expect, retailerClicks, retailerMarkup, serveWalmart, test } from './extension';
 
 test.describe('Walmart cart panel', () => {
   test('a readable cart with no findings shows only the collapsed indicator', async ({ context }) => {
@@ -19,11 +19,12 @@ test.describe('Walmart cart panel', () => {
     await expect(page.getByText('Nothing here needs a second look.')).toBeVisible();
   });
 
-  test('reports unreadable items, closes on Continue, and stays closed on rerender and reload', async ({ context }) => {
+  test('holds the first checkout click, closes on Continue, then lets the next clicks through', async ({ context }) => {
     await serveWalmart(context, { '/cart': 'cart-missing-data.html' });
     const page = await context.newPage();
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('https://www.walmart.com/cart');
+    await clickCheckout(page);
     const panel = page.getByRole('region', { name: 'Worth It' });
     await expect(panel).toBeVisible();
     await panel.getByRole('button', { name: /^Also:/ }).click();
@@ -36,35 +37,55 @@ test.describe('Walmart cart panel', () => {
     await expect(page.getByRole('button', { name: /Reviewed 5 items/ })).toBeFocused();
     expect(await retailerMarkup(page)).toBe(before);
 
-    // A single-page-app rerender of the same cart does not reopen the panel.
+    // The shopper has seen it: their next click on Checkout goes straight through to Walmart.
+    await clickCheckout(page);
+    await expect(panel).toHaveCount(0);
+    expect(await retailerClicks(page)).toBe(1);
+
+    // A single-page-app rerender of the same cart does not hold the click again.
     await page.evaluate(() => {
       const main = document.querySelector('main')!;
       main.replaceWith(main.cloneNode(true));
     });
     await page.waitForTimeout(1200);
+    await clickCheckout(page);
     await expect(panel).toHaveCount(0);
+    expect(await retailerClicks(page)).toBe(2);
 
+    // Reloading the cart page is a new visit: the first click is held and the panel opens again.
     await page.reload();
-    await expect(page.getByRole('button', { name: /Reviewed 5 items/ })).toBeVisible();
-    await expect(panel).toHaveCount(0);
+    await clickCheckout(page);
+    await expect(panel).toBeVisible();
+    expect(await retailerClicks(page)).toBe(0);
+    const report = JSON.parse((await page.locator('html').getAttribute('data-worth-it-debug'))!);
+    expect(report.checkout).toBe('held');
   });
 
-  test('reopens on its own only when a new finding appears', async ({ context }) => {
+  test('holds the click again only when a new finding appears', async ({ context }) => {
     await serveWalmart(context, { '/cart': 'cart-missing-data.html' });
     const page = await context.newPage();
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('https://www.walmart.com/cart');
     const panel = page.getByRole('region', { name: 'Worth It' });
+    // Nothing pops up on its own when the cart loads.
+    await expect(page.getByRole('button', { name: /Reviewed 5 items/ })).toBeVisible();
+    await expect(panel).toHaveCount(0);
+
+    await clickCheckout(page);
+    await expect(panel).toBeVisible();
     await panel.getByRole('button', { name: 'Dismiss Worth It panel' }).click();
     await expect(panel).toHaveCount(0);
 
-    // Barilla's price becomes unreadable: a new finding.
+    // Barilla's price becomes unreadable: a new finding. The next click is held once more.
     await page.evaluate(() => {
       document.querySelector('[data-testid="line-price"]')!.textContent = 'Price unavailable';
     });
+    await page.waitForTimeout(1200);
+    await clickCheckout(page);
     await expect(panel).toBeVisible();
     await panel.getByRole('button', { name: /^Also:/ }).click();
     await expect(panel.getByText('Barilla Classic Spaghetti Pasta, 16 oz')).toBeVisible();
+    expect(await retailerClicks(page)).toBe(0); // both held clicks never reached the page
   });
 
   test('Escape closes the panel and nothing on the page is clicked', async ({ context }) => {
@@ -100,9 +121,16 @@ test.describe('Walmart cart panel', () => {
     await page.click('#go-cart');
     await expect(page).toHaveURL('https://www.walmart.com/cart');
     const panel = page.getByRole('region', { name: 'Worth It' });
+    await expect(page.getByRole('button', { name: /^Worth It: Reviewed/ })).toBeVisible();
+    await expect(panel).toHaveCount(0); // nothing on its own
+
+    // The first click on Checkout is held, and the panel opens instead.
+    await page.click('#go-checkout');
+    await expect(page).toHaveURL('https://www.walmart.com/cart');
     await expect(panel).toBeVisible();
     await expect(panel.getByText('Mystery Item').first()).toBeVisible();
 
+    // The second click goes through and the review leaves with the cart route.
     await page.click('#go-checkout');
     await expect(page.locator('worth-it-panel')).toHaveCount(0);
     await page.goBack();
@@ -114,6 +142,7 @@ test.describe('Walmart cart panel', () => {
     const page = await context.newPage();
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('https://www.walmart.com/cart');
+    await clickCheckout(page);
     const panel = page.locator('worth-it-panel').locator('.wi-panel');
     await expect(panel).toBeVisible();
     const duration = await panel.evaluate((el) => getComputedStyle(el).animationDuration);
@@ -126,6 +155,7 @@ test('a cart layout Worth It cannot read is reported, not guessed', async ({ con
   const page = await context.newPage();
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('https://www.walmart.com/cart');
+  await clickCheckout(page);
   const panel = page.getByRole('region', { name: 'Worth It' });
   await expect(panel).toBeVisible();
   await expect(panel.getByText(/Walmart shows 3 items in your cart, but Worth It couldn't read any of them/)).toBeVisible();
@@ -137,6 +167,7 @@ test('live walmart.com markup: reviews the 2 cart lines, not the recommendation 
   const page = await context.newPage();
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('https://www.walmart.com/cart');
+  await clickCheckout(page);
   const before = await retailerMarkup(page);
   const panel = page.getByRole('region', { name: 'Worth It' });
   await expect(panel).toBeVisible();
@@ -144,6 +175,54 @@ test('live walmart.com markup: reviews the 2 cart lines, not the recommendation 
   await expect(panel.getByRole('table')).toHaveCount(2);
   await expect(panel.getByText('Great Value Large White Eggs, 12 Count')).toHaveCount(0);
   await panel.getByRole('button', { name: 'Continue' }).click();
+  expect(await retailerClicks(page)).toBe(0);
+  expect(await retailerMarkup(page)).toBe(before);
+});
+
+test('grouped Walmart tile: reviews cheese and milk independently with known prices and purpose', async ({ context }) => {
+  await serveWalmart(context, { '/cart': 'cart-cheese-2026-10.html' });
+  const page = await context.newPage();
+  await page.goto('https://www.walmart.com/cart');
+  await clickCheckout(page);
+  const before = await retailerMarkup(page);
+  const panel = page.getByRole('region', { name: 'Worth It' });
+  await expect(panel).toBeVisible();
+  await panel.getByRole('button', { name: 'See full analysis' }).click();
+  await expect(panel.getByRole('table')).toHaveCount(2);
+  const cheese = panel.locator('.wi-full-item').filter({ hasText: 'Kraft Natural Mild Cheddar Shredded Cheese, 16 oz Bag' });
+  await expect(cheese.locator('.wi-full-facts').getByText('$5.64', { exact: true })).toHaveCount(2);
+  await expect(cheese.getByText('Essential (consumable)', { exact: true })).toBeVisible();
+  await expect(panel.getByRole('region', { name: 'Cart totals' }).getByText('$11.60', { exact: true })).toBeVisible();
+  await expect(panel.getByText('Unknown (a price wasn’t readable)', { exact: true })).toHaveCount(0);
+  const report = JSON.parse((await page.locator('html').getAttribute('data-worth-it-debug'))!);
+  expect(report).toMatchObject({ extractedItems: 2, readableItems: 2, displayedItems: 2, review: 'delivered' });
+  expect(await retailerClicks(page)).toBe(0);
+  expect(await retailerMarkup(page)).toBe(before);
+});
+
+test('three reviewed products: donut label finding, staple swaps, and correct source links', async ({ context }) => {
+  await serveWalmart(context, { '/cart': 'cart-three-reviewed-2026-10.html' });
+  const page = await context.newPage();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('https://www.walmart.com/cart');
+  await clickCheckout(page);
+  const before = await retailerMarkup(page);
+  const panel = page.getByRole('region', { name: 'Worth It' });
+  await panel.getByRole('button', { name: 'See full analysis' }).click();
+  await expect(panel.getByRole('table')).toHaveCount(3);
+  const donuts = panel.locator('.wi-full-item').filter({ hasText: 'Hostess Donettes Frightfully Frosted Mini Donuts' });
+  await expect(donuts.getByText('Discretionary', { exact: true })).toBeVisible();
+  await expect(donuts.getByText('Skip or reduce (added sugar): $2.68', { exact: true })).toBeVisible();
+  await expect(donuts.getByRole('link', { name: 'CDC: Get the Facts: Added Sugars' })).toHaveAttribute('href', 'https://www.cdc.gov/nutrition/php/data-research/added-sugars.html');
+  const totals = panel.getByRole('region', { name: 'Cart totals' });
+  await expect(totals.getByText('$14.28', { exact: true })).toBeVisible();
+  await expect(totals.getByText('$3.69', { exact: true })).toBeVisible();
+  await expect(totals.getByText('$2.68', { exact: true })).toBeVisible();
+  await expect(totals.getByText('$6.37', { exact: true })).toBeVisible();
+  await expect(panel.getByRole('link', { name: 'Your Walmart cart page' })).toHaveCount(2);
+  for (const link of await panel.getByRole('link', { name: 'Your Walmart cart page' }).all()) {
+    await expect(link).toHaveAttribute('href', 'https://www.walmart.com/cart');
+  }
   expect(await retailerClicks(page)).toBe(0);
   expect(await retailerMarkup(page)).toBe(before);
 });

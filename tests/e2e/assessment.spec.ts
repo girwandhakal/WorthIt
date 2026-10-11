@@ -1,5 +1,5 @@
 import type { BrowserContext, Page, Worker } from '@playwright/test';
-import { daysAgo, expect, retailerClicks, retailerMarkup, seedHistory, serveWalmart, setPreferences, storedPurchase, test } from './extension';
+import { clickCheckout, daysAgo, expect, retailerClicks, retailerMarkup, seedHistory, serveWalmart, setPreferences, storedPurchase, test } from './extension';
 
 const INVESTMENT_SENTENCE = (x: string, y: string) =>
   `By following these suggestions, you would save ${x}. If you invested that ${x} at an assumed 10% annual return, compounded annually, it could grow to about ${y} in 40 years (before inflation; returns are not guaranteed).`;
@@ -12,6 +12,7 @@ async function openMixedCart(context: BrowserContext, extensionId: string, servi
   await serveWalmart(context, { '/cart': 'cart-mixed.html' });
   const page = await context.newPage();
   await page.goto('https://www.walmart.com/cart');
+  await clickCheckout(page);
   return page;
 }
 
@@ -26,11 +27,11 @@ test('acceptance walkthrough: recap, clarification, totals, full analysis, and c
   await panel.getByRole('button', { name: 'Next scene' }).click();
   await expect(panel.locator('.wi-scene-item')).toHaveText('Stanley Quencher H2.0 FlowState Tumbler, 30 oz');
   await panel.getByRole('button', { name: 'Next scene' }).click();
-  await expect(panel.locator('.wi-scene-item')).toHaveText('Squishmallows FuzzAMallow 5 inch Plush');
-  await panel.getByRole('button', { name: 'Next scene' }).click();
   await expect(panel.locator('.wi-scene-item')).toHaveText('Skittles Original Fruity Candy, Sharing Size, 15.6 oz');
   await panel.getByRole('button', { name: 'Next scene' }).click();
-  await expect(panel.locator('.wi-scene-title')).toHaveText('Also: 3 store-brand swaps could save $4.81');
+  await expect(panel.locator('.wi-scene-item')).toHaveText('Squishmallows FuzzAMallow 5 inch Plush');
+  await panel.getByRole('button', { name: 'Next scene' }).click();
+  await expect(panel.locator('.wi-scene-title')).toHaveText('You also had 3 other items you could reconsider or swap for a different one, worth about $4.81 more.');
   await panel.getByRole('button', { name: 'Next scene' }).click();
   await expect(panel.locator('.wi-closing-sentence')).toHaveText(INVESTMENT_SENTENCE('$38.72', '$1,752.44'));
 
@@ -67,6 +68,7 @@ test('reduced motion shows the static view, and the illustration can be turned o
   const page = await context.newPage();
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('https://www.walmart.com/cart');
+  await clickCheckout(page);
   const panel = page.getByRole('region', { name: 'Worth It' });
   await expect(panel.getByRole('toolbar', { name: 'Recap controls' })).toHaveCount(0);
   await expect(panel.getByText('Before you check out, 3 things are worth a second thought.')).toBeVisible();
@@ -109,7 +111,7 @@ test('OpenAI wording (stubbed) is validated and filled with real values; nothing
   await panel.getByRole('button', { name: 'Skip recap' }).click();
   await expect(panel.getByText('You already picked up this 20 days ago. Is a second one needed? Leaving it saves $24.97.')).toBeVisible();
   // The invalid rephrasing (it added a number) falls back to the reviewed template.
-  await expect(panel.getByText('This is a collectible without a practical use. Consider skipping it to take $3.97 off your cart.')).toBeVisible();
+  await expect(panel.getByText('This looks like a novelty item with no practical use, so it’s probably not worth it. Consider skipping it to take $3.97 off your cart.')).toBeVisible();
 
   expect(bodies.length).toBeGreaterThanOrEqual(1);
   for (const forbidden of ['Stanley', 'Skittles', 'Great Value', '24.97', '18256507800', 'days ago']) {

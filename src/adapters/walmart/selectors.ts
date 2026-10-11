@@ -38,11 +38,14 @@ export const ORDER_EXCLUDED_REGIONS = [
 ] as const;
 
 /** Product links look like `/ip/<slug>/<itemId>` or `/ip/<itemId>`. */
+/** Walmart's checkout control on the cart page (plus a label check in matchesCheckoutControl). */
+export const CHECKOUT_CONTROL_SELECTORS = ['[data-automation-id="checkout"]'] as const;
+
 export const ITEM_ID_FROM_URL = /\/ip\/(?:[^/?#]+\/)?(\d{5,15})(?:[/?#]|$)/;
 
-/** Containers for one cart line, most specific first. */
+/** Known cart containers, most specific first; list groups are split into individual rows. */
 export const LINE_ITEM_SELECTORS = [
-  // Live walmart.com cart (checked 2026-10-10): each line is a product tile with a quantity stepper.
+  // Live walmart.com cart (checked 2026-10-10): the tile hook can wrap several list rows.
   '[data-testid="product-tile-container"]',
   '[data-testid="cart-line-item"]',
   '[data-testid="cartPage-lineItem"]',
@@ -51,6 +54,9 @@ export const LINE_ITEM_SELECTORS = [
 ] as const;
 
 export const PRODUCT_LINK_SELECTOR = 'a[href*="/ip/"]';
+
+/** A product-tile-container can wrap a fulfillment group's list of cart rows. */
+export const GROUPED_LINE_ROW_SELECTOR = 'li';
 
 export const TITLE_SELECTORS = [
   '[data-testid="productName"]',

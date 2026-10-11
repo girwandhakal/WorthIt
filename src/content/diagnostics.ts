@@ -11,6 +11,11 @@ export interface DiagnosticUpdate {
   panel?: 'not-requested' | 'mounting' | 'mounted' | 'failed' | 'removed';
   background?: 'not-requested' | 'pending' | 'ok' | 'invalid-response' | 'unavailable';
   review?: 'not-requested' | 'pending' | 'delivered';
+  /**
+   * What happened with the checkout click: waiting for the review, armed (the next real click is held),
+   * nothing-to-show, held, closed-by-shopper, or passed-through-<why> when a click on the checkout control was not held.
+   */
+  checkout?: 'idle' | 'waiting-for-review' | 'armed' | 'nothing-to-show' | 'held' | 'closed-by-shopper' | `passed-through-${'not-armed' | 'panel-unavailable' | 'panel-open' | 'scripted-click'}`;
   extractedItems?: number | null;
   readableItems?: number | null;
   displayedItems?: number | null;
@@ -29,7 +34,7 @@ export function createContentDiagnostics(doc: Document, merchant: Merchant, buil
   const state: Required<DiagnosticUpdate> & { schema: number; build: string; merchant: Merchant; started: boolean } = {
     schema: 1, build, merchant, started: true,
     context: 'valid', route: 'other', panel: 'not-requested', background: 'not-requested',
-    review: 'not-requested', extractedItems: null, readableItems: null, displayedItems: null, error: 'none',
+    review: 'not-requested', checkout: 'idle', extractedItems: null, readableItems: null, displayedItems: null, error: 'none',
   };
   const fields = Object.keys(state).filter((key) => !['schema', 'build', 'merchant', 'started'].includes(key));
   let previous = '';

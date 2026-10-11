@@ -96,7 +96,7 @@ describe('the OpenAI request', () => {
     expect(body).not.toContain('This has added sugar');
     expect(buildWordingRequest(summary).highlights.map((h) => [h.id, h.kind])).toEqual([
       ['h1', 'skip_redundant'],
-      ['h2', 'skip_novelty'],
+      ['h3', 'skip_novelty'],
     ]);
   });
 });

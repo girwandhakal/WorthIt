@@ -95,6 +95,16 @@ describe('handleContentMessage', () => {
     };
     expect(again.review.autoOpen).toBe(false);
 
+    // Reloading or reopening the cart page starts over: the panel is offered again at checkout.
+    const reload = (await handleContentMessage({ type: 'cart/review', snapshot, fresh: true }, sender, deps)) as {
+      review: CartReview;
+    };
+    expect(reload.review.autoOpen).toBe(true);
+    expect([...(await getDismissed(session, 7))]).toEqual([]);
+
+    // Dismiss again so the other-tab check below still proves isolation.
+    await handleContentMessage({ type: 'panel/dismiss', findingIds: ids }, sender, deps);
+
     // Another tab is unaffected.
     const otherTab = (await handleContentMessage({ type: 'cart/review', snapshot }, { ...sender, tab: { id: 8 } }, deps)) as {
       review: CartReview;

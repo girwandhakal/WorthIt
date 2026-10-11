@@ -1,5 +1,7 @@
 import { PURPOSE_CLASS_LABELS } from '../../assessment/reference/categories';
+import { referenceUrl } from '../../assessment/reference/products';
 import { SOURCES } from '../../assessment/evidence/sources';
+import { MERCHANT_LABELS, type Merchant } from '../../domain/cart';
 import { CRITERION_LABELS, type CriterionStatus, type ItemAssessment } from '../../domain/finding';
 import { PURCHASE_STATUS_LABELS } from '../../domain/history';
 import type { CartReview } from '../../domain/review';
@@ -19,6 +21,7 @@ const STATUS_LABELS: Record<CriterionStatus, string> = {
  */
 export function FullAnalysis({ review, onBack }: { review: CartReview; onBack: () => void }) {
   const { assessment, summary } = review;
+  const options = savingOptions(assessment.items);
   return (
     <div className="wi-full">
       <div className="wi-full-header">
@@ -33,9 +36,28 @@ export function FullAnalysis({ review, onBack }: { review: CartReview; onBack: (
       </p>
       <ol className="wi-full-items">
         {assessment.items.map((item) => (
-          <ItemAnalysis key={item.itemKey} item={item} />
+          <ItemAnalysis key={item.itemKey} item={item} merchant={review.merchant} />
         ))}
       </ol>
+      <section className="wi-full-savings" aria-label="Every possible saving">
+        <h4>Every possible saving</h4>
+        <p className="wi-muted">
+          All the options Worth It found, biggest first. Each item adds only one to the cart total (marked “counted”); the others are alternatives to the same item, so
+          they are shown but never added together.
+        </p>
+        {options.length === 0 ? (
+          <p>No savings were found for this cart.</p>
+        ) : (
+          <ol className="wi-savings-list">
+            {options.map((option) => (
+              <li key={`${option.itemKey}:${option.kind}`}>
+                <strong>{option.itemName}</strong>: {suggestionLabel(option.kind)}, {formatCents(option.amountCents)}{' '}
+                <span className="wi-muted">({option.counted ? 'counted in the total' : 'alternative, not added to the total'})</span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
       <section className="wi-full-totals" aria-label="Cart totals">
         <h4>Cart totals (potential, not realized)</h4>
         <dl>
@@ -60,9 +82,12 @@ export function FullAnalysis({ review, onBack }: { review: CartReview; onBack: (
   );
 }
 
-function ItemAnalysis({ item }: { item: ItemAssessment }) {
+function ItemAnalysis({ item, merchant }: { item: ItemAssessment; merchant: Merchant }) {
   const storeBrand = item.criteria.find((criterion) => criterion.criterion === 'store_brand');
   const alternative = [item.primary, ...item.secondary].find((suggestion) => suggestion?.alternative)?.alternative;
+  const cartUrl = merchant === 'walmart' ? 'https://www.walmart.com/cart' : 'https://www.amazon.com/gp/cart/view.html';
+  const productUrl = item.referenceId ? referenceUrl(item.referenceId) : undefined;
+  const ownPageUrl = merchant === 'walmart' && item.retailerItemId ? `https://www.walmart.com/ip/${item.retailerItemId}` : undefined;
   return (
     <li className="wi-full-item">
       <h4>{item.itemName}</h4>
@@ -114,7 +139,18 @@ function ItemAnalysis({ item }: { item: ItemAssessment }) {
                   <ul className="wi-evidence">
                     {criterion.evidence.map((evidence, index) => (
                       <li key={index}>
-                        {evidence.label}: {evidence.value} <span className="wi-muted">({sourceLabel(evidence.source, criterion === storeBrand ? alternative?.url : undefined)})</span>
+                        {evidence.label}: {evidence.value}{' '}
+                        <span className="wi-muted">({sourceLabel(
+                          evidence.source,
+                          evidence.source === 'cart_page'
+                            ? cartUrl
+                            : evidence.source === 'walmart_reference'
+                              ? criterion === storeBrand ? alternative?.url : productUrl
+                              : evidence.source === 'walmart_product_page'
+                                ? ownPageUrl
+                                : undefined,
+                          evidence.source === 'cart_page' ? `Your ${MERCHANT_LABELS[merchant]} cart page` : undefined,
+                        )})</span>
                       </li>
                     ))}
                   </ul>
@@ -128,16 +164,29 @@ function ItemAnalysis({ item }: { item: ItemAssessment }) {
   );
 }
 
-function sourceLabel(id: keyof typeof SOURCES, url?: string) {
+function sourceLabel(id: keyof typeof SOURCES, url?: string, label?: string) {
   const source = SOURCES[id];
   const href = url ?? source.url;
   return href ? (
     <a href={href} target="_blank" rel="noreferrer noopener">
-      {source.label}
+      {label ?? source.label}
     </a>
   ) : (
-    source.label
+    label ?? source.label
   );
+}
+
+/** Every suggestion with a calculable amount, biggest first; the primary one per item is the one the total counts. */
+export function savingOptions(items: readonly ItemAssessment[]) {
+  return items
+    .flatMap((item) =>
+      [item.primary, ...item.secondary].flatMap((suggestion) =>
+        suggestion && suggestion.amountCents !== null && suggestion.amountCents > 0
+          ? [{ itemKey: item.itemKey, itemName: item.itemName, kind: suggestion.kind, amountCents: suggestion.amountCents, counted: suggestion === item.primary }]
+          : [],
+      ),
+    )
+    .sort((a, b) => b.amountCents - a.amountCents);
 }
 
 function suggestionLabel(kind: string): string {
@@ -146,6 +195,7 @@ function suggestionLabel(kind: string): string {
       skip_redundant: 'Consider skipping (recent similar purchase)',
       skip_novelty: 'Consider skipping (novelty item)',
       reduce_added_sugar: 'Skip or reduce (added sugar)',
+      reduce_food_concern: 'Skip or reduce (ingredients or nutrition label)',
       cheaper_alternative: 'Cheaper alternative',
       store_brand_note: 'Store-brand note',
     } as Record<string, string>

@@ -13,17 +13,46 @@ const mixed = () => reviewCart(walkthroughSnapshot(), reviewContext({ history: [
 const normal = () => reviewCart(snapshot([line('10315798'), line('145051970', {}, 1), line('10315395', {}, 2)]), reviewContext());
 const unreadable = () => reviewCart(snapshot([line('10315798', { linePriceCents: null })]), reviewContext());
 
-function setup(review: CartReview, options: { reducedMotion?: boolean; fakeTimers?: boolean } = {}) {
+function setup(review: CartReview, options: { reducedMotion?: boolean; fakeTimers?: boolean; openOnLoad?: boolean } = {}) {
   if (options.fakeTimers) vi.useFakeTimers({ shouldAdvanceTime: true });
   const store = createReviewStore();
   store.set(review);
   const handlers = { onDismiss: vi.fn(), onAnswer: vi.fn(), onSkipQuestion: vi.fn() };
-  render(<CheckoutPanel store={store} reducedMotion={options.reducedMotion ?? false} {...handlers} />);
+  // Content tests open the panel up front; the extension itself opens it on the checkout click (see below).
+  render(<CheckoutPanel store={store} reducedMotion={options.reducedMotion ?? false} openOnLoad={options.openOnLoad ?? true} {...handlers} />);
   const user = userEvent.setup(options.fakeTimers ? { advanceTimers: vi.advanceTimersByTime } : {});
   return { store, user, ...handlers };
 }
 
 afterEach(() => vi.useRealTimers());
+
+describe('opening on the checkout click', () => {
+  it('stays collapsed on load, even with findings, and opens when asked', async () => {
+    const { store } = setup(mixed(), { openOnLoad: false, reducedMotion: true });
+    expect(screen.queryByRole('region')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Worth It: Reviewed 7 items. Open review' })).toBeTruthy();
+    expect(store.isOpen()).toBe(false);
+
+    act(() => store.requestOpen());
+    expect(screen.getByRole('region', { name: 'Worth It' })).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Worth It' }));
+    expect(store.isOpen()).toBe(true);
+  });
+
+  it('reports closed again after Continue, so a later checkout click is not held', async () => {
+    const { store, user } = setup(mixed(), { openOnLoad: false, reducedMotion: true });
+    act(() => store.requestOpen());
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(store.isOpen()).toBe(false);
+    expect(screen.queryByRole('region')).toBeNull();
+  });
+
+  it('a request while already open changes nothing', () => {
+    const { store } = setup(mixed(), { reducedMotion: true });
+    act(() => store.requestOpen());
+    expect(screen.getAllByRole('region')).toHaveLength(1);
+  });
+});
 
 describe('collapsed indicator', () => {
   it('is all that shows when nothing needs attention', async () => {
@@ -59,8 +88,7 @@ describe('animated recap', () => {
 
   it('can be paused, moved, replayed, and captioned', async () => {
     const { user } = setup(mixed(), { fakeTimers: true });
-    await user.click(screen.getByRole('button', { name: 'Next scene' }));
-    await user.click(screen.getByRole('button', { name: 'Next scene' }));
+    for (let i = 0; i < 3; i++) await user.click(screen.getByRole('button', { name: 'Next scene' }));
     expect(screen.getByText('Squishmallows FuzzAMallow 5 inch Plush', { selector: '.wi-scene-item' })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Pause recap' }));
     await act(() => vi.advanceTimersByTimeAsync(SCENE_MS.highlight * 2));
@@ -70,9 +98,9 @@ describe('animated recap', () => {
     const captions = screen.getByRole('button', { name: 'Captions' });
     expect(captions.getAttribute('aria-pressed')).toBe('true');
     await user.click(captions);
-    expect(screen.queryByText(/This is a collectible without a practical use/, { selector: '.wi-finding-text' })).toBeNull();
+    expect(screen.queryByText(/probably not worth it/, { selector: '.wi-finding-text' })).toBeNull();
     // Screen readers still get the caption through the live region.
-    expect(screen.getByText(/This is a collectible without a practical use/, { selector: '.wi-sr-only' })).toBeTruthy();
+    expect(screen.getByText(/probably not worth it/, { selector: '.wi-sr-only' })).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Replay recap' }));
     expect(screen.getByText('Before you check out, 3 things are worth a second thought.', { selector: '.wi-scene-title' })).toBeTruthy();
@@ -81,7 +109,7 @@ describe('animated recap', () => {
   it('ends with the savings total, the investment sentence, and a hand-back', async () => {
     const { user } = setup(mixed(), { fakeTimers: true });
     for (let i = 0; i < 4; i++) await user.click(screen.getByRole('button', { name: 'Next scene' }));
-    expect(screen.getByText('Also: 3 store-brand swaps could save $4.81', { selector: '.wi-scene-title' })).toBeTruthy();
+    expect(screen.getByText('You also had 3 other items you could reconsider or swap for a different one, worth about $4.81 more.', { selector: '.wi-scene-title' })).toBeTruthy();
     await user.click(screen.getByRole('button', { name: 'Next scene' }));
     expect(screen.getByText('$38.72', { selector: '.wi-amount-chip' })).toBeTruthy();
     expect(
@@ -111,8 +139,8 @@ describe('static view (reduced motion)', () => {
     const highlights = within(screen.getByRole('list', { name: 'Worth a second thought' })).getAllByRole('listitem');
     expect(highlights.map((item) => item.querySelector('.wi-item-name')?.textContent)).toEqual([
       'Stanley Quencher H2.0 FlowState Tumbler, 30 oz',
-      'Squishmallows FuzzAMallow 5 inch Plush',
       'Skittles Original Fruity Candy, Sharing Size, 15.6 oz',
+      'Squishmallows FuzzAMallow 5 inch Plush',
     ]);
     expect(screen.queryByRole('button', { name: 'Replay recap' })).toBeNull();
   });
@@ -120,7 +148,7 @@ describe('static view (reduced motion)', () => {
   it('groups the rest behind one line, including the no-savings paper-towel note', async () => {
     const { user } = setup(mixed(), { reducedMotion: true });
     expect(screen.queryByText(/Bounty Essentials/)).toBeNull();
-    const toggle = screen.getByRole('button', { name: /Also: 3 store-brand swaps could save \$4\.81/ });
+    const toggle = screen.getByRole('button', { name: /You also had 3 other items you could reconsider or swap for a different one, worth about \$4\.81 more/ });
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     await user.click(toggle);
     expect(screen.getByText('Bounty Essentials Select-A-Size Paper Towels, 6 Double Rolls')).toBeTruthy();
@@ -148,6 +176,22 @@ describe('static view (reduced motion)', () => {
 });
 
 describe('See full analysis', () => {
+  it('links cart prices to the cart and label evidence to the reviewed product', async () => {
+    const { user } = setup(reviewCart(snapshot([line('16275314128'), line('43981978'), line('10309701')]), reviewContext()), { reducedMotion: true });
+    await user.click(screen.getByRole('button', { name: 'See full analysis' }));
+    const tables = screen.getAllByRole('table');
+    const donutLabelLink = within(tables[0]!).getAllByRole('link', { name: 'Worth It product reference (Walmart.com prices and labels)' });
+    expect(donutLabelLink.every(link => link.getAttribute('href') === 'https://www.walmart.com/ip/16275314128')).toBe(true);
+    expect(within(tables[0]!).getByRole('link', { name: 'CDC: Get the Facts: Added Sugars' }).getAttribute('href')).toBe('https://www.cdc.gov/nutrition/php/data-research/added-sugars.html');
+    for (const table of tables.slice(1)) {
+      expect(within(table).getByRole('link', { name: 'Your Walmart cart page' }).getAttribute('href')).toBe('https://www.walmart.com/cart');
+    }
+    const cheeseSources = within(tables[1]!).getAllByRole('link', { name: 'Worth It product reference (Walmart.com prices and labels)' });
+    expect(cheeseSources.map(link => link.getAttribute('href'))).toEqual(expect.arrayContaining([
+      'https://www.walmart.com/ip/43981978', 'https://www.walmart.com/ip/10452370',
+    ]));
+  });
+
   it('opens only on request, lists every item and check, and returns to the highlights', async () => {
     const { user } = setup(mixed(), { reducedMotion: true });
     expect(screen.queryByRole('heading', { name: 'Full analysis' })).toBeNull();
@@ -161,6 +205,24 @@ describe('See full analysis', () => {
     expect(screen.getByText(/10% assumed annual return, compounded annually, for 40 years, before inflation/)).toBeTruthy();
     await user.click(screen.getAllByRole('button', { name: 'Back to highlights' })[0]!);
     expect(screen.getByRole('list', { name: 'Worth a second thought' })).toBeTruthy();
+  });
+});
+
+describe('See full analysis: every possible saving', () => {
+  it('lists every option, biggest first, marking which one the total counts', async () => {
+    const { user } = setup(mixed(), { reducedMotion: true });
+    await user.click(screen.getByRole('button', { name: 'See full analysis' }));
+    const section = screen.getByRole('region', { name: 'Every possible saving' });
+    const rows = within(section).getAllByRole('listitem').map((row) => row.textContent ?? '');
+    // The tumbler has two options: skipping it (counted) and the cheaper tumbler (an alternative to the same item).
+    expect(rows[0]).toMatch(/Stanley.*Consider skipping \(recent similar purchase\), \$24\.97 \(counted in the total\)/);
+    expect(rows.some((row) => /Stanley.*Cheaper alternative, \$12\.00 \(alternative, not added to the total\)/.test(row))).toBe(true);
+    // 7 items, 6 with a counted saving, plus the tumbler's alternative; the no-savings paper towels are absent.
+    expect(rows).toHaveLength(7);
+    expect(rows.filter((row) => row.includes('counted in the total'))).toHaveLength(6);
+    expect(rows.some((row) => row.includes('Bounty'))).toBe(false);
+    const amounts = rows.map((row) => Number(/\$(\d+\.\d\d)/.exec(row)![1]));
+    expect(amounts).toEqual([...amounts].sort((a, b) => b - a));
   });
 });
 

@@ -64,7 +64,7 @@ Account-specific build settings (the stable extension key and Gmail OAuth client
 
 | Permission | Why |
 |---|---|
-| `https://www.walmart.com/*` | Read cart rows (name, item link, quantity, displayed prices) on the cart page. Walmart is a single-page app, so the script is present on the site but stays inert everywhere except `/cart` and, only if you opt in to purchase recording, the order confirmation and purchase-history pages, where it reads item rows when you click "Record these purchases". It never reads checkout, payment, address, or sign-in fields and never clicks retailer controls. |
+| `https://www.walmart.com/*` | Read cart rows (name, item link, quantity, displayed prices) on the cart page. Walmart is a single-page app, so the script is present on the site but stays inert everywhere except `/cart` and, only if you opt in to purchase recording, the order confirmation and purchase-history pages, where it reads item rows when you click "Record these purchases". It never reads checkout, payment, address, or sign-in fields and never clicks retailer controls. On the cart page it holds your first click on Checkout once, only when there is something to show, so the panel can open; your next click goes straight through. |
 | `https://www.amazon.com/*` | Same as Walmart, for Amazon cart routes and (opt-in) order pages; inert on checkout and everywhere else. See [docs/AMAZON.md](docs/AMAZON.md). |
 | `storage` | Keep preferences and per-tab panel state on this device. |
 | `identity` | Optional, user-initiated Gmail connection (read-only) for importing receipts. |

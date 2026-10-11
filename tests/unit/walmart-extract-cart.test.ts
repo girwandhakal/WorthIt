@@ -136,6 +136,41 @@ describe('extractWalmartCart', () => {
 describe('live walmart.com cart markup (transcribed 2026-10-10)', () => {
   const snapshot = () => extract('cart-live-2026-10.html');
 
+  it('reads each list row inside a shared tile container with visually split prices', () => {
+    const cart = extract('cart-cheese-2026-10.html');
+    expect(cart.items).toHaveLength(2);
+    expect(cart.items[0]).toMatchObject({
+      retailerItemId: '43981978',
+      title: 'Kraft Natural Mild Cheddar Shredded Cheese, 16 oz Bag',
+      quantity: 1,
+      linePriceCents: 564,
+      unitPriceCents: 564,
+      confidence: 'high',
+      issues: [],
+    });
+    expect(cart.items[1]).toMatchObject({ retailerItemId: '10309701', quantity: 1, linePriceCents: 596, issues: [] });
+  });
+
+  it('keeps each grouped row’s quantity and unreadable price independent', () => {
+    const doc = loadRetailerDocument('walmart', 'cart-cheese-2026-10.html');
+    const rows = doc.querySelectorAll('li');
+    rows[0]!.querySelector('.ld_Ec + [aria-hidden]')!.parentElement!.textContent = 'Price unavailable';
+    rows[1]!.querySelector('[data-testid="quantity-label"]')!.textContent = '2';
+    rows[1]!.querySelector('.column2 .ld_Ec')!.textContent = '$11.92';
+    const cart = extractWalmartCart(doc, CART_URL, NOW);
+    expect(cart.items[0]).toMatchObject({ quantity: 1, linePriceCents: null, issues: ['missing_price'] });
+    expect(cart.items[1]).toMatchObject({ quantity: 2, linePriceCents: 1192, unitPriceCents: 596, issues: [] });
+  });
+
+  it('keeps separate grouped rows even when they contain the same product', () => {
+    const doc = loadRetailerDocument('walmart', 'cart-cheese-2026-10.html');
+    const first = doc.querySelector('li')!;
+    first.parentElement!.append(first.cloneNode(true));
+    expect(extractWalmartCart(doc, CART_URL, NOW).items.map((item) => item.key)).toEqual([
+      'walmart:43981978', 'walmart:10309701', 'walmart:43981978#2',
+    ]);
+  });
+
   it('reads product tiles with quantity steppers and ignores recommendation carousels', () => {
     const items = snapshot().items;
     expect(items.map((item) => [item.retailerItemId, item.title, item.quantity, item.linePriceCents, item.unitPriceCents])).toEqual([

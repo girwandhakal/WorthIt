@@ -3,6 +3,7 @@ import { panelFindings } from '../assessment/describe';
 import { summarizeCart } from '../assessment/summarize-cart';
 import { MERCHANT_LABELS, isFullyReadable, type CartSnapshot } from '../domain/cart';
 import type { ClarificationRecord, PurchaseRecord } from '../domain/history';
+import type { ProductFactsMap } from '../domain/product-facts';
 import type { CartReview, ReviewFinding } from '../domain/review';
 import { SOURCES } from '../assessment/evidence/sources';
 import type { ShopperPreferences } from '../assessment/rules/store-brand';
@@ -15,6 +16,8 @@ export interface ReviewContext {
   dismissedIds: ReadonlySet<string>;
   /** Questions the shopper skipped in this tab: `${questionId}:${itemMatchKey}`. */
   skippedQuestions: ReadonlySet<string>;
+  /** Facts read from each item's own product page; items missing here are 'unknown'. */
+  facts?: ProductFactsMap;
   /** The single cart-level investment illustration (default on). */
   investmentIllustration: boolean;
 }
@@ -30,6 +33,7 @@ export function reviewCart(snapshot: CartSnapshot, context: ReviewContext): Cart
     clarifications: context.clarifications,
     preferences: context.preferences,
     today: context.today,
+    ...(context.facts ? { facts: context.facts } : {}),
   });
   const unread = unreadLinesFinding(snapshot);
   const findings = [...panelFindings(assessment, snapshot.items), ...(unread ? [unread] : [])].map((finding) =>
@@ -45,7 +49,8 @@ export function reviewCart(snapshot: CartSnapshot, context: ReviewContext): Cart
     findings,
     summary: summarizeCart(assessment, findings, { investmentIllustration: context.investmentIllustration }),
     assessment,
-    autoOpen: findings.some((finding) => !context.dismissedIds.has(finding.id)),
+    // A store-brand option with no savings is only a footnote; it never warrants interrupting checkout.
+    autoOpen: findings.some((finding) => finding.kind !== 'store_brand_note' && !context.dismissedIds.has(finding.id)),
   };
 }
 

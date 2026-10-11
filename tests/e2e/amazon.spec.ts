@@ -1,4 +1,4 @@
-import { daysAgo, expect, retailerClicks, retailerMarkup, seedHistory, serveAmazon, setPreferences, storedPurchase, test, openExtensionPage } from './extension';
+import { clickCheckout, daysAgo, expect, retailerClicks, retailerMarkup, seedHistory, serveAmazon, setPreferences, storedPurchase, test, openExtensionPage } from './extension';
 
 test.describe('Amazon', () => {
   test('cart without reviewed data: collapsed indicator, nothing guessed, cart untouched', async ({ context, serviceWorker }) => {
@@ -27,6 +27,7 @@ test.describe('Amazon', () => {
     const page = await context.newPage();
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('https://www.amazon.com/cart');
+    await clickCheckout(page);
     const panel = page.getByRole('region', { name: 'Worth It' });
     await expect(panel.getByText('You bought this 12 days ago. A past receipt doesn’t show whether you still have it.')).toBeVisible();
     await panel.getByRole('button', { name: 'It’s an extra' }).click();

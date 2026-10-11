@@ -10,6 +10,8 @@ export interface CheckoutPanelProps extends PanelHandlers {
   store: ReviewStore;
   /** Defaults to the shopper's `prefers-reduced-motion` setting. */
   reducedMotion?: boolean;
+  /** Open as soon as a review with something to show arrives. Off in the extension: it opens when the shopper clicks checkout. */
+  openOnLoad?: boolean;
 }
 
 type Mode = 'recap' | 'static' | 'full';
@@ -22,16 +24,44 @@ function prefersReducedMotion(): boolean {
  * Worth It's checkout panel. Every control acts only on this panel: nothing
  * here reads or clicks retailer controls or changes the cart.
  */
-export function CheckoutPanel({ store, reducedMotion, ...handlers }: CheckoutPanelProps) {
+export function CheckoutPanel({ store, reducedMotion, openOnLoad = false, ...handlers }: CheckoutPanelProps) {
   const review = useSyncExternalStore(store.subscribe, store.get);
+  const openRequests = useSyncExternalStore(store.subscribe, store.openRequests);
   if (!review) return null;
-  return <PanelForReview key={review.merchant} review={review} handlers={handlers} reducedMotion={reducedMotion ?? prefersReducedMotion()} />;
+  return (
+    <PanelForReview
+      key={review.merchant}
+      review={review}
+      handlers={handlers}
+      reducedMotion={reducedMotion ?? prefersReducedMotion()}
+      openOnLoad={openOnLoad}
+      openRequests={openRequests}
+      reportOpen={store.reportOpen}
+    />
+  );
 }
 
-function PanelForReview({ review, handlers, reducedMotion }: { review: CartReview; handlers: PanelHandlers; reducedMotion: boolean }) {
+function PanelForReview({
+  review,
+  handlers,
+  reducedMotion,
+  openOnLoad,
+  openRequests,
+  reportOpen,
+}: {
+  review: CartReview;
+  handlers: PanelHandlers;
+  reducedMotion: boolean;
+  openOnLoad: boolean;
+  openRequests: number;
+  reportOpen: (open: boolean) => void;
+}) {
   const { onDismiss } = handlers;
   const initialMode = (): Mode => (reducedMotion || review.summary.highlights.length === 0 ? 'static' : 'recap');
-  const [open, setOpen] = useState(review.autoOpen);
+  const [open, setOpen] = useState(openOnLoad && review.autoOpen);
+  const [seenOpenRequests, setSeenOpenRequests] = useState(openRequests);
+  // Opened by the checkout click: move focus into the panel, like opening it by hand.
+  const [focusOnOpen, setFocusOnOpen] = useState(false);
   const [mode, setMode] = useState<Mode>(initialMode);
   const [lastReview, setLastReview] = useState(review);
   const [closedIds, setClosedIds] = useState<ReadonlySet<string>>(new Set());
@@ -39,23 +69,39 @@ function PanelForReview({ review, handlers, reducedMotion }: { review: CartRevie
   const headingRef = useRef<HTMLHeadingElement>(null);
   const openedByUser = useRef(false);
 
-  // Each new review reopens the panel only if it carries a finding the shopper
-  // has not already closed the panel on.
+  // The shopper clicked the retailer's checkout control: open now.
+  if (openRequests !== seenOpenRequests) {
+    setSeenOpenRequests(openRequests);
+    if (!open) {
+      setFocusOnOpen(true);
+      setMode(initialMode());
+      setOpen(true);
+    }
+  }
+
+  // With openOnLoad, each new review reopens the panel only if it carries a finding the
+  // shopper has not already closed the panel on.
   if (review !== lastReview) {
     setLastReview(review);
-    if (!open && review.autoOpen && review.findings.some((finding) => !closedIds.has(finding.id))) {
+    if (openOnLoad && !open && review.autoOpen && review.findings.some((finding) => !closedIds.has(finding.id))) {
       setOpen(true);
       setMode(initialMode());
     }
   }
 
   useEffect(() => {
-    if (open && openedByUser.current) headingRef.current?.focus();
-  }, [open]);
+    if (open && (openedByUser.current || focusOnOpen)) headingRef.current?.focus();
+  }, [open, focusOnOpen]);
+
+  useEffect(() => {
+    reportOpen(open);
+    return () => reportOpen(false);
+  }, [open, reportOpen]);
 
   const close = () => {
     const ids = review.findings.map((finding) => finding.id);
     setOpen(false);
+    setFocusOnOpen(false);
     setClosedIds((previous) => new Set([...previous, ...ids]));
     openedByUser.current = false;
     onDismiss(ids);
