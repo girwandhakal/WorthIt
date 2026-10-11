@@ -13,6 +13,15 @@ export function parsePriceToCents(text: string | null | undefined): number | nul
   return match ? matchToCents(match) : null;
 }
 
+/** Every dollar amount in `text` with where it sits, so the words around each one can say what it is. */
+export function findPriceMentions(text: string): Array<{ cents: number; start: number; end: number }> {
+  return Array.from(text.matchAll(PRICE_PATTERN_GLOBAL), (match) => ({
+    cents: matchToCents(match),
+    start: match.index ?? 0,
+    end: (match.index ?? 0) + match[0].length,
+  }));
+}
+
 /** Returns every dollar amount found in `text`, in order, as cents. */
 export function findAllPricesInCents(text: string): number[] {
   return Array.from(text.matchAll(PRICE_PATTERN_GLOBAL), matchToCents);

@@ -268,3 +268,21 @@ test('the checkout click is held even while product pages are still loading', as
   await expect(page.getByRole('dialog', { name: 'Worth It' })).toBeVisible();
   expect(await retailerClicks(page)).toBe(0);
 });
+
+test('a fourth item on Rollback is read at its current price, not reported as unreadable', async ({ context }) => {
+  await serveWalmart(context, { '/cart': 'cart-rollback-2026-10.html' });
+  const page = await context.newPage();
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('https://www.walmart.com/cart');
+  await waitForReview(page);
+  expect(await debugReport(page)).toMatchObject({ extractedItems: 4, readableItems: 4, displayedItems: 4 });
+  await clickCheckout(page);
+  const panel = page.getByRole('dialog', { name: 'Worth It' });
+  await expect(panel.getByText(/couldn.t read this item.s price/i)).toHaveCount(0);
+  await panel.getByRole('button', { name: 'See full analysis' }).click();
+  const cheetos = panel.locator('.wi-full-item').filter({ hasText: 'Cheetos Puff Cheese Flavored Snack Chips, 8 oz' });
+  await expect(cheetos.locator('.wi-full-facts').getByText('$3.97', { exact: true }).first()).toBeVisible();
+  await expect(cheetos.getByText('21.8%', { exact: true })).toBeVisible(); // its share of the cart is known too
+  // The readable total matches the $18.25 Walmart showed for this cart.
+  await expect(panel.getByRole('region', { name: 'Cart totals' }).getByText('$18.25', { exact: true })).toBeVisible();
+});

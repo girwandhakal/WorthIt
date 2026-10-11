@@ -131,6 +131,7 @@ Use a versioned TypeScript type with fields equivalent to:
 - title, brand, and category when detected;
 - unit price, quantity, line price, currency, and price source;
 - package size and unit price when available;
+- the line price is the amount the page labels as the current price. Walmart's accessible price text can name several amounts in one sentence on a sale item (“Current price $3.97, Was $4.43, You save $0.46”), so each dollar amount is read with the words around it: current price, was or struck-through price, saving, per-unit price, or plain. Only the current (or, without a label, the one plain) amount is the line price; a “Was” price is kept as the pre-discount price, and a saving is never a price. Two competing unlabeled amounts are still reported as unreadable instead of guessed;
 - ingredients/nutrition fields only when actually present on the page or in a matched reference record (with the record ID as provenance);
 - observation time and extraction confidence.
 

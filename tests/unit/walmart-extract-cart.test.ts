@@ -200,3 +200,89 @@ describe('live walmart.com cart markup (transcribed 2026-10-10)', () => {
     expect(unreadLinesFinding(snapshot())).toBeNull();
   });
 });
+
+describe('items with a sale price (Rollback), as walmart.com renders them (transcribed 2026-10-10)', () => {
+  const cheetos = () => extract('cart-rollback-2026-10.html').items.find((item) => item.retailerItemId === '36915845')!;
+
+  it('reads the current price, not the Was price or the amount saved', () => {
+    expect(cheetos()).toMatchObject({
+      title: 'Cheetos Puff Cheese Flavored Snack Chips, 8 oz',
+      quantity: 1,
+      linePriceCents: 397,
+      unitPriceCents: 397,
+      wasLinePriceCents: 443,
+      priceSource: 'line_price',
+      confidence: 'high',
+      issues: [],
+    });
+  });
+
+  it('still reads the other rows of the same four-item cart', () => {
+    const cart = extract('cart-rollback-2026-10.html');
+    expect(cart.items.map((item) => [item.retailerItemId, item.linePriceCents, item.issues])).toEqual([
+      ['16275314128', 268, []],
+      ['43981978', 564, []],
+      ['10309701', 596, []],
+      ['36915845', 397, []],
+    ]);
+    expect(cart.displayedItemCount).toBe(4);
+  });
+
+  /** One list row with the given price markup, in the same tile structure. */
+  function row(priceHtml: string, quantity = 1) {
+    const html = `<main><h1>Cart (1 item)</h1><div data-testid="product-tile-container"><ul><li>
+      <a href="/ip/seort/36915845"><div data-testid="productName">Cheetos Puff Cheese Flavored Snack Chips, 8 oz</div></a>
+      ${priceHtml}<span data-testid="quantity-label">${quantity}</span></li></ul></div></main>`;
+    const doc = new DOMParser().parseFromString(`<!doctype html><body>${html}</body>`, 'text/html');
+    return extractWalmartCart(doc, CART_URL, NOW).items[0]!;
+  }
+
+  it('reads the line total for a quantity above one', () => {
+    const item = row('<span class="ld_Ec">Current price $7.94, Was $8.86, You save $0.92</span>', 2);
+    expect(item).toMatchObject({ quantity: 2, linePriceCents: 794, unitPriceCents: 397, wasLinePriceCents: 886, issues: [] });
+  });
+
+  it('reads "Now" and "Sale price" labels, and ignores the order the amounts come in', () => {
+    expect(row('<span class="ld_Ec">Was $7.99, Now $5.99</span>')).toMatchObject({ linePriceCents: 599, wasLinePriceCents: 799, issues: [] });
+    expect(row('<span class="ld_Ec">You save $2.00, Sale price $5.99, Reg. $7.99</span>')).toMatchObject({ linePriceCents: 599, issues: [] });
+  });
+
+  it('with no labeled current price, never mistakes a struck-through or saved amount for the price', () => {
+    const item = row(
+      '<span class="strike">$4.43</span><div aria-label="You save $0.46"><span>You save</span><span>$0.46</span></div>',
+    );
+    expect(item.linePriceCents).toBeNull();
+    expect(item.issues).toEqual(['missing_price']);
+  });
+
+  it('uses the one plain amount that is left once the old price and the saving are set aside', () => {
+    const item = row(
+      '<span>$3.97</span><span class="strike">$4.43</span><div aria-label="You save $0.46"><span>You save</span><span>$0.46</span></div>',
+    );
+    expect(item).toMatchObject({ linePriceCents: 397, wasLinePriceCents: 443, issues: [] });
+  });
+
+  it('still reports two unlabeled competing prices as ambiguous instead of guessing', () => {
+    const item = row('<span>$3.97</span><span>$4.99</span>');
+    expect(item.linePriceCents).toBeNull();
+    expect(item.issues).toEqual(['ambiguous_price']);
+  });
+
+  it('keeps per-unit prices out of the line price on a sale row', () => {
+    const item = row('<span class="ld_Ec">Current price $3.97, Was $4.43, You save $0.46</span><div>49.6 ¢/oz</div><div>$0.50/oz</div>');
+    expect(item).toMatchObject({ linePriceCents: 397, unitPriceCents: 50, issues: [] });
+  });
+});
+
+describe('a cart with a sale item is reviewed like any other', () => {
+  it('reports no unreadable price for the Rollback item', async () => {
+    const { reviewCart } = await import('../../src/background/review-cart');
+    const { reviewContext } = await import('../helpers/background');
+    const review = reviewCart(extract('cart-rollback-2026-10.html'), reviewContext());
+    const item = review.assessment.items.find((candidate) => candidate.retailerItemId === '36915845')!;
+    expect(item.linePriceCents).toBe(397);
+    expect(item.shareOfCartBps).not.toBeNull();
+    expect(review.findings.some((finding) => finding.kind === 'uncertain')).toBe(false);
+    expect(review.assessment.readableTotalCents).toBe(268 + 564 + 596 + 397);
+  });
+});

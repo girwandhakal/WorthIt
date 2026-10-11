@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Walmart cart fixture with a Rollback item (modeled on live markup, 2026-10-10)</title></head>
+<body>
+<!-- Transcribed from walmart.com/cart on 2026-10-10: one product-tile-container holding a list row per item.
+     The fourth row is on Rollback, so its accessible price text names three amounts in one sentence
+     ("Current price $3.97, Was $4.43, You save $0.46") and the visible price block is aria-hidden.
+     Only class names, data-testids and aria-labels are kept; no account data. -->
+<main>
+  <h1>Cart <span>(4 items)</span></h1>
+  <div data-testid="product-tile-container"><ul>
+    <li>
+      <a href="/ip/seort/16275314128" aria-label="Hostess Donettes Frightfully Frosted Mini Donuts, 10 oz Bag, 1 in cart"><div data-testid="productName">Hostess Donettes Frightfully Frosted Mini Donuts, 10 oz Bag</div></a>
+      <div><span class="ld_Ec">$2.68</span><div aria-hidden="true"><span>$</span><span>2</span><span>68</span></div></div>
+      <span data-testid="quantity-label">1</span>
+      <button class="retailer-control">Remove</button>
+    </li>
+    <li>
+      <a href="/ip/seort/43981978" aria-label="Kraft Natural Mild Cheddar Shredded Cheese, 16 oz Bag, 1 in cart"><div data-testid="productName">Kraft Natural Mild Cheddar Shredded Cheese, 16 oz Bag</div></a>
+      <div><span class="ld_Ec">$5.64</span><div aria-hidden="true"><span>$</span><span>5</span><span>64</span></div></div>
+      <span data-testid="quantity-label">1</span>
+      <button class="retailer-control">Remove</button>
+    </li>
+    <li>
+      <a href="/ip/seort/10309701" aria-label="Horizon Organic Vitamin D Whole Milk, Vitamin D Whole, 64 fl oz Carton, 1 in cart"><div data-testid="productName">Horizon Organic Vitamin D Whole Milk, Vitamin D Whole, 64 fl oz Carton</div></a>
+      <div><span class="ld_Ec">$5.96</span><div aria-hidden="true"><span>$</span><span>5</span><span>96</span></div></div>
+      <span data-testid="quantity-label">1</span>
+      <button class="retailer-control">Remove</button>
+    </li>
+    <li class="list dark-gray">
+      <div class="flex flex-column sans-serif pt1 relative" aria-label="">
+        <div class="flex W-100 mt1 mb3">
+          <a href="/ip/seort/36915845" aria-label="Cheetos Puff Cheese Flavored Snack Chips, 8 oz, Multipack Quantity: 1, 1 in cart">
+            <span class="ld_Ec"><h4 class="ld_E4 ld_E8 ld_E6">Cheetos Puff Cheese Flavored Snack Chips, 8 oz</h4></span>
+          </a>
+          <div class="flex flex-column w-100 pb0">
+            <div class="flex items-start flex-column pa0 pb2 flex-row flex-wrap items-center">
+              <span class="ld_Fe ld_Fi ld_Fg" data-testid="badgeTagComponent"><span class="flex items-start"><i class="ld ld-Rollback flex items-center justify-center" aria-hidden="true"></i><span class="ws-normal lh-solid"><span class="nearer-mid-gray f6-m f7">Rollback</span></span></span></span>
+              <span class="ld_Fe ld_Fi ld_Fg" data-testid="badgeTagComponent"><span class="nearer-mid-gray f6-m f7">Best seller</span></span>
+            </div>
+            <div>
+              <span class="ld_Ec">Current price $3.97, Was $4.43, You save $0.46</span>
+              <div class="ml2" aria-hidden="true">
+                <div class="b lh-solid dib green"><span class="f3"></span><span class="f6 f5-l">$</span><span class="f1">3</span><span class="f6 f5-l">97</span></div>
+                <span class="f7 f6-l gray"><span class="ml1"><span aria-label="Was $4.43" class="strike">$4.43</span></span></span>
+                <div class="b flex items-center" aria-label="You save $0.46"><span class="bg-washed-green dark-green f7 f6-l pa1 br1">You save</span><span class="green f5-l f6 ml1">$0.46</span></div>
+              </div>
+            </div>
+            <div data-testid="productName"><span class="ld_AY">Cheetos Puff Cheese Flavored Snack Chips, 8 oz</span></div>
+            <div data-testid="productDescription" class="lh-title f6-l lh-copy-l sans-serif gray">Multipack Quantity: 1</div>
+          </div>
+        </div>
+        <span data-testid="quantity-label">1</span>
+        <button class="retailer-control">Remove</button>
+      </div>
+    </li>
+  </ul></div>
+  <button class="retailer-control" data-automation-id="checkout">Continue to checkout</button>
+</main>
+</body>
+</html>
