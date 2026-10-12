@@ -61,7 +61,7 @@ function assessItem(
   const answer = storedAnswer(inputs.clarifications, REPEAT_PURPOSE_QUESTION_ID, matchKey);
 
   const readability = assessReadability(item);
-  const purpose = assessPurpose(reference, unitPriceCents, item.linePriceCents, facts);
+  const purpose = assessPurpose(reference, item.linePriceCents, facts);
   const matches = findHistoryMatches(item, reference, inputs.history, inputs.today, facts?.categoryPath ?? []);
   const repeat = assessRepeatPurchase({
     food: purpose.food,

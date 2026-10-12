@@ -107,3 +107,25 @@ describe('an ingredient worth noting, but not counted', () => {
     expect(result.summary.totals).toEqual({ combinedCents: 170, alternativeCents: 170, skipCents: 0, uncountedItems: 0 });
   });
 });
+
+describe('non-food consumables whose page was read', () => {
+  it.each([
+    ['dog food', ['Pets', 'Dog Supplies', 'Dog Food']],
+    ['dish soap', ['Household Essentials', 'Cleaning Supplies', 'Dish Soap']],
+  ])('%s bought recently is restocking, not a warning', (_name, path) => {
+    const item = line('999000333', { title: 'Great Value Everyday Item' });
+    const facts = { '999000333': factsFor({ id: '999000333', name: 'Great Value Everyday Item', path }) };
+    const history = [purchase('Great Value Everyday Item', '2026-09-20')];
+    const result = assess(snapshot([item]), { history, facts }).items[0]!;
+    expect(result.purposeClass).toBe('essential_consumable');
+    expect(result.primary).toBeNull();
+    expect(result.question).toBeNull();
+  });
+
+  it('a durable non-food item in the same situation is still warned about', () => {
+    const item = line('999000444', { title: 'Instant Pot Duo 6 Qt Pressure Cooker' });
+    const facts = { '999000444': factsFor({ id: '999000444', name: 'Instant Pot Duo 6 Qt Pressure Cooker', path: ['Home', 'Small Appliances', 'Pressure Cookers'] }) };
+    const history = [purchase('Instant Pot Duo 6 Qt Pressure Cooker', '2026-09-20')];
+    expect(assess(snapshot([item]), { history, facts }).items[0]!.primary?.kind).toBe('skip_redundant');
+  });
+});
