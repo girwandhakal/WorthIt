@@ -1,5 +1,5 @@
 import { CART_SNAPSHOT_VERSION, type CartItem, type CartSnapshot, type ExtractionIssue } from '../../domain/cart';
-import { findAllPricesInCents, findPriceMentions, parsePriceToCents } from '../../shared/currency';
+import { findAllPricesInCents, findPriceMentions, parsePriceToCents, withoutSquashedCopies } from '../../shared/currency';
 import { WORTH_IT_HOST_TAG, cleanText } from '../retailer-adapter';
 import {
   BRAND_SELECTORS,
@@ -217,16 +217,17 @@ type PriceRole = 'current' | 'was' | 'saving' | 'unit' | 'plain';
 
 /** Every dollar amount in the line, each with what it is according to its label, markup, and surroundings. */
 function priceMentions(line: Element): Array<{ cents: number; role: PriceRole }> {
-  const mentions: Array<{ cents: number; role: PriceRole }> = [];
+  const mentions: Array<{ cents: number; role: PriceRole; decimal: boolean; digits: string }> = [];
   for (const node of priceTextNodes(line)) {
     const text = node.textContent ?? '';
     let previousEnd = 0;
-    for (const { cents, start, end } of findPriceMentions(text)) {
-      mentions.push({ cents, role: roleOfAmount(node, text.slice(previousEnd, start), text.slice(end)) });
+    for (const { cents, start, end, decimal, digits } of findPriceMentions(text)) {
+      mentions.push({ cents, decimal, digits, role: roleOfAmount(node, text.slice(previousEnd, start), text.slice(end)) });
       previousEnd = end;
     }
   }
-  return mentions;
+  // A price repeated elsewhere in the row with its decimal point squashed out ("$073") is not a second price.
+  return withoutSquashedCopies(mentions);
 }
 
 /** `before` and `after` are the words next to the amount inside its own text node. */
@@ -357,11 +358,36 @@ function firstText(root: ParentNode, selectors: readonly string[]): string | nul
   return null;
 }
 
+/**
+ * An element's text, with a price Walmart draws as separate spans ("$", "0", "73") put back together as
+ * "$0.73". Joined as plain text they read "$073", which is not a price.
+ */
+export function priceTextOf(el: Element): string {
+  const pieces: string[] = [];
+  const walker = el.ownerDocument.createTreeWalker(el, 4 /* NodeFilter.SHOW_TEXT */);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const piece = (node.textContent ?? '').trim();
+    if (piece) pieces.push(piece);
+  }
+  const joined: string[] = [];
+  for (let i = 0; i < pieces.length; i++) {
+    const [dollar, whole, cents] = [pieces[i], pieces[i + 1], pieces[i + 2]];
+    if (dollar === '$' && whole !== undefined && /^\d{1,3}(?:,\d{3})*$/.test(whole) && cents !== undefined && /^\d{2}$/.test(cents)) {
+      joined.push(`$${whole}.${cents}`);
+      i += 2;
+    } else {
+      joined.push(pieces[i]!);
+    }
+  }
+  // Without a split price the text is unchanged (the pieces rejoined as the page wrote them).
+  return joined.length === pieces.length ? (el.textContent ?? '') : joined.join(' ');
+}
+
 function firstPrice(root: ParentNode, selectors: readonly string[]): number | null {
   for (const selector of selectors) {
     const el = root.querySelector(selector);
     if (!el) continue;
-    const cents = parsePriceToCents(el.getAttribute('content') ? `$${el.getAttribute('content')}` : el.textContent);
+    const cents = parsePriceToCents(el.getAttribute('content') ? `$${el.getAttribute('content')}` : priceTextOf(el));
     if (cents !== null) return cents;
   }
   return null;
