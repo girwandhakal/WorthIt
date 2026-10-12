@@ -8,7 +8,6 @@ export const VERDICTS: Record<ReviewFindingKind, string> = {
   reduce_food_concern: 'Check the label',
   cheaper_alternative: 'Cheaper swap',
   store_brand_note: 'Store brand',
-  repeat_question: 'Bought before',
   uncertain: 'Couldn’t read',
 };
 

@@ -3,7 +3,7 @@ import { isFoodByCategory, type ProductFacts } from '../../domain/product-facts'
 import { formatCents } from '../../shared/currency';
 import { CATEGORIES } from '../reference/categories';
 import type { ReferenceProduct } from '../reference/products';
-import { CONCERN_INFO, evaluateFood, type FoodConcern, type FoodInputs } from './food-quality';
+import { CONCERN_INFO, evaluateFood, foodWatchNotes, type FoodConcern, type FoodInputs } from './food-quality';
 
 /**
  * The food branch of the decision tree, from the product's own label.
@@ -83,6 +83,7 @@ export function assessAddedSugar(
     ...base,
     status: 'finding',
     summary: CONCERN_INFO.added_sugar.note(''),
+    points: CONCERN_INFO.added_sugar.points(''),
     evidence: [
       { label: 'Added sugars on label', value: 'Listed on the label', source },
       { label: 'Guidance', value: 'Too much added sugar over time is linked to health problems', source: 'cdc_added_sugars' },
@@ -121,12 +122,19 @@ export function assessFoodQuality(
   }
   const concerns = evaluateFood(view.inputs).filter((concern) => concern.id !== 'added_sugar');
   const source = labelSource(view);
+  const watch = foodWatchNotes(view.inputs.ingredients);
+  const watchEvidence: Evidence[] = watch.map((name) => ({
+    label: 'Also noted (not counted)',
+    value: `${name[0]!.toUpperCase()}${name.slice(1)} is an industrial ingredient that is one marker of ultra-processed food, but it is also an everyday anti-caking or thickening agent, so it is not treated as a concern`,
+    source: 'monteiro_nova' as const,
+  }));
   if (concerns.length === 0) {
     return {
       ...base,
       status: 'no_concern',
-      summary: 'Nothing to flag in the ingredient list or Nutrition Facts.',
-      evidence: [],
+      summary: watch.length > 0 ? `Nothing to flag in the ingredient list or Nutrition Facts. Also noted, but not counted: ${watch.join(', ')}.` : 'Nothing to flag in the ingredient list or Nutrition Facts.',
+      watch,
+      evidence: watchEvidence,
       confidence: view.fromFacts ? 'high' : 'medium',
     };
   }
@@ -135,7 +143,9 @@ export function assessFoodQuality(
     ...base,
     status: 'finding',
     summary: CONCERN_INFO[lead.id].note(lead.detail),
-    evidence: concernEvidence(concerns, source),
+    points: CONCERN_INFO[lead.id].points(lead.detail),
+    watch,
+    evidence: [...concernEvidence(concerns, source), ...watchEvidence],
     confidence: view.fromFacts ? 'high' : 'medium',
     suggestion: { kind: 'reduce_food_concern', amountCents: linePriceCents },
   };

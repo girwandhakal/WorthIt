@@ -1,11 +1,11 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { Fragment, useEffect, useState, type CSSProperties } from 'react';
 import type { CartReview, CartSummary, ReviewFinding } from '../../domain/review';
 import { formatCents } from '../../shared/currency';
 import { FindingBody, type FindingHandlers } from '../checkout/FindingCard';
 import { Thumb } from '../checkout/Thumb';
-import { VERDICTS, amountLabel, swapTarget, toneOf } from '../checkout/verdict';
+import { amountLabel, swapTarget, toneOf } from '../checkout/verdict';
 import { AnimatedNumber } from './AnimatedNumber';
-import { GrowthChart } from './GrowthChart';
+import { GROWTH_DRAW_MS, GrowthChart } from './GrowthChart';
 
 /**
  * How long each scene stays up before advancing, in milliseconds. The shopper
@@ -14,6 +14,11 @@ import { GrowthChart } from './GrowthChart';
  */
 const SPEED = import.meta.env.MODE === 'e2e' ? 0.25 : 1;
 export const SCENE_MS = { opening: 3200 * SPEED, highlight: 6000 * SPEED, grouped: 4000 * SPEED } as const;
+
+/** How long the closing scene takes to play out: the savings count up, then the growth chart draws. */
+export function finaleMs(summary: CartSummary): number {
+  return summary.investment ? 1300 + GROWTH_DRAW_MS + 400 : 2600;
+}
 
 /** Most cart thumbnails shown in the opening scene. */
 const OPENING_THUMBS = 12;
@@ -64,38 +69,27 @@ export function Recap({ review, onEnded, onAnswer, onSkipQuestion }: RecapProps)
     return () => clearTimeout(timer);
   }, [playing, atEnd, waiting, duration, index]);
 
-  useEffect(() => onEnded?.(atEnd), [atEnd, onEnded]);
+  // The presentation is done when the closing scene has played out (the count-up and the growth chart), not when it starts.
+  useEffect(() => {
+    if (!atEnd) {
+      onEnded?.(false);
+      return;
+    }
+    const timer = setTimeout(() => onEnded?.(true), finaleMs(summary));
+    return () => clearTimeout(timer);
+  }, [atEnd, onEnded, summary]);
 
   const caption = captionFor(current, summary);
   const savedSoFar = runningSavings(scenes, index, summary);
 
   return (
     <div className="wi-recap">
-      <div className="wi-story" aria-hidden="true">
-        {scenes.map((_, dot) => (
-          <span key={dot} className="wi-story-seg">
-            <span
-              key={dot === index ? `active-${index}` : 'idle'}
-              className={dot < index || (dot === index && atEnd) ? 'wi-story-fill wi-story-done' : dot === index ? 'wi-story-fill wi-story-active' : 'wi-story-fill'}
-              style={
-                {
-                  '--wi-scene-ms': `${duration}ms`,
-                  animationPlayState: playing && !waiting ? 'running' : 'paused',
-                } as CSSProperties
-              }
-            />
-          </span>
-        ))}
-      </div>
-
       <div className="wi-stage" aria-roledescription="recap scene" aria-label={`Scene ${index + 1} of ${scenes.length}`}>
         <div className={`wi-scene wi-scene-${current.type}`} key={index}>
           {current.type === 'opening' && <OpeningScene review={review} />}
           {current.type === 'highlight' && (
             <HighlightScene
               finding={current.finding}
-              number={current.number}
-              of={summary.highlights.length}
               captions={captions}
               onAnswer={onAnswer}
               onSkipQuestion={onSkipQuestion}
@@ -110,8 +104,9 @@ export function Recap({ review, onEnded, onAnswer, onSkipQuestion }: RecapProps)
         </p>
       </div>
 
-      {summary.totals.combinedCents > 0 && current.type !== 'opening' && current.type !== 'closing' && (
-        <SavingsMeter scenes={scenes} index={index} summary={summary} savedCents={savedSoFar} />
+      {summary.totals.combinedCents > 0 && (
+        // Kept in place (hidden) before and after the highlights, so the ring animates from where it was.
+        <SavingsMeter total={summary.totals.combinedCents} savedCents={savedSoFar} shown={current.type !== 'opening' && current.type !== 'closing'} />
       )}
 
       <div className="wi-controls" role="toolbar" aria-label="Recap controls">
@@ -156,7 +151,9 @@ function OpeningScene({ review }: { review: CartReview }) {
   return (
     <div className="wi-opening">
       <p className="wi-eyebrow">Worth It reviewed {review.itemCount} {review.itemCount === 1 ? 'item' : 'items'}</p>
-      <p className="wi-scene-title">{review.summary.opening}</p>
+      <p className="wi-scene-title">
+        <Words text={review.summary.opening} />
+      </p>
       <div className="wi-constellation" aria-hidden="true">
         {items.map((item, i) => (
           <Thumb
@@ -175,20 +172,34 @@ function OpeningScene({ review }: { review: CartReview }) {
   );
 }
 
+/** A line whose words slide up into view one after another. Reads as the plain sentence. */
+function Words({ text }: { text: string }) {
+  const words = text.split(' ');
+  return words.map((word, i) => (
+    <Fragment key={i}>
+      <span className="wi-word">
+        <span style={{ '--i': i } as CSSProperties}>{word}</span>
+      </span>
+      {i < words.length - 1 && ' '}
+    </Fragment>
+  ));
+}
+
 function HighlightScene({
   finding,
-  number,
-  of,
   captions,
   onWhyOpened,
   ...handlers
-}: FindingHandlers & { finding: ReviewFinding; number: number; of: number; captions: boolean; onWhyOpened: () => void }) {
+}: FindingHandlers & { finding: ReviewFinding; captions: boolean; onWhyOpened: () => void }) {
   const tone = toneOf(finding.kind);
   const swap = swapTarget(finding);
   return (
     <div className={`wi-highlight wi-tone-${tone}`}>
       <div className="wi-highlight-visual">
-        <Thumb src={finding.imageUrl} kind={finding.kind} size="lg" className="wi-hero-thumb" />
+        <div className="wi-hero">
+          <span className="wi-splash" aria-hidden="true" />
+          <Thumb src={finding.imageUrl} kind={finding.kind} size="lg" className="wi-hero-thumb" />
+        </div>
         {swap && (
           <div className="wi-swap" aria-hidden="true">
             <span className="wi-swap-arrow">→</span>
@@ -200,10 +211,6 @@ function HighlightScene({
         )}
       </div>
       <div className="wi-highlight-text">
-        <p className="wi-eyebrow">
-          {number} of {of}
-        </p>
-        <span className="wi-verdict">{VERDICTS[finding.kind]}</span>
         <p className="wi-scene-item">{finding.itemName}</p>
         {finding.amountCents !== null && (
           <p className="wi-amount-line">
@@ -212,7 +219,23 @@ function HighlightScene({
           </p>
         )}
         <div className="wi-scene-body">
-          <FindingBody finding={finding} showName={false} showText={captions} onWhyOpened={onWhyOpened} {...handlers} />
+          {/* A few short points the shopper can read in the scene's time; the full sentence is read out and kept behind them. */}
+          {captions && finding.points.length > 0 && (
+            <ul className="wi-points">
+              {finding.points.map((point, i) => (
+                <li key={point} style={{ '--i': i } as CSSProperties}>
+                  {point}
+                </li>
+              ))}
+            </ul>
+          )}
+          <FindingBody
+            finding={finding}
+            showName={false}
+            showText={captions && finding.points.length === 0}
+            onWhyOpened={onWhyOpened}
+            {...handlers}
+          />
         </div>
       </div>
     </div>
@@ -279,29 +302,31 @@ export function Finale({ summary, captions, animate }: { summary: CartSummary; c
   );
 }
 
-/** A thin track that fills, one segment per highlight, as the savings add up. */
-function SavingsMeter({ scenes, index, summary, savedCents }: { scenes: Scene[]; index: number; summary: CartSummary; savedCents: number }) {
-  const total = summary.totals.combinedCents;
-  const segments = scenes.flatMap((scene, at) => {
-    const cents = sceneAmount(scene, summary);
-    return cents > 0 ? [{ at, cents, tone: scene.type === 'highlight' ? toneOf(scene.finding.kind) : 'muted' }] : [];
-  });
+/** Ring radius, in the ring's own 56-unit box. */
+const RING_R = 23;
+const RING_LENGTH = 2 * Math.PI * RING_R;
+
+/** A ring that fills with color as the savings add up, scene by scene, beside the running amount. */
+function SavingsMeter({ total, savedCents, shown }: { total: number; savedCents: number; shown: boolean }) {
+  const filled = total > 0 ? Math.min(1, savedCents / total) : 0;
   return (
-    <div className="wi-meter" aria-hidden="true">
+    <div className={`wi-meter ${shown ? '' : 'wi-meter-hidden'}`} aria-hidden="true">
+      <svg className="wi-meter-ring" viewBox="0 0 56 56" width="56" height="56" focusable="false">
+        <circle className="wi-meter-ring-track" cx="28" cy="28" r={RING_R} />
+        <circle
+          className="wi-meter-ring-fill"
+          cx="28"
+          cy="28"
+          r={RING_R}
+          transform="rotate(-90 28 28)"
+          style={{ strokeDasharray: RING_LENGTH, strokeDashoffset: RING_LENGTH * (1 - filled) }}
+        />
+      </svg>
       <div className="wi-meter-label">
         <span>Potential savings</span>
         <strong>
           {formatCents(savedCents)} <span className="wi-meter-of">of {formatCents(total)}</span>
         </strong>
-      </div>
-      <div className="wi-meter-track">
-        {segments.map((segment) => (
-          <span
-            key={segment.at}
-            className={`wi-meter-seg wi-tone-${segment.tone} ${segment.at <= index ? 'wi-meter-seg-on' : ''}`}
-            style={{ flexGrow: segment.cents } as CSSProperties}
-          />
-        ))}
       </div>
     </div>
   );

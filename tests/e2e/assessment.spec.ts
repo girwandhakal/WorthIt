@@ -30,8 +30,8 @@ test('acceptance walkthrough: the presentation cannot be skipped, takes the answ
 
   // The recap opens on its own with the reflection prompt, and offers no way out.
   await expect(panel.locator('.wi-scene-title')).toHaveText('Before you check out, 3 things are worth a second thought.');
-  await expect(panel.getByRole('button', { name: 'Continue' })).toBeDisabled();
-  await expect(panel.getByRole('button', { name: 'See full analysis' })).toBeDisabled();
+  await expect(panel.getByRole('button', { name: 'Continue' })).toHaveCount(0);
+  await expect(panel.getByRole('button', { name: 'See full analysis' })).toHaveCount(0);
   await expect(panel.getByRole('button', { name: 'Dismiss Worth It panel' })).toHaveCount(0);
   await expect(panel.getByRole('button', { name: 'Skip recap' })).toHaveCount(0);
   await expect(panel.getByRole('button', { name: 'Next scene' })).toHaveCount(0);
@@ -42,7 +42,7 @@ test('acceptance walkthrough: the presentation cannot be skipped, takes the answ
   await expect(panel.locator('.wi-amount-chip')).toHaveText('$24.97');
   await page.keyboard.press('Escape');
   await expect(panel).toBeVisible();
-  await expect(panel.getByRole('button', { name: 'Continue' })).toBeDisabled();
+  await expect(panel.getByRole('button', { name: 'Continue' })).toHaveCount(0);
 
   // Clarification: the tumbler is replacing a worn one, and the presentation plays on.
   await panel.getByRole('button', { name: 'Replacing a worn one' }).click();

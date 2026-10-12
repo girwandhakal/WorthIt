@@ -3,7 +3,7 @@ import { CRITERIA_VERSION, type ClarificationQuestion, type CriterionResult, typ
 import { normalizeTitle, PURCHASE_STATUS_LABELS, type ClarificationAnswer, type PurchaseRecord } from '../../domain/history';
 import { daysBetween } from '../../shared/dates';
 import { ANSWER_LABELS, answerWithdrawsSkip, repeatPurposeQuestion } from '../clarification';
-import { LOOKBACK_DAYS, lookbackDaysFor, type PurposeClass } from '../reference/categories';
+import { RECENT_PURCHASE_DAYS } from '../reference/categories';
 import { ITEM_TYPE_KEYWORDS, referenceProduct, type ReferenceProduct } from '../reference/products';
 import { SIMILAR_TITLE_THRESHOLD, titleSimilarity } from '../similarity';
 
@@ -15,8 +15,8 @@ const MAX_HISTORY_DAYS = 365;
  * similar one. Newest first. A reviewed item is similar to the same reviewed
  * item type; an item with no reviewed data is similar when both titles name the
  * same keyword type (tumbler, plush, ...) or their title/category cosine
- * similarity reaches SIMILAR_TITLE_THRESHOLD. The latter only ever feeds a
- * question, never a skip suggestion (see assessRepeatPurchase).
+ * similarity reaches SIMILAR_TITLE_THRESHOLD. The latter suggests a skip only
+ * when the item's own page shows it is not food (see assessRepeatPurchase).
  */
 export function findHistoryMatches(
   item: Pick<CartItem, 'retailerItemId' | 'title'>,
@@ -71,24 +71,28 @@ function sameKeywordType(a: string, b: string): boolean {
 
 export interface RepeatAssessment {
   result: CriterionResult;
-  /** A recent similar non-consumable with no replacement/different-purpose answer. */
+  /** A recent similar purchase of a non-food item, with no "not redundant" answer. */
   skipEligible: boolean;
   question: ClarificationQuestion | null;
 }
 
 /**
- * Recent similar purchases. A receipt shows a purchase, not current ownership
- * or use; consumables are routine restocking and never skip-eligible.
+ * Recent similar purchases. Only non-food items that are not routine
+ * restocking are checked: a receipt shows a purchase, not current ownership or
+ * use, so food and other consumables are never flagged as redundant. When
+ * Worth It cannot tell whether an item is food, it says nothing.
  */
 export function assessRepeatPurchase(input: {
-  reference: ReferenceProduct | null;
-  purposeClass: PurposeClass;
+  /** True/false when the item is known to be a food or drink (or not); null when that couldn't be told. */
+  food: boolean | null;
   consumable: boolean | null;
+  /** True when the item came from the reviewed product list, not only its own page. */
+  reviewed: boolean;
   matches: readonly HistoryMatch[];
   answer: ClarificationAnswer | null;
   matchKey: string;
 }): RepeatAssessment {
-  const { reference, purposeClass, consumable, matches, answer, matchKey } = input;
+  const { food, consumable, reviewed, matches, answer, matchKey } = input;
   const base = { criterion: 'repeat_purchase' as const, version: CRITERIA_VERSION };
   const kept = matches.filter((match) => match.status === 'purchased' || match.status === 'unknown');
   const notKept = matches.filter((match) => !kept.includes(match));
@@ -97,59 +101,28 @@ export function assessRepeatPurchase(input: {
     value: `${match.title}: ${PURCHASE_STATUS_LABELS[match.status]}`,
     source: 'purchase_history',
   }));
-  const none = (summary: string): RepeatAssessment => ({
-    result: { ...base, status: 'no_concern', summary, evidence, confidence: 'high' },
+  const none = (summary: string, status: CriterionResult['status'] = 'no_concern'): RepeatAssessment => ({
+    result: { ...base, status, summary, evidence, confidence: status === 'unknown' ? 'low' : 'high' },
     skipEligible: false,
     question: null,
   });
+
+  if (food === true) return none('Food is bought again and again, so a past purchase isn’t a concern.', 'not_applicable');
+  if (food === null) return none('Worth It couldn’t tell whether this is food, so it isn’t checked against past purchases.', 'unknown');
 
   if (kept.length === 0) {
     if (notKept.length > 0) {
       const latest = notKept[0]!;
       return none(`A similar item from ${latest.daysAgo} days ago was ${PURCHASE_STATUS_LABELS[latest.status].toLowerCase()}, so it isn’t counted.`);
     }
-    return reference
-      ? none('No recent similar purchase in your history.')
-      : {
-          result: {
-            ...base,
-            status: 'unknown',
-            summary: 'No exact repeat or similar-looking purchase found; without product data, matching is by name and category only.',
-            evidence,
-            confidence: 'low',
-          },
-          skipEligible: false,
-          question: null,
-        };
+    return none('No recent similar purchase in your history.');
   }
 
   const latest = kept[0]!;
+  if (consumable) return none(`Bought ${latest.daysAgo} days ago; treated as routine restocking, not a concern.`);
 
-  if (consumable) {
-    return none(`Bought ${latest.daysAgo} days ago; treated as routine restocking, not a concern.`);
-  }
-
-  // Without product data, an exact repeat or a similar-looking past purchase is noted, and only to ask.
-  if (!reference || purposeClass === 'unknown') {
-    const repeat = kept.find((match) => match.daysAgo <= LOOKBACK_DAYS.unknownExact);
-    if (!repeat) return none('No recent repeat or similar purchase in your history.');
-    if (answer) return answeredResult(base, evidence, answer, false);
-    return {
-      result: {
-        ...base,
-        status: 'finding',
-        summary: `You bought ${repeat.kind === 'exact' ? 'this' : 'something similar'} ${repeat.daysAgo} days ago. A past receipt doesn’t show whether you still have it.`,
-        evidence,
-        confidence: 'low',
-      },
-      skipEligible: false,
-      question: repeatPurposeQuestion(matchKey),
-    };
-  }
-
-  const window = lookbackDaysFor(reference.category, purposeClass);
-  const recent = kept.find((match) => match.daysAgo <= window);
-  if (!recent) return none(`Last bought ${latest.daysAgo} days ago, outside the ${window}-day window.`);
+  const recent = kept.find((match) => match.daysAgo <= RECENT_PURCHASE_DAYS);
+  if (!recent) return none(`Last bought ${latest.daysAgo} days ago, outside the ${RECENT_PURCHASE_DAYS}-day window.`);
   if (answer) return answeredResult(base, evidence, answer, !answerWithdrawsSkip(answer));
 
   return {
@@ -158,12 +131,20 @@ export function assessRepeatPurchase(input: {
       status: 'finding',
       summary: `You bought ${recent.kind === 'exact' ? 'this' : 'a similar item'} ${recent.daysAgo} days ago. A past receipt doesn’t prove you still have it.`,
       evidence,
-      confidence: recent.kind === 'exact' ? 'high' : 'medium',
+      confidence: recent.kind === 'exact' ? (reviewed ? 'high' : 'medium') : reviewed ? 'medium' : 'low',
     },
     skipEligible: true,
     question: repeatPurposeQuestion(matchKey),
   };
 }
+
+const ANSWER_SENTENCES: Record<ClarificationAnswer, string> = {
+  broke: 'replacing one that broke or got lost',
+  replacement: 'a replacement',
+  gift: 'a gift',
+  additional: 'an extra',
+  different_purpose: 'for something different',
+};
 
 function answeredResult(
   base: { criterion: 'repeat_purchase'; version: number },
@@ -177,7 +158,7 @@ function answeredResult(
       result: {
         ...base,
         status: 'no_concern',
-        summary: `You said this is ${answer === 'replacement' ? 'a replacement' : answer === 'different_purpose' ? 'for something different' : 'an extra'}.`,
+        summary: `You said this is ${ANSWER_SENTENCES[answer]}.`,
         evidence: withAnswer,
         confidence: 'high',
       },

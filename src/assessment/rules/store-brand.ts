@@ -17,9 +17,9 @@ export interface ShopperPreferences {
 const SIMILAR_INGREDIENTS_THRESHOLD = 0.8;
 
 /**
- * Store-brand value: prefer an available store brand, state the real unit and
- * basket price difference, and claim savings only when it is at least 5%
- * cheaper per unit. Never suggests a food or drink with added sugar (or an
+ * Store-brand value: recommend an available store brand only when it is at
+ * least 5% cheaper per unit, stating the real unit and basket price
+ * difference; one that costs the same or more is not mentioned. Never suggests a food or drink with added sugar (or an
  * unknown amount), and flags allergy or dietary conflicts instead of
  * suggesting the product.
  */
@@ -148,6 +148,20 @@ export function assessStoreBrand(
     evidence.push({ label: 'Ingredients', value: 'Similar ingredient lists', source: 'walmart_reference' });
   }
 
+  // Only a cheaper store brand is worth mentioning: one that costs the same or more gets no advice.
+  if (comparison !== 'cheaper' || savingsCents === null || savingsCents <= 0) {
+    return {
+      ...base,
+      status: 'no_concern',
+      summary:
+        comparison === 'costs_more'
+          ? `${alternative.name} is the store-brand option, but it costs more per unit, so there’s no savings.`
+          : `${alternative.name} is the store-brand option; the unit prices are about the same, so no savings are claimed.`,
+      evidence,
+      confidence: 'medium',
+    };
+  }
+
   if (conflicts.length > 0) {
     return {
       ...base,
@@ -159,27 +173,13 @@ export function assessStoreBrand(
     };
   }
 
-  if (comparison === 'cheaper' && savingsCents !== null && savingsCents > 0) {
-    return {
-      ...base,
-      status: 'finding',
-      summary: `${alternative.name} costs about ${formatCents(savingsCents)} less for the same amount (estimate from a last-checked price).`,
-      evidence,
-      confidence: 'medium',
-      suggestion: { kind: 'cheaper_alternative', amountCents: savingsCents, alternative: info },
-    };
-  }
-
   return {
     ...base,
     status: 'finding',
-    summary:
-      comparison === 'costs_more'
-        ? `${alternative.name} is the store-brand option, but it costs more per unit, so there’s no savings.`
-        : `${alternative.name} is the store-brand option; the unit prices are about the same, so no savings are claimed.`,
+    summary: `${alternative.name} costs about ${formatCents(savingsCents)} less for the same amount (estimate from a last-checked price).`,
     evidence,
     confidence: 'medium',
-    suggestion: { kind: 'store_brand_note', amountCents: null, alternative: { ...info, savingsCents: null } },
+    suggestion: { kind: 'cheaper_alternative', amountCents: savingsCents, alternative: info },
   };
 }
 

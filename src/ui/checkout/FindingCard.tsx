@@ -29,6 +29,11 @@ export function FindingBody({ finding, onAnswer, onSkipQuestion, onWhyOpened, sh
     <>
       {showName && <strong className="wi-item-name">{finding.itemName}</strong>}
       {showText && <span className="wi-finding-text">{finding.text}</span>}
+      {finding.watch.length > 0 && (
+        <p className="wi-watch">
+          Also noted: <mark>{finding.watch.join(', ')}</mark>
+        </p>
+      )}
       {finding.question && (
         <div className="wi-question" role="group" aria-label={finding.question.prompt}>
           <span className="wi-question-prompt">{finding.question.prompt}</span>

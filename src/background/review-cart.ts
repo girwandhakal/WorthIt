@@ -76,6 +76,8 @@ export function unreadLinesFinding(snapshot: CartSnapshot): ReviewFinding | null
       snapshot.items.length === 0
         ? `${store} shows ${displayed} ${displayed === 1 ? 'item' : 'items'} in your cart, but Worth It couldn't read any of them. ${store}'s page may have changed, so Worth It isn't guessing.`
         : `${store} shows ${displayed} items, but Worth It could read only ${read}. ${store}'s page may have changed, so this review may be incomplete.`,
+    points: [],
+    watch: [],
     wording: null,
     amountCents: null,
     question: null,

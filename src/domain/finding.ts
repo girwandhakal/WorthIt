@@ -7,7 +7,8 @@ import type { ClarificationAnswer, HistorySource, PurchaseStatus } from './histo
  * per criterion; the UI and any wording assistant only ever present these.
  */
 
-export const CRITERIA_VERSION = 1;
+/** Bumped when the decision rules change: 2 is the single food / non-food decision tree. */
+export const CRITERIA_VERSION = 2;
 
 export type CriterionId = 'readability' | 'purpose' | 'store_brand' | 'repeat_purchase' | 'added_sugar' | 'food_quality';
 
@@ -70,6 +71,10 @@ export interface CriterionResult {
   status: CriterionStatus;
   /** One plain sentence for the full analysis. */
   summary: string;
+  /** The finding's reviewed wording cut to 2 or 3 short points, when it has a health note. */
+  points?: string[];
+  /** Ingredients worth noting that are not a concern and are never counted (for example modified starch). */
+  watch?: string[];
   evidence: Evidence[];
   confidence: Confidence;
   suggestion?: Suggestion;

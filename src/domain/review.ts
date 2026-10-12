@@ -24,7 +24,7 @@ export interface CartReview {
   autoOpen: boolean;
 }
 
-export type ReviewFindingKind = SuggestionKind | 'repeat_question' | 'uncertain';
+export type ReviewFindingKind = SuggestionKind | 'uncertain';
 
 export interface FindingWording {
   template: TemplateKey;
@@ -44,6 +44,14 @@ export interface ReviewFinding {
   imageUrl: string | null;
   /** Short advisor text built from verified fields. */
   text: string;
+  /**
+   * The same finding as 2 or 3 short points, readable in a highlight's few
+   * seconds. Built in code from the same verified values; never rephrased.
+   * Empty when the finding is only ever listed, not highlighted.
+   */
+  points: string[];
+  /** Ingredients worth noting on this item that are not a concern: shown, never counted. */
+  watch: string[];
   /** How `text` was built, when it may be rephrased; null for fixed wording. */
   wording: FindingWording | null;
   /** Potential current-cart reduction, when this finding has one. */

@@ -157,13 +157,17 @@ function PanelForReview({
   const ready = !locked;
 
   return (
-    <section ref={overlayRef} className="wi-overlay" role="dialog" aria-modal="true" aria-labelledby="wi-panel-title" onKeyDown={trapFocus}>
-      <div className="wi-aurora" aria-hidden="true" />
+    <section ref={overlayRef} className="wi-overlay" role="dialog" aria-modal="true" aria-labelledby="wi-panel-title" aria-describedby={locked ? 'wi-panel-lock' : undefined} onKeyDown={trapFocus}>
       <header className="wi-header">
         <h2 id="wi-panel-title" ref={headingRef} tabIndex={-1}>
           <span className="wi-logo" aria-hidden="true" />
           Worth It
         </h2>
+        {locked && (
+          <span id="wi-panel-lock" className="wi-sr-only">
+            This presentation can’t be skipped. Continue and See full analysis appear when it ends.
+          </span>
+        )}
         {!locked && (
           <button type="button" className="wi-icon-button" aria-label="Dismiss Worth It panel" onClick={close}>
             <span aria-hidden="true">×</span>
@@ -191,21 +195,18 @@ function PanelForReview({
         )}
         {mode === 'full' && <FullAnalysis review={review} onBack={() => setMode('static')} />}
       </div>
-      <footer className={`wi-footer ${ready ? 'wi-footer-ready' : ''}`}>
+      {/* Hidden while the presentation plays for the first time (nothing to press until it ends), but it keeps its space so nothing shifts when it appears. */}
+      <footer className={`wi-footer ${ready ? 'wi-footer-ready' : ''}`} style={ready ? undefined : { visibility: 'hidden' }} aria-hidden={ready ? undefined : true}>
         {mode !== 'full' ? (
-          <button type="button" className="wi-secondary wi-analysis-button" onClick={() => setMode('full')} disabled={locked}>
+          <button type="button" className="wi-secondary wi-analysis-button" onClick={() => setMode('full')}>
             See full analysis
           </button>
         ) : (
           <span className="wi-handback">Worth It never changes your cart.</span>
         )}
         <span className="wi-footer-end">
-          {locked ? (
-            <span className="wi-footer-hint">Continue unlocks when the presentation ends.</span>
-          ) : (
-            focusOnOpen && <span className="wi-footer-hint">Your next checkout click goes straight through.</span>
-          )}
-          <button type="button" className="wi-primary" onClick={close} disabled={locked}>
+          {focusOnOpen && <span className="wi-footer-hint">Your next checkout click goes straight through.</span>}
+          <button type="button" className="wi-primary" onClick={close}>
             Continue
           </button>
         </span>

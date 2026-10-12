@@ -50,12 +50,7 @@ describe('summarizeCart', () => {
     expect(summary.opening).toBe('Before you check out, 3 things are worth a second thought.');
     expect(summary.highlights.map((h) => h.itemName.split(' ')[0])).toEqual(['Stanley', 'Skittles', 'Squishmallows']);
     expect(summary.grouped).toMatchObject({ label: 'You also had 3 other items you could reconsider or swap for a different one, worth about $4.81 more.', itemCount: 3, amountCents: 481 });
-    expect(summary.grouped?.findings.map((f) => f.kind)).toEqual([
-      'cheaper_alternative',
-      'cheaper_alternative',
-      'cheaper_alternative',
-      'store_brand_note',
-    ]);
+    expect(summary.grouped?.findings.map((f) => f.kind)).toEqual(['cheaper_alternative', 'cheaper_alternative', 'cheaper_alternative']);
     expect(summary.totals).toEqual({ combinedCents: 3872, alternativeCents: 481, skipCents: 3391, uncountedItems: 0 });
     expect(summary.investment).toMatchObject({ principalCents: 3872, futureValueCents: 175244 });
     expect(summary.savingsSentence).toBeNull();
@@ -69,7 +64,7 @@ describe('summarizeCart', () => {
     expect(summary.highlights.map((h) => h.itemName.split(' ')[0])).toEqual(['Stanley', 'Skittles', 'Squishmallows']);
   });
 
-  it('counts each item once even when it has two options (skip and cheaper)', () => {
+  it('counts a recently bought item once, at its full price, with no cheaper-option amount alongside', () => {
     const summary = summaryFor(snapshot([line('18256507800')]));
     expect(summary.totals).toMatchObject({ combinedCents: 2497, alternativeCents: 0, skipCents: 2497 });
   });
@@ -119,9 +114,9 @@ describe('groupedLabel when only notes are left', () => {
 });
 
 describe('groupedLabel counts items, not findings', () => {
-  it('an item with a cheaper option and a question is one item', () => {
+  it('an item with two findings is one item', () => {
     const finding = (kind: ReviewFinding['kind'], amountCents: number | null) => ({ kind, itemKey: 'walmart:1', amountCents }) as ReviewFinding;
-    expect(groupedLabel([finding('cheaper_alternative', 150), finding('repeat_question', null)])).toBe(
+    expect(groupedLabel([finding('cheaper_alternative', 150), finding('store_brand_note', null)])).toBe(
       'You also had 1 other item you could reconsider or swap for a different one, worth about $1.50 more.',
     );
   });

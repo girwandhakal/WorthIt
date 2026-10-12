@@ -1,5 +1,5 @@
 import type { CartItem } from '../domain/cart';
-import type { AlternativeInfo, CartAssessment, ItemAssessment, Suggestion } from '../domain/finding';
+import type { AlternativeInfo, CartAssessment, CriterionResult, ItemAssessment, Suggestion } from '../domain/finding';
 import type { FindingWording, ReviewFinding } from '../domain/review';
 import { formatCents } from '../shared/currency';
 import { renderTemplate, type TemplateKey } from '../summary/templates';
@@ -20,10 +20,6 @@ export function panelFindings(assessment: CartAssessment, items: readonly CartIt
     // Store-brand notes without savings are listed, never highlighted.
     const note = item.secondary.find((suggestion) => suggestion.kind === 'store_brand_note');
     if (note) findings.push(findingFor(item, note));
-    // A question with no skip suggestion (an exact repeat of an unclassified item).
-    if (item.question && !findings.some((finding) => finding.itemKey === item.itemKey && finding.question)) {
-      findings.push(questionFinding(item));
-    }
     if (cartItem && cartItem.issues.length > 0) {
       findings.push({
         id: `${item.itemKey}:uncertain`,
@@ -33,6 +29,8 @@ export function panelFindings(assessment: CartAssessment, items: readonly CartIt
         itemName: item.itemName,
     imageUrl: item.imageUrl,
         text: uncertaintyText(cartItem),
+        points: [],
+        watch: [],
         wording: null,
         amountCents: null,
         question: null,
@@ -51,9 +49,8 @@ const KIND_RANK: Record<ReviewFinding['kind'], number> = {
   reduce_added_sugar: 2,
   reduce_food_concern: 3,
   cheaper_alternative: 4,
-  repeat_question: 5,
-  store_brand_note: 6,
-  uncertain: 7,
+  store_brand_note: 5,
+  uncertain: 6,
 };
 
 /** 0: a suggestion with a known amount; 1: a question or other suggestion without one; 2: notes and uncertainty. */
@@ -98,18 +95,12 @@ function findingFor(item: ItemAssessment, suggestion: Suggestion): ReviewFinding
   if (suggestion.kind === 'reduce_added_sugar') {
     why.push(...(item.criteria.find((candidate) => candidate.criterion === 'food_quality')?.evidence ?? []));
   }
-  // Context for a skip: the cheaper option is still worth knowing about.
-  const alternative = item.secondary.find((other) => other.kind === 'cheaper_alternative')?.alternative;
-  if ((suggestion.kind === 'skip_redundant' || suggestion.kind === 'reduce_food_concern') && alternative?.savingsCents) {
-    why.push({
-      label: suggestion.kind === 'skip_redundant' ? 'If you do need one' : 'If you do buy it',
-      value: `${alternative.name} costs about ${formatCents(alternative.savingsCents)} less`,
-      source: 'walmart_reference',
-    });
-  }
   if (suggestion.alternative) {
     for (const difference of suggestion.alternative.differences) why.push({ label: 'Difference', value: difference, source: 'walmart_reference' });
   }
+  // An ingredient noted but not counted keeps its explanation and source on the finding it is shown with.
+  const watched = item.criteria.find((candidate) => candidate.criterion === 'food_quality');
+  if (watched?.watch?.length) why.push(...watched.evidence.filter((evidence) => evidence.label === 'Also noted (not counted)' && !why.includes(evidence)));
   if (item.shareOfCartBps !== null) {
     why.push({ label: 'Share of your cart', value: `${(item.shareOfCartBps / 100).toFixed(1)}%`, source: 'cart_page' });
   }
@@ -122,32 +113,14 @@ function findingFor(item: ItemAssessment, suggestion: Suggestion): ReviewFinding
     itemName: item.itemName,
     imageUrl: item.imageUrl,
     text: wording ? renderTemplate(wording.template, wording.slots) : fixedText(suggestion, criterion.summary),
+    points: pointsFor(item, suggestion, criterion),
+    watch: item.criteria.find((candidate) => candidate.criterion === 'food_quality')?.watch ?? [],
     wording,
     amountCents: suggestion.amountCents,
     question: suggestion.kind === 'skip_redundant' ? item.question : null,
     why,
     sources: sourcesFor(why.map((evidence) => evidence.source), suggestion.alternative),
     confidence: criterion.confidence,
-  };
-}
-
-function questionFinding(item: ItemAssessment): ReviewFinding {
-  const repeat = item.criteria.find((criterion) => criterion.criterion === 'repeat_purchase')!;
-  const match = latestKept(item);
-  return {
-    id: `${item.itemKey}:repeat_question`,
-    itemKey: item.itemKey,
-    position: item.position,
-    kind: 'repeat_question',
-    itemName: item.itemName,
-    imageUrl: item.imageUrl,
-    text: renderTemplate('repeat_question', whatWhen(match)),
-    wording: { template: 'repeat_question', slots: whatWhen(match) },
-    amountCents: null,
-    question: item.question,
-    why: repeat.evidence,
-    sources: sourcesFor(repeat.evidence.map((evidence) => evidence.source)),
-    confidence: repeat.confidence,
   };
 }
 
@@ -176,6 +149,38 @@ function wordingFor(item: ItemAssessment, suggestion: Suggestion): FindingWordin
     }
     default:
       return null;
+  }
+}
+
+/**
+ * The finding as 2 or 3 short points, readable in a highlight's few seconds.
+ * Same verified values and claims as its full text; the amount is shown beside
+ * them, so the points give the reason rather than repeat it.
+ */
+function pointsFor(item: ItemAssessment, suggestion: Suggestion, criterion: CriterionResult): string[] {
+  switch (suggestion.kind) {
+    case 'skip_redundant': {
+      const { what, when } = whatWhen(latestKept(item));
+      return [`You bought ${what} ${when}`, item.answer === 'additional' ? 'You said this one is an extra' : 'Do you need another one?'];
+    }
+    case 'skip_novelty':
+      return ['A novelty item with no practical use', 'Probably not worth it'];
+    case 'cheaper_alternative':
+      switch (suggestion.alternative!.similarity) {
+        case 'similar_ingredients':
+          return ['Similar ingredients', 'Same amount for less', 'Try the store brand?'];
+        case 'different_ingredients':
+          return ['Some ingredient differences', 'Same amount for less', 'Try the store brand?'];
+        case 'not_food':
+          return ['A lower-priced option', 'Want to consider it?'];
+        default:
+          return ['Same amount for less', 'Try the store brand?'];
+      }
+    case 'reduce_added_sugar':
+    case 'reduce_food_concern':
+      return criterion.points ?? [];
+    default:
+      return [];
   }
 }
 

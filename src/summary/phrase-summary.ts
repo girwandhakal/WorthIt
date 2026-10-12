@@ -18,7 +18,6 @@ export interface PhraseDeps {
 
 const CHECK_FOR_KIND: Record<string, keyof typeof CRITERION_LABELS> = {
   skip_redundant: 'repeat_purchase',
-  repeat_question: 'repeat_purchase',
   skip_novelty: 'purpose',
   cheaper_alternative: 'store_brand',
 };

@@ -188,14 +188,14 @@ describe('reviewed items whose product page is also read', () => {
     expect(result.summary.totals.combinedCents).toBe(item!.linePriceCents);
   });
 
-  it('a flagged item with a verified cheaper alternative still mentions it behind "Why?"', () => {
+  it('a flagged food gets its concern only: no store-brand switch is suggested, even when one exists', () => {
     const facts = factsFor({ ...PAGES.skittles, id: '10324125', name: "Eggland's Best Large White Eggs, 12 ct", path: ['Food', 'Dairy & Eggs'], ingredients: 'EGGS, NATURAL FLAVOR', nutrition: null });
     const items = [line('10324125')];
     const result = reviewCart(snapshot(items), reviewContext({ facts: { '10324125': facts } }));
     const finding = result.findings[0]!;
     expect(finding.kind).toBe('reduce_food_concern');
-    expect(finding.why).toContainEqual(expect.objectContaining({ label: 'If you do buy it' }));
-    expect(result.summary.totals.alternativeCents).toBe(0); // the swap is context, never double counted
+    expect(result.findings.map((candidate) => candidate.kind)).toEqual(['reduce_food_concern']);
+    expect(result.summary.totals.alternativeCents).toBe(0);
   });
 
   it('a whole-food reviewed item keeps its approved store-brand suggestion', () => {
@@ -206,9 +206,9 @@ describe('reviewed items whose product page is also read', () => {
 });
 
 describe('what is worth interrupting checkout for', () => {
-  it('a lone store-brand note with no savings never arms the checkout hold', () => {
+  it('a store brand that costs more says nothing, so it never arms the checkout hold', () => {
     const result = reviewCart(snapshot([line('5308263928')]), reviewContext());
-    expect(result.findings.map((finding) => finding.kind)).toEqual(['store_brand_note']);
+    expect(result.findings).toEqual([]);
     expect(result.summary.highlights).toEqual([]);
     expect(result.autoOpen).toBe(false);
   });

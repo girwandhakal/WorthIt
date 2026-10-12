@@ -61,12 +61,12 @@ function assessItem(
   const answer = storedAnswer(inputs.clarifications, REPEAT_PURPOSE_QUESTION_ID, matchKey);
 
   const readability = assessReadability(item);
-  const purpose = assessPurpose(reference, unitPriceCents, item.linePriceCents, facts);
+  const purpose = assessPurpose(reference, item.linePriceCents, facts);
   const matches = findHistoryMatches(item, reference, inputs.history, inputs.today, facts?.categoryPath ?? []);
   const repeat = assessRepeatPurchase({
-    reference,
-    purposeClass: purpose.purposeClass,
+    food: purpose.food,
     consumable: purpose.consumable,
+    reviewed: reference !== null,
     matches,
     answer,
     matchKey,
@@ -77,14 +77,22 @@ function assessItem(
 
   const criteria: CriterionResult[] = [readability, purpose.result, repeat.result, storeBrand, sugar, foodQuality];
 
-  // One primary suggestion per item: skip (redundancy, then novelty) beats the
-  // added-sugar skip-or-reduce, then any other label concern, which beat a cheaper alternative.
+  // The decision tree. Each item takes exactly one branch, so it gets at most one kind of advice.
+  //   Food:      a concern on its label (what makes it processed) -> skip or reduce it, citing the source;
+  //              a whole food, or nothing flagged -> a cheaper store brand, when one is as good; else nothing.
+  //   Non-food:  a novelty item with no use -> skip it; bought recently -> skip it, or ask;
+  //              otherwise -> a cheaper store brand, when one does the same job; else nothing.
+  //   Unknown:   Worth It couldn't tell whether it is food, so it says nothing.
   const candidates: Suggestion[] = [];
-  if (repeat.skipEligible) candidates.push({ kind: 'skip_redundant', amountCents: item.linePriceCents });
-  if (purpose.result.suggestion) candidates.push(purpose.result.suggestion);
-  if (sugar.suggestion) candidates.push(sugar.suggestion);
-  if (foodQuality.suggestion) candidates.push(foodQuality.suggestion);
-  if (storeBrand.suggestion) candidates.push(storeBrand.suggestion);
+  if (purpose.food === true) {
+    if (sugar.suggestion) candidates.push(sugar.suggestion);
+    if (foodQuality.suggestion) candidates.push(foodQuality.suggestion);
+    if (candidates.length === 0 && storeBrand.suggestion) candidates.push(storeBrand.suggestion);
+  } else if (purpose.food === false) {
+    if (repeat.skipEligible) candidates.push({ kind: 'skip_redundant', amountCents: item.linePriceCents });
+    if (purpose.result.suggestion) candidates.push(purpose.result.suggestion);
+    if (candidates.length === 0 && storeBrand.suggestion) candidates.push(storeBrand.suggestion);
+  }
   const actionable = item.issues.includes('unavailable') ? [] : candidates;
   const primary = actionable.find((suggestion) => suggestion.kind !== 'store_brand_note') ?? null;
 

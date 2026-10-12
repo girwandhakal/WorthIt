@@ -53,20 +53,8 @@ export const PURPOSE_CLASS_LABELS: Record<PurposeClass, string> = {
   unknown: 'Unknown',
 };
 
-/** Basic clothing is essential at or under this price per unit. */
-export const BASIC_CLOTHING_MAX_UNIT_CENTS = 25_00;
-/** Basic household items are essential at or under this price per unit. */
-export const BASIC_HOUSEHOLD_MAX_UNIT_CENTS = 40_00;
-
-/** How far back a similar purchase counts as recent, by kind of item. */
-export const LOOKBACK_DAYS = {
-  clothing: 60,
-  household: 90,
-  useful: 90,
-  discretionary: 90,
-  /** Unknown category: only exact or similar-looking repeats, and only to ask, never to suggest skipping. */
-  unknownExact: 90,
-} as const;
+/** How far back a similar purchase of a non-consumable counts as recent. One window for every kind of item. */
+export const RECENT_PURCHASE_DAYS = 90;
 
 /** Store-brand savings are claimed only when its unit price is at least this much lower. */
 export const STORE_BRAND_MIN_SAVINGS_RATIO = 0.05;
@@ -102,11 +90,8 @@ export const CATEGORIES: Record<CategoryId, CategoryInfo> = {
   novelty_collectible: { label: 'Novelty / collectible', consumable: false, food: false },
 };
 
-/**
- * Purpose class from category and the live unit price. Never guessed from a
- * title: a missing category is `unknown`.
- */
-export function purposeClassFor(category: CategoryId | null, unitPriceCents: number | null): PurposeClass {
+/** Purpose class from category. Never guessed from a title: a missing category is `unknown`. */
+export function purposeClassFor(category: CategoryId | null): PurposeClass {
   if (!category) return 'unknown';
   switch (category) {
     case 'grocery_staple':
@@ -117,9 +102,8 @@ export function purposeClassFor(category: CategoryId | null, unitPriceCents: num
     case 'pet_food':
       return 'essential_consumable';
     case 'basic_clothing':
-      return unitPriceCents !== null && unitPriceCents <= BASIC_CLOTHING_MAX_UNIT_CENTS ? 'essential_non_consumable' : 'useful';
     case 'basic_household':
-      return unitPriceCents !== null && unitPriceCents <= BASIC_HOUSEHOLD_MAX_UNIT_CENTS ? 'essential_non_consumable' : 'useful';
+      return 'essential_non_consumable';
     case 'school_office':
     case 'small_appliance':
     case 'tools':
@@ -132,12 +116,4 @@ export function purposeClassFor(category: CategoryId | null, unitPriceCents: num
     default:
       return 'discretionary';
   }
-}
-
-/** Lookback window for a recent similar purchase of a non-consumable. */
-export function lookbackDaysFor(category: CategoryId, purpose: PurposeClass): number {
-  if (category === 'basic_clothing' && purpose === 'essential_non_consumable') return LOOKBACK_DAYS.clothing;
-  if (category === 'basic_household' && purpose === 'essential_non_consumable') return LOOKBACK_DAYS.household;
-  if (purpose === 'useful') return LOOKBACK_DAYS.useful;
-  return LOOKBACK_DAYS.discretionary;
 }

@@ -20,6 +20,10 @@ export interface PurposeAssessment {
 const NOVELTY_CATEGORY = /\b(collectibles?|collectables?|novelty|gag gifts?|pranks?|fidgets?|bobbleheads?|figurines?)\b/i;
 const NOVELTY_PRODUCT_LINE = /\b(squishmallows?|funko|bobblehead|gag gift|novelty|fidget (spinner|toy|pack)|pop it)\b/i;
 
+/** Categories (by Walmart path) of non-food items bought again and again: household and personal consumables, pet food. */
+const CONSUMABLE_CATEGORY =
+  /\b(paper (goods|towels?)|toilet paper|laundry|detergents?|dish(washing)? (soap|detergent)|cleaning supplies|trash bags?|diapers?|wipes|feminine care|shampoo|conditioner|soap|toothpaste|deodorant|vitamins?|pain relievers?|first aid|pet food|dog food|cat food|cat litter)\b/i;
+
 /** Categories (by Walmart path) whose foods are treats, not staples. */
 const TREAT_CATEGORY = /\b(candy|snacks?|cookies?|soda|soft drinks?|chips)\b/i;
 
@@ -40,7 +44,6 @@ export function noveltyEvidence(facts: ProductFacts): string | null {
  */
 export function assessPurpose(
   reference: ReferenceProduct | null,
-  unitPriceCents: number | null,
   linePriceCents: number | null,
   facts: ProductFacts | null = null,
 ): PurposeAssessment {
@@ -61,7 +64,7 @@ export function assessPurpose(
     };
   }
   const category = CATEGORIES[reference.category];
-  const purposeClass = purposeClassFor(reference.category, unitPriceCents);
+  const purposeClass = purposeClassFor(reference.category);
   // The purpose class itself is shown only in the full analysis, not as evidence.
   const evidence = [{ label: 'Product type', value: category.label, source: 'walmart_reference' as const }];
 
@@ -129,6 +132,20 @@ function assessFromPage(facts: ProductFacts, linePriceCents: number | null): Pur
         status: 'no_concern',
         summary: treat ? 'A treat or snack.' : 'Food or drink.',
         evidence: [{ label: 'Walmart category', value: facts.categoryPath.slice(0, 3).join(' > '), source }],
+        confidence: 'medium',
+      },
+    };
+  }
+  if (food === false && facts.categoryPath.some((segment) => CONSUMABLE_CATEGORY.test(segment))) {
+    return {
+      purposeClass: 'essential_consumable',
+      consumable: true,
+      food: false,
+      result: {
+        ...base,
+        status: 'no_concern',
+        summary: 'A household or personal item that is bought again and again.',
+        evidence: [{ label: 'Walmart category', value: facts.categoryPath.slice(-2).join(' > '), source }],
         confidence: 'medium',
       },
     };

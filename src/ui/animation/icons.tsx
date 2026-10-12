@@ -33,12 +33,6 @@ const ICONS: Record<IconKind, ReactElement> = {
       <polyline points="20 49 20 41 28 41" />
     </g>
   ),
-  repeat_question: (
-    <g {...stroke}>
-      <path d="M25 25a7 7 0 1 1 10 6c-2 1-3 3-3 5" />
-      <line x1="32" y1="44" x2="32" y2="44.5" />
-    </g>
-  ),
   // A sparkle: novelty.
   skip_novelty: (
     <g {...stroke}>

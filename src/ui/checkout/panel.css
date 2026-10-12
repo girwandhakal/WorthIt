@@ -322,26 +322,31 @@ select {
 }
 
 /* =====================================================================
-   Full-screen checkout presentation. A deliberate dark, cinematic stage
-   in both color schemes; product photos sit on white tiles.
+   Full-screen checkout presentation. Minimal on purpose: plain paper (or
+   plain charcoal in dark mode), ink type, and one splash of green that
+   carries the moments that matter: the color behind each product, the
+   marker under each amount, the savings meter, and the growth line.
+   Motion is calm and eased; nothing glows, pulses, or loops.
    ===================================================================== */
 
 .wi-overlay {
-  --wi-bg: #0a120f;
-  --wi-surface: rgba(255, 255, 255, 0.055);
-  --wi-surface-2: rgba(255, 255, 255, 0.1);
-  --wi-text: #eef6f2;
-  --wi-muted: #9db1a8;
-  --wi-border: rgba(255, 255, 255, 0.12);
-  --wi-accent: #44e0a0;
-  --wi-accent-strong: #7cf2c0;
-  --wi-accent-soft: rgba(68, 224, 160, 0.14);
-  --wi-warm: #ffb066;
-  --wi-warm-soft: rgba(255, 176, 102, 0.14);
-  --wi-focus: #9cc2ff;
-  --wi-on-accent: #04140d;
-  --wi-tone: var(--wi-accent);
-  --wi-tone-soft: var(--wi-accent-soft);
+  --wi-bg: #f5f3ee;
+  --wi-surface: #ffffff;
+  --wi-surface-2: #e9e7e1;
+  --wi-text: #121212;
+  --wi-muted: #6b6a66;
+  --wi-border: rgba(18, 18, 18, 0.12);
+  --wi-splash: #19c37d;
+  /* The splash, darkened enough to read as text on the paper. */
+  --wi-splash-ink: #0a7a4b;
+  --wi-accent: var(--wi-splash);
+  --wi-accent-strong: var(--wi-splash-ink);
+  --wi-accent-soft: rgba(25, 195, 125, 0.14);
+  --wi-focus: #2563eb;
+  --wi-on-ink: #f5f3ee;
+  --wi-tone: var(--wi-splash);
+  --wi-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --wi-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   position: fixed;
   inset: 0;
   z-index: 2147483646;
@@ -350,64 +355,59 @@ select {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: rgba(5, 10, 8, 0.95);
+  background: var(--wi-bg);
   color: var(--wi-text);
   font-size: 16px;
-  animation: wi-overlay-in 140ms ease-out;
+  animation: wi-fade 240ms ease-out;
 }
 
-/* The dark scrim is there on the first frame; only a short fade softens it. */
-@keyframes wi-overlay-in {
+@media (prefers-color-scheme: dark) {
+  .wi-overlay {
+    --wi-bg: #111211;
+    --wi-surface: #1a1b1a;
+    --wi-surface-2: #2a2b2a;
+    --wi-text: #f1f0ec;
+    --wi-muted: #9b9a95;
+    --wi-border: rgba(255, 255, 255, 0.12);
+    --wi-splash-ink: #4fe0a2;
+    --wi-accent-soft: rgba(25, 195, 125, 0.18);
+    --wi-focus: #8ab4ff;
+    --wi-on-ink: #111211;
+  }
+}
+
+@keyframes wi-fade {
   from {
-    opacity: 0.4;
-  }
-  to {
-    opacity: 1;
+    opacity: 0;
   }
 }
 
-.wi-overlay > :not(.wi-aurora) {
+@keyframes wi-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+.wi-overlay > * {
   position: relative;
   z-index: 1;
 }
 
-.wi-aurora {
-  position: fixed;
-  inset: -20%;
-  pointer-events: none;
-  background:
-    radial-gradient(38% 34% at 18% 14%, rgba(68, 224, 160, 0.2), transparent 70%),
-    radial-gradient(34% 30% at 86% 86%, rgba(255, 176, 102, 0.13), transparent 70%),
-    radial-gradient(28% 28% at 72% 18%, rgba(96, 140, 255, 0.1), transparent 70%);
-  animation: wi-drift 22s ease-in-out infinite alternate;
-}
-
-@keyframes wi-drift {
-  to {
-    transform: translate3d(4%, -3%, 0) rotate(8deg) scale(1.08);
-  }
-}
-
-.wi-tone-warm {
-  --wi-tone: var(--wi-warm);
-  --wi-tone-soft: var(--wi-warm-soft);
-}
-
+.wi-tone-warm,
 .wi-tone-mint {
-  --wi-tone: var(--wi-accent);
-  --wi-tone-soft: var(--wi-accent-soft);
+  --wi-tone: var(--wi-splash);
 }
 
 .wi-tone-muted {
   --wi-tone: var(--wi-muted);
-  --wi-tone-soft: var(--wi-surface-2);
 }
 
 .wi-eyebrow {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 650;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--wi-muted);
 }
@@ -422,9 +422,8 @@ select {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
+  font-size: 16px;
+  font-weight: 750;
   color: var(--wi-text);
   outline: none;
 }
@@ -436,11 +435,10 @@ select {
 }
 
 .wi-logo {
-  width: 22px;
-  height: 22px;
-  border-radius: 7px;
-  background: linear-gradient(135deg, var(--wi-accent), #2bb6d6);
-  box-shadow: 0 0 18px rgba(68, 224, 160, 0.55);
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: var(--wi-splash);
 }
 
 .wi-overlay .wi-icon-button {
@@ -452,6 +450,7 @@ select {
   color: var(--wi-text);
   font-size: 22px;
   line-height: 1;
+  transition: background 200ms;
 }
 
 .wi-overlay .wi-icon-button:hover {
@@ -468,7 +467,7 @@ select {
   gap: 12px;
   padding: 16px 32px 24px;
   border-top: 1px solid var(--wi-border);
-  background: linear-gradient(to top, rgba(5, 10, 8, 0.96), rgba(5, 10, 8, 0.75));
+  background: var(--wi-bg);
 }
 
 .wi-footer-end {
@@ -484,28 +483,31 @@ select {
   color: var(--wi-muted);
 }
 
+/* Continue fills in with ink the moment it unlocks. */
 .wi-overlay .wi-primary {
   padding: 12px 30px;
   border-radius: 999px;
-  background: var(--wi-accent);
-  color: var(--wi-on-accent);
+  background: var(--wi-text);
+  color: var(--wi-on-ink);
   font-size: 15px;
-  font-weight: 750;
-  box-shadow: 0 10px 30px -10px rgba(68, 224, 160, 0.7);
-  transition: transform 160ms, box-shadow 160ms;
+  font-weight: 700;
+  transition:
+    background 500ms var(--wi-ease),
+    color 500ms var(--wi-ease),
+    transform 160ms var(--wi-ease);
 }
 
-.wi-overlay .wi-primary:hover {
-  background: var(--wi-accent-strong);
+.wi-overlay .wi-primary:hover:not(:disabled) {
   transform: translateY(-1px);
 }
 
 .wi-overlay .wi-primary:disabled,
 .wi-overlay .wi-secondary:disabled {
-  opacity: 0.4;
+  background: var(--wi-surface-2);
+  color: var(--wi-muted);
+  border-color: transparent;
   cursor: not-allowed;
   transform: none;
-  box-shadow: none;
 }
 
 .wi-overlay .wi-secondary {
@@ -516,32 +518,31 @@ select {
   color: var(--wi-text);
   font-size: 15px;
   font-weight: 650;
-  transition: border-color 200ms, background 200ms;
+  transition:
+    border-color 400ms var(--wi-ease),
+    background 400ms var(--wi-ease),
+    color 400ms var(--wi-ease);
 }
 
-.wi-overlay .wi-secondary:hover {
+.wi-overlay .wi-secondary:hover:not(:disabled) {
   background: var(--wi-surface-2);
 }
 
 .wi-footer-ready .wi-analysis-button {
-  border-color: var(--wi-accent);
-  color: var(--wi-accent-strong);
-  animation: wi-beckon 2.6s ease-in-out 3;
+  border-color: var(--wi-text);
 }
 
-@keyframes wi-beckon {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(68, 224, 160, 0);
-  }
-  50% {
-    box-shadow: 0 0 0 8px rgba(68, 224, 160, 0.16);
-  }
+/* The footer only appears once the presentation has played: it rises into place. */
+.wi-overlay .wi-footer-ready {
+  animation: wi-rise 600ms 200ms both var(--wi-ease);
 }
 
 .wi-overlay .wi-link {
   font-size: 14px;
-  color: var(--wi-accent-strong);
+  color: var(--wi-text);
+  text-decoration-color: var(--wi-splash);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
 }
 
 .wi-overlay .wi-muted {
@@ -569,7 +570,7 @@ select {
   justify-items: center;
 }
 
-/* ---- Thumbnails ---- */
+/* ---- Thumbnails: the retailer's photos on plain white tiles ---- */
 
 .wi-thumb {
   display: inline-grid;
@@ -578,7 +579,7 @@ select {
   overflow: hidden;
   background: #fff;
   border-radius: 14px;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 10px 24px -12px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 1px rgba(18, 18, 18, 0.08);
 }
 
 .wi-thumb img {
@@ -589,7 +590,7 @@ select {
 }
 
 .wi-thumb-empty {
-  background: #1d2925;
+  background: var(--wi-surface-2);
 }
 
 .wi-thumb-initial {
@@ -614,17 +615,17 @@ select {
 }
 
 .wi-thumb-lg {
-  width: clamp(190px, 26vw, 320px);
-  height: clamp(190px, 26vw, 320px);
-  border-radius: 30px;
+  width: clamp(190px, 24vw, 300px);
+  height: clamp(190px, 24vw, 300px);
+  border-radius: 28px;
 }
 
 .wi-overlay .wi-icon-bg {
-  fill: var(--wi-surface);
+  fill: var(--wi-surface-2);
 }
 
 .wi-overlay .wi-icon-line {
-  stroke: var(--wi-tone, var(--wi-accent));
+  stroke: var(--wi-text);
 }
 
 /* ---- Recap ---- */
@@ -632,43 +633,7 @@ select {
 .wi-recap {
   width: min(1060px, 100%);
   display: grid;
-  gap: 22px;
-}
-
-.wi-story {
-  display: flex;
-  gap: 6px;
-}
-
-.wi-story-seg {
-  flex: 1;
-  height: 4px;
-  border-radius: 4px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.14);
-}
-
-.wi-story-fill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--wi-text);
-  transform: scaleX(0);
-  transform-origin: left;
-}
-
-.wi-story-done {
-  transform: scaleX(1);
-}
-
-.wi-story-active {
-  animation: wi-fill var(--wi-scene-ms, 6000ms) linear forwards;
-}
-
-@keyframes wi-fill {
-  to {
-    transform: scaleX(1);
-  }
+  gap: 24px;
 }
 
 .wi-stage {
@@ -682,32 +647,10 @@ select {
   width: 100%;
   display: grid;
   justify-items: center;
-  animation: wi-scene-in 360ms cubic-bezier(0.2, 0.7, 0.2, 1);
+  animation: wi-fade 300ms ease-out;
 }
 
-@keyframes wi-scene-in {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes wi-rise {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* Opening: every cart item appears; the ones worth a second thought light up. */
+/* Opening: the cart in a neat row; the ones worth a second thought get a ring of color. */
 
 .wi-opening {
   display: grid;
@@ -716,42 +659,62 @@ select {
   text-align: center;
 }
 
+.wi-opening .wi-eyebrow {
+  animation: wi-fade 500ms both;
+}
+
 .wi-scene-title {
   margin: 0;
-  max-width: 22ch;
-  font-size: clamp(30px, 4.4vw, 52px);
+  max-width: 20ch;
+  font-size: clamp(32px, 4.6vw, 56px);
   font-weight: 800;
   line-height: 1.08;
-  letter-spacing: -0.025em;
-  background: linear-gradient(100deg, #ffffff 30%, var(--wi-accent-strong));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  letter-spacing: -0.03em;
+}
+
+/* Each word slides up out of its own mask, one after another. */
+.wi-word {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+
+.wi-word > span {
+  display: inline-block;
+  animation: wi-word 700ms calc(120ms + var(--i, 0) * 55ms) both var(--wi-ease);
+}
+
+@keyframes wi-word {
+  from {
+    transform: translateY(105%);
+  }
 }
 
 .wi-constellation {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 14px;
+  gap: 12px;
   max-width: 760px;
-  margin-top: 26px;
+  margin-top: 30px;
 }
 
 .wi-star {
-  animation: wi-star-in 520ms calc(var(--i, 0) * 50ms) both cubic-bezier(0.3, 1.5, 0.5, 1);
+  animation: wi-rise 600ms calc(400ms + var(--i, 0) * 50ms) both var(--wi-ease);
 }
 
 .wi-constellation .wi-star-dim {
   animation:
-    wi-star-in 520ms calc(var(--i, 0) * 50ms) both cubic-bezier(0.3, 1.5, 0.5, 1),
-    wi-dim 700ms 1500ms forwards ease;
+    wi-rise 600ms calc(400ms + var(--i, 0) * 50ms) both var(--wi-ease),
+    wi-dim 600ms 1700ms forwards var(--wi-ease-in-out);
 }
 
 .wi-constellation .wi-star-lit {
   animation:
-    wi-star-in 520ms calc(var(--i, 0) * 50ms) both cubic-bezier(0.3, 1.5, 0.5, 1),
-    wi-lift 700ms 1500ms forwards cubic-bezier(0.3, 1.5, 0.5, 1);
+    wi-rise 600ms calc(400ms + var(--i, 0) * 50ms) both var(--wi-ease),
+    wi-ring 600ms 1700ms forwards var(--wi-ease);
 }
 
 .wi-star-more {
@@ -765,71 +728,76 @@ select {
   font-weight: 700;
 }
 
-@keyframes wi-star-in {
-  from {
-    opacity: 0;
-    transform: translateY(26px) scale(0.6) rotate(-8deg);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
 @keyframes wi-dim {
   to {
-    opacity: 0.28;
+    opacity: 0.3;
     filter: grayscale(1);
-    transform: scale(0.9);
   }
 }
 
-@keyframes wi-lift {
+@keyframes wi-ring {
   to {
-    transform: translateY(-8px) scale(1.18);
-    box-shadow: 0 0 0 3px var(--wi-tone), 0 18px 40px -8px var(--wi-tone);
+    transform: translateY(-6px);
+    box-shadow: 0 0 0 3px var(--wi-tone);
   }
 }
 
-/* Highlight: the product, front and center. */
+/* Highlight: the product on a bloom of color, its verdict beside it. */
 
 .wi-highlight {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: clamp(28px, 5vw, 64px);
+  gap: clamp(32px, 6vw, 80px);
   width: min(980px, 100%);
 }
 
 .wi-highlight-visual {
   display: grid;
   justify-items: center;
-  gap: 18px;
+  gap: 20px;
 }
 
-.wi-hero-thumb {
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 40px 90px -30px var(--wi-tone);
-  animation:
-    wi-hero-in 820ms cubic-bezier(0.2, 0.8, 0.2, 1) both,
-    wi-float 6s 900ms ease-in-out infinite;
+.wi-hero {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+/* The splash: a solid ring of color that blooms around the product, which sits in a round frame (no square). */
+.wi-splash {
+  position: absolute;
+  width: 120%;
+  aspect-ratio: 1;
+  left: -10%;
+  top: -10%;
+  border-radius: 50%;
+  background: var(--wi-tone);
+  transform: scale(0);
+  animation: wi-bloom 900ms 80ms forwards var(--wi-ease);
+}
+
+@keyframes wi-bloom {
+  to {
+    transform: scale(1);
+  }
+}
+
+.wi-thumb.wi-hero-thumb {
+  position: relative;
+  border-radius: 50%;
+  box-shadow: none;
+  animation: wi-hero-in 800ms 220ms both var(--wi-ease);
+}
+
+.wi-hero-thumb img {
+  padding: 14%;
 }
 
 @keyframes wi-hero-in {
   from {
     opacity: 0;
-    transform: translateY(30px) scale(0.82) rotate(-5deg);
-    filter: blur(8px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-    filter: none;
-  }
-}
-
-@keyframes wi-float {
-  50% {
-    transform: translateY(-8px) rotate(0.6deg);
+    transform: translateY(24px) scale(0.94);
   }
 }
 
@@ -838,21 +806,23 @@ select {
   align-items: center;
   gap: 10px;
   max-width: 320px;
-  animation: wi-rise 600ms 1200ms both;
+  margin-top: 28px;
+  animation: wi-rise 600ms 1100ms both var(--wi-ease);
 }
 
 .wi-swap-arrow {
-  font-size: 26px;
-  color: var(--wi-accent);
+  font-size: 22px;
+  color: var(--wi-text);
 }
 
 .wi-swap-target {
   display: grid;
   gap: 2px;
   padding: 10px 14px;
-  border: 1px solid var(--wi-accent);
-  border-radius: 14px;
-  background: var(--wi-accent-soft);
+  border: 1px solid var(--wi-border);
+  border-left: 4px solid var(--wi-splash);
+  border-radius: 12px;
+  background: var(--wi-surface);
   font-size: 14px;
   font-weight: 650;
 }
@@ -861,7 +831,7 @@ select {
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--wi-accent-strong);
+  color: var(--wi-muted);
 }
 
 .wi-highlight-text {
@@ -871,43 +841,51 @@ select {
 }
 
 .wi-highlight-text > * {
-  animation: wi-rise 560ms both cubic-bezier(0.2, 0.7, 0.2, 1);
+  animation: wi-rise 600ms 300ms both var(--wi-ease);
 }
 
 .wi-highlight-text > :nth-child(2) {
-  animation-delay: 120ms;
+  animation-delay: 380ms;
 }
 
 .wi-highlight-text > :nth-child(3) {
-  animation-delay: 220ms;
+  animation-delay: 460ms;
 }
 
 .wi-highlight-text > :nth-child(4) {
-  animation-delay: 320ms;
+  animation-delay: 560ms;
 }
 
-.wi-highlight-text > :nth-child(5) {
-  animation-delay: 700ms;
+.wi-highlight-text > :nth-child(n + 5) {
+  animation-delay: 900ms;
 }
 
+/* The verdict: small caps in ink, led by a dot of the splash. */
 .wi-verdict {
-  display: inline-block;
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: var(--wi-tone-soft);
-  color: var(--wi-tone);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--wi-text);
   font-size: 12px;
   font-weight: 750;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.wi-verdict::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--wi-tone);
 }
 
 .wi-scene-item {
   margin: 0;
-  font-size: clamp(22px, 2.6vw, 32px);
+  font-size: clamp(24px, 2.8vw, 34px);
   font-weight: 750;
-  line-height: 1.18;
-  letter-spacing: -0.01em;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -922,14 +900,37 @@ select {
   gap: 4px 14px;
 }
 
+/* Amounts in ink, with a stroke of the splash swiped under them like a marker. */
 .wi-amount-chip {
-  font-size: clamp(46px, 6.4vw, 78px);
+  position: relative;
+  z-index: 0;
+  font-size: clamp(48px, 6.6vw, 80px);
   font-weight: 800;
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
-  color: var(--wi-tone);
-  text-shadow: 0 0 40px var(--wi-tone-soft);
+  color: var(--wi-text);
+}
+
+.wi-amount-chip::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -0.06em;
+  right: -0.06em;
+  bottom: 0.04em;
+  height: 0.3em;
+  border-radius: 0.06em;
+  background: var(--wi-tone);
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: wi-mark 800ms 900ms forwards var(--wi-ease);
+}
+
+@keyframes wi-mark {
+  to {
+    transform: scaleX(1);
+  }
 }
 
 .wi-amount-label {
@@ -945,8 +946,68 @@ select {
 
 .wi-overlay .wi-finding-text {
   font-size: 16px;
-  line-height: 1.5;
+  line-height: 1.55;
   color: var(--wi-muted);
+}
+
+/* The reason, in two or three short points, each led by a bullet in the splash. */
+.wi-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.wi-points li {
+  position: relative;
+  padding-left: 22px;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--wi-text);
+  animation: wi-point 600ms calc(800ms + var(--i, 0) * 160ms) both var(--wi-ease);
+}
+
+.wi-points li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.55em;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--wi-tone);
+  transform: scale(0);
+  animation: wi-bullet 450ms calc(950ms + var(--i, 0) * 160ms) forwards var(--wi-ease);
+}
+
+@keyframes wi-bullet {
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes wi-point {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+}
+
+/* An ingredient worth noting that is not counted as a concern: highlighted, quietly. */
+.wi-watch {
+  margin: 0;
+  font-size: 14px;
+  color: var(--wi-muted);
+}
+
+.wi-watch mark {
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--wi-accent-soft);
+  color: var(--wi-text);
+  font-weight: 650;
 }
 
 /* Grouped: the rest, in one line. */
@@ -954,7 +1015,7 @@ select {
 .wi-grouped-scene {
   display: grid;
   justify-items: center;
-  gap: 18px;
+  gap: 20px;
   text-align: center;
 }
 
@@ -962,20 +1023,32 @@ select {
   display: flex;
 }
 
+.wi-grouped-thumbs .wi-thumb {
+  box-shadow: 0 0 0 3px var(--wi-bg);
+}
+
 .wi-grouped-thumbs .wi-thumb + .wi-thumb {
   margin-left: -14px;
 }
 
 .wi-grouped-thumbs .wi-star {
-  animation: wi-star-in 620ms calc(var(--i, 0) * 90ms) both cubic-bezier(0.3, 1.5, 0.5, 1);
+  animation: wi-slide 700ms calc(var(--i, 0) * 70ms) both var(--wi-ease);
+}
+
+@keyframes wi-slide {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
 }
 
 .wi-grouped-big {
   margin: 0;
   font-size: clamp(34px, 5vw, 56px);
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
+  animation: wi-rise 700ms 300ms both var(--wi-ease);
 }
 
 .wi-scene-caption {
@@ -983,27 +1056,59 @@ select {
   max-width: 52ch;
   font-size: 16px;
   color: var(--wi-muted);
+  animation: wi-fade 600ms 500ms both;
 }
 
-/* Running savings meter under the stage. */
+/* Running savings: a ring that fills with the splash as each scene adds to it. */
 
 .wi-meter {
-  width: min(560px, 100%);
   justify-self: center;
-  display: grid;
-  gap: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  transition:
+    opacity 500ms var(--wi-ease),
+    transform 500ms var(--wi-ease);
+}
+
+.wi-meter-hidden {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.wi-meter-ring {
+  display: block;
+  flex: none;
+}
+
+.wi-meter-ring-track {
+  fill: none;
+  stroke: var(--wi-surface-2);
+  stroke-width: 6;
+}
+
+.wi-meter-ring-fill {
+  fill: none;
+  stroke: var(--wi-splash);
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1200ms 500ms var(--wi-ease-in-out);
 }
 
 .wi-meter-label {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font-size: 13px;
+  display: grid;
+  gap: 2px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--wi-muted);
 }
 
 .wi-meter-label strong {
-  font-size: 16px;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  text-transform: none;
   color: var(--wi-text);
   font-variant-numeric: tabular-nums;
 }
@@ -1014,25 +1119,6 @@ select {
   color: var(--wi-muted);
 }
 
-.wi-meter-track {
-  display: flex;
-  gap: 3px;
-  height: 8px;
-}
-
-.wi-meter-seg {
-  flex-basis: 0;
-  min-width: 6px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.1);
-  transition: background 600ms, box-shadow 600ms;
-}
-
-.wi-meter-seg-on {
-  background: var(--wi-tone);
-  box-shadow: 0 0 12px var(--wi-tone-soft);
-}
-
 /* Controls dock. */
 
 .wi-controls {
@@ -1040,10 +1126,10 @@ select {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 6px;
+  padding: 5px;
   border: 1px solid var(--wi-border);
   border-radius: 999px;
-  background: rgba(10, 18, 15, 0.7);
+  background: var(--wi-surface);
 }
 
 .wi-control {
@@ -1056,6 +1142,9 @@ select {
   border-radius: 999px;
   background: transparent;
   color: var(--wi-text);
+  transition:
+    background 200ms,
+    transform 200ms var(--wi-ease);
 }
 
 .wi-control:hover:not(:disabled) {
@@ -1068,14 +1157,15 @@ select {
 }
 
 .wi-control-main {
-  min-width: 46px;
-  height: 46px;
+  min-width: 44px;
+  height: 44px;
   background: var(--wi-text);
-  color: var(--wi-bg);
+  color: var(--wi-on-ink);
 }
 
 .wi-control-main:hover:not(:disabled) {
-  background: #fff;
+  background: var(--wi-text);
+  transform: scale(1.05);
 }
 
 .wi-control-text {
@@ -1086,7 +1176,7 @@ select {
 }
 
 .wi-control[aria-pressed='true'] {
-  color: var(--wi-accent-strong);
+  color: var(--wi-splash-ink);
 }
 
 .wi-control-gap {
@@ -1116,7 +1206,7 @@ select {
   display: grid;
   justify-items: center;
   align-items: center;
-  gap: 22px 48px;
+  gap: 22px 56px;
   text-align: center;
 }
 
@@ -1129,7 +1219,8 @@ select {
 .wi-finale-save {
   display: grid;
   justify-items: center;
-  gap: 6px;
+  gap: 8px;
+  animation: wi-rise 700ms both var(--wi-ease);
 }
 
 @media (min-width: 900px) {
@@ -1145,24 +1236,22 @@ select {
 }
 
 .wi-amount-total {
-  font-size: clamp(56px, 7.5vw, 96px);
-  background: linear-gradient(100deg, #ffffff, var(--wi-accent-strong) 60%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: none;
-  filter: drop-shadow(0 0 30px rgba(68, 224, 160, 0.35));
+  font-size: clamp(60px, 8vw, 104px);
+}
+
+.wi-amount-total::after {
+  animation-delay: 1100ms;
 }
 
 .wi-growth {
   width: 100%;
   margin: 0;
-  padding: 20px 24px 14px;
+  padding: 22px 24px 16px;
   border: 1px solid var(--wi-border);
-  border-radius: 24px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border-radius: 22px;
+  background: var(--wi-surface);
   text-align: left;
-  animation: wi-rise 700ms 900ms both cubic-bezier(0.2, 0.7, 0.2, 1);
+  animation: wi-rise 700ms 900ms both var(--wi-ease);
 }
 
 .wi-growth-head {
@@ -1179,21 +1268,23 @@ select {
 .wi-growth-value {
   font-size: clamp(34px, 4.6vw, 52px);
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
-  color: var(--wi-accent-strong);
+  color: var(--wi-text);
 }
 
 .wi-growth-multiple {
   padding: 4px 12px;
   border-radius: 999px;
-  background: var(--wi-accent-soft);
-  color: var(--wi-accent-strong);
+  background: var(--wi-splash);
+  color: #0b1f16;
   font-size: 14px;
   font-weight: 750;
   opacity: 0;
-  transform: translateY(6px) scale(0.9);
-  transition: opacity 500ms, transform 500ms cubic-bezier(0.3, 1.5, 0.5, 1);
+  transform: scale(0.85);
+  transition:
+    opacity 400ms var(--wi-ease),
+    transform 600ms var(--wi-ease);
 }
 
 .wi-growth-done .wi-growth-multiple {
@@ -1205,12 +1296,12 @@ select {
   display: block;
   width: 100%;
   height: auto;
-  margin-top: 8px;
+  margin-top: 10px;
   overflow: visible;
 }
 
 .wi-growth-grid line {
-  stroke: rgba(255, 255, 255, 0.08);
+  stroke: var(--wi-border);
 }
 
 .wi-growth-grid text,
@@ -1221,73 +1312,76 @@ select {
 }
 
 .wi-growth-stop-top {
-  stop-color: var(--wi-accent);
-  stop-opacity: 0.42;
+  stop-color: var(--wi-splash);
+  stop-opacity: 0.22;
 }
 
 .wi-growth-stop-bottom {
-  stop-color: var(--wi-accent);
+  stop-color: var(--wi-splash);
   stop-opacity: 0;
 }
 
 .wi-growth-line {
   fill: none;
-  stroke: var(--wi-accent);
+  stroke: var(--wi-splash);
   stroke-width: 3;
   stroke-linecap: round;
-  filter: drop-shadow(0 0 8px rgba(68, 224, 160, 0.6));
 }
 
 .wi-growth-cash {
   stroke: var(--wi-muted);
-  stroke-width: 2;
-  stroke-dasharray: 4 6;
+  stroke-width: 1.5;
+  stroke-dasharray: 3 5;
 }
 
 .wi-growth-head-dot {
-  fill: #fff;
-  stroke: var(--wi-accent);
-  stroke-width: 3;
+  fill: var(--wi-text);
+  stroke: var(--wi-surface);
+  stroke-width: 2;
 }
 
+/* A ring of the splash settles around the end point once the line arrives. */
 .wi-growth-glow {
-  fill: var(--wi-accent);
-  opacity: 0.25;
+  fill: none;
+  stroke: var(--wi-splash);
+  stroke-width: 2;
+  opacity: 0;
   transform-box: fill-box;
   transform-origin: center;
-  animation: wi-pulse 1.4s ease-in-out infinite;
+  transform: scale(0.4);
+  transition:
+    opacity 400ms,
+    transform 700ms var(--wi-ease);
 }
 
-@keyframes wi-pulse {
-  50% {
-    transform: scale(1.6);
-    opacity: 0.08;
-  }
+.wi-growth-done .wi-growth-glow {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .wi-growth-hover line {
-  stroke: rgba(255, 255, 255, 0.35);
+  stroke: var(--wi-muted);
   stroke-dasharray: 3 4;
 }
 
 .wi-growth-hover circle {
-  fill: var(--wi-accent);
-  stroke: #fff;
+  fill: var(--wi-splash);
+  stroke: var(--wi-surface);
   stroke-width: 2;
 }
 
 .wi-growth-hover rect {
-  fill: rgba(10, 18, 15, 0.94);
-  stroke: var(--wi-border);
+  fill: var(--wi-text);
 }
 
 .wi-growth-tip-label {
-  fill: var(--wi-muted);
+  fill: var(--wi-on-ink);
+  opacity: 0.7;
   font-size: 11px;
 }
 
 .wi-growth-tip-value {
-  fill: var(--wi-text);
+  fill: var(--wi-on-ink);
   font-size: 14px;
   font-weight: 750;
 }
@@ -1307,31 +1401,33 @@ select {
   margin: 0;
   max-width: 64ch;
   font-size: 14px;
+  line-height: 1.55;
   color: var(--wi-muted);
-  animation: wi-rise 600ms 1200ms both;
+  animation: wi-fade 700ms 1300ms both;
 }
 
 .wi-handback-line {
   margin: 0;
   font-size: 22px;
   font-weight: 800;
-  animation: wi-rise 600ms 1500ms both;
+  letter-spacing: -0.01em;
+  animation: wi-rise 700ms 1600ms both var(--wi-ease);
 }
 
-/* ---- Static view (reduced motion, or after Skip) ---- */
+/* ---- Static view (reduced motion) ---- */
 
 .wi-static {
   width: min(1000px, 100%);
   display: grid;
-  gap: 22px;
+  gap: 24px;
 }
 
 .wi-overlay .wi-lead {
   margin: 8px 0 0;
-  font-size: clamp(26px, 3.4vw, 40px);
+  font-size: clamp(28px, 3.6vw, 42px);
   font-weight: 800;
-  line-height: 1.12;
-  letter-spacing: -0.02em;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
 }
 
 .wi-overlay .wi-findings {
@@ -1349,9 +1445,8 @@ select {
   gap: 10px;
   padding: 18px;
   border: 1px solid var(--wi-border);
-  border-radius: 20px;
+  border-radius: 18px;
   background: var(--wi-surface);
-  box-shadow: inset 0 3px 0 -1px var(--wi-tone);
 }
 
 .wi-overlay .wi-finding-store_brand_note,
@@ -1375,8 +1470,8 @@ select {
 .wi-finding-amount {
   font-size: 26px;
   font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--wi-tone);
+  letter-spacing: -0.03em;
+  color: var(--wi-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1402,7 +1497,7 @@ select {
   width: 100%;
   padding: 14px 18px;
   border: 1px solid var(--wi-border);
-  border-radius: 16px;
+  border-radius: 14px;
   background: var(--wi-surface);
   color: var(--wi-text);
   text-align: left;
@@ -1422,7 +1517,7 @@ select {
   justify-self: center;
 }
 
-/* Question chips and "Why?" on the dark stage. */
+/* Question chips and "Why?". */
 
 .wi-overlay .wi-question-prompt {
   color: var(--wi-text);
@@ -1430,17 +1525,33 @@ select {
 
 .wi-overlay .wi-chip-button {
   padding: 8px 16px;
+  border: 1px solid var(--wi-border);
+  background: var(--wi-surface);
+  color: var(--wi-text);
   font-size: 14px;
   font-weight: 650;
+  transition:
+    background 200ms,
+    color 200ms,
+    border-color 200ms;
 }
 
 .wi-overlay .wi-chip-button:hover {
-  background: var(--wi-accent);
-  color: var(--wi-on-accent);
+  border-color: var(--wi-text);
+  background: var(--wi-text);
+  color: var(--wi-on-ink);
 }
 
 .wi-overlay .wi-why-details {
-  border-left-color: var(--wi-border);
+  border-left: 2px solid var(--wi-splash);
+}
+
+.wi-overlay .wi-why-row dd {
+  color: var(--wi-text);
+}
+
+.wi-overlay .wi-sources a {
+  color: var(--wi-splash-ink);
 }
 
 /* ---- Full analysis ---- */
@@ -1450,6 +1561,7 @@ select {
   display: grid;
   gap: 16px;
   font-size: 14px;
+  animation: wi-fade 300ms ease-out;
 }
 
 .wi-full-header {
@@ -1463,7 +1575,7 @@ select {
   margin: 0;
   font-size: 30px;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 .wi-full h4 {
@@ -1482,7 +1594,7 @@ select {
 .wi-full-item {
   padding: 18px;
   border: 1px solid var(--wi-border);
-  border-radius: 18px;
+  border-radius: 16px;
   background: var(--wi-surface);
 }
 
@@ -1523,14 +1635,14 @@ select {
 }
 
 .wi-full a {
-  color: var(--wi-accent-strong);
+  color: var(--wi-splash-ink);
 }
 
 .wi-full-savings,
 .wi-full-totals {
   padding: 18px;
   border: 1px solid var(--wi-border);
-  border-radius: 18px;
+  border-radius: 16px;
   background: var(--wi-surface);
 }
 
@@ -1578,7 +1690,7 @@ select {
   .wi-thumb-lg {
     width: 168px;
     height: 168px;
-    border-radius: 24px;
+    border-radius: 22px;
   }
 
   .wi-highlight-text .wi-why {
@@ -1598,13 +1710,5 @@ select {
   .wi-overlay .wi-secondary,
   .wi-overlay .wi-primary {
     padding: 10px 18px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .wi-aurora,
-  .wi-hero-thumb,
-  .wi-growth-glow {
-    animation: none !important;
   }
 }

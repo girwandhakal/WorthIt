@@ -3,13 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { reviewCart } from '../../src/background/review-cart';
 import type { CartReview } from '../../src/domain/review';
-import { GROWTH_DRAW_MS } from '../../src/ui/animation/GrowthChart';
-import { SCENE_MS } from '../../src/ui/animation/Recap';
+import { SCENE_MS, finaleMs } from '../../src/ui/animation/Recap';
 import { CheckoutPanel } from '../../src/ui/checkout/CheckoutPanel';
 import { createReviewStore } from '../../src/ui/shared/review-store';
 import { line, snapshot, tumblerReceipt, walkthroughSnapshot } from '../helpers/assessment';
 import { reviewContext } from '../helpers/background';
 
+const summaryOf = (review: CartReview) => review.summary;
 const mixed = () => reviewCart(walkthroughSnapshot(), reviewContext({ history: [tumblerReceipt()] }));
 /** Same cart, but the tumbler question has been answered or skipped, so the presentation plays straight through. */
 const settled = () =>
@@ -111,7 +111,8 @@ describe('animated recap', () => {
   it('opens on its own with the reflection prompt and recap controls', () => {
     setup(mixed());
     const panel = screen.getByRole('dialog', { name: 'Worth It' });
-    expect(within(panel).getByText('Before you check out, 3 things are worth a second thought.', { selector: '.wi-scene-title' })).toBeTruthy();
+    // The words animate in one by one, but read as the plain sentence.
+    expect(panel.querySelector('.wi-scene-title')?.textContent).toBe('Before you check out, 3 things are worth a second thought.');
     // Every cart item appears in the opening scene, and the three highlights light up.
     expect(panel.querySelectorAll('.wi-constellation .wi-thumb')).toHaveLength(7);
     expect(panel.querySelectorAll('.wi-constellation .wi-star-lit')).toHaveLength(3);
@@ -126,11 +127,18 @@ describe('animated recap', () => {
     setup(mixed(), { fakeTimers: true });
     await act(() => vi.advanceTimersByTimeAsync(SCENE_MS.opening));
     expect(screen.getByText('Stanley Quencher H2.0 FlowState Tumbler, 30 oz', { selector: '.wi-scene-item' })).toBeTruthy();
-    expect(screen.getByText('Already have one?', { selector: '.wi-verdict' })).toBeTruthy();
+    // No count or verdict label above it: just the product, its name, the amount, and the advice.
+    expect(document.querySelector('.wi-highlight .wi-verdict, .wi-highlight .wi-eyebrow')).toBeNull();
     // The product's own Walmart thumbnail, requested as a crisp square.
     const hero = document.querySelector<HTMLImageElement>('.wi-hero-thumb img')!;
     expect(hero.getAttribute('src')).toBe('https://i5.walmartimages.com/seo/Stanley-Quencher-H2-0-FlowState-Tumbler-30-oz_fixture.jpeg?odnHeight=480&odnWidth=480&odnBg=FFFFFF');
     expect(hero.getAttribute('alt')).toBe('');
+    // The reason in short points instead of the full sentence (which is still read out).
+    expect([...document.querySelectorAll('.wi-highlight .wi-points li')].map((point) => point.textContent)).toEqual([
+      'You bought this 20 days ago',
+      'Do you need another one?',
+    ]);
+    expect(document.querySelector('.wi-highlight .wi-finding-text')).toBeNull();
     // The amount counts up, then settles on the exact figure.
     await act(() => vi.advanceTimersByTimeAsync(1400));
     expect(screen.getByText('$24.97', { selector: '.wi-amount-chip' })).toBeTruthy();
@@ -158,7 +166,7 @@ describe('animated recap', () => {
     expect(screen.getByText(/probably not worth it/, { selector: '.wi-sr-only' })).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Replay recap' }));
-    expect(screen.getByText('Before you check out, 3 things are worth a second thought.', { selector: '.wi-scene-title' })).toBeTruthy();
+    expect(document.querySelector('.wi-scene-title')?.textContent).toBe('Before you check out, 3 things are worth a second thought.');
   });
 
   it('ends with the savings total, the investment sentence, and a hand-back', async () => {
@@ -168,7 +176,7 @@ describe('animated recap', () => {
     expect(screen.getByText('+3 more', { selector: '.wi-grouped-big', exact: false })).toBeTruthy();
     await act(() => vi.advanceTimersByTimeAsync(SCENE_MS.grouped));
     // The savings count up, then the growth chart draws to the exact illustrated amount.
-    await act(() => vi.advanceTimersByTimeAsync(1300 + GROWTH_DRAW_MS + 200));
+    await act(() => vi.advanceTimersByTimeAsync(finaleMs(summaryOf(settled())) + 100));
     expect(screen.getByText('$38.72', { selector: '.wi-amount-chip' })).toBeTruthy();
     expect(screen.getByText('$1,752.44', { selector: '.wi-growth-value' })).toBeTruthy();
     expect(screen.getByText('45× what you kept', { selector: '.wi-growth-multiple' })).toBeTruthy();
@@ -186,13 +194,12 @@ describe('animated recap', () => {
     expect(screen.getAllByText(/could grow to about/, { selector: '.wi-closing-sentence' })).toHaveLength(1);
   });
 
-  it('cannot be skipped: Continue, Dismiss, full analysis and Escape stay locked until it ends', async () => {
+  it('cannot be skipped: Continue, Dismiss and full analysis stay hidden, and Escape does nothing, until it ends', async () => {
     const { user, onDismiss } = setup(settled(), { fakeTimers: true });
-    const disabled = (name: string) => (screen.getByRole('button', { name }) as HTMLButtonElement).disabled;
-    expect(disabled('Continue')).toBe(true);
-    expect(disabled('See full analysis')).toBe(true);
-    expect(screen.queryByRole('button', { name: 'Dismiss Worth It panel' })).toBeNull();
-    expect(screen.getByText('Continue unlocks when the presentation ends.')).toBeTruthy();
+    const shown = (name: string) => screen.queryByRole('button', { name }) !== null;
+    expect(shown('Continue')).toBe(false);
+    expect(shown('See full analysis')).toBe(false);
+    expect(shown('Dismiss Worth It panel')).toBe(false);
 
     await user.keyboard('{Escape}');
     expect(screen.getByRole('dialog', { name: 'Worth It' })).toBeTruthy();
@@ -200,16 +207,19 @@ describe('animated recap', () => {
 
     // Mid-way is still locked.
     await playScenes(SCENE_MS.opening, SCENE_MS.highlight, SCENE_MS.highlight);
-    expect(disabled('Continue')).toBe(true);
+    expect(shown('Continue')).toBe(false);
 
     await playScenes(SCENE_MS.highlight, SCENE_MS.grouped);
-    expect(disabled('Continue')).toBe(false);
-    expect(disabled('See full analysis')).toBe(false);
-    expect(screen.getByRole('button', { name: 'Dismiss Worth It panel' })).toBeTruthy();
+    // The last scene has started, but the presentation is only done once it has played out.
+    expect(shown('Continue')).toBe(false);
+    await act(() => vi.advanceTimersByTimeAsync(finaleMs(summaryOf(settled())) + 100));
+    expect(shown('Continue')).toBe(true);
+    expect(shown('See full analysis')).toBe(true);
+    expect(shown('Dismiss Worth It panel')).toBe(true);
 
     // Stepping back after watching it does not lock it again.
     await user.click(screen.getByRole('button', { name: 'Previous scene' }));
-    expect(disabled('Continue')).toBe(false);
+    expect(shown('Continue')).toBe(true);
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(onDismiss).toHaveBeenCalledTimes(1);
@@ -250,14 +260,14 @@ describe('static view (reduced motion)', () => {
     expect(screen.getByText('By following these suggestions, you would save $38.72.')).toBeTruthy();
   });
 
-  it('groups the rest behind one line, including the no-savings paper-towel note', async () => {
+  it('groups the rest behind one line, and says nothing about the paper towels whose store brand costs more', async () => {
     const { user } = setup(mixed(), { reducedMotion: true });
     expect(screen.queryByText(/Bounty Essentials/)).toBeNull();
     const toggle = screen.getByRole('button', { name: /You also had 3 other items you could reconsider or swap for a different one, worth about \$4\.81 more/ });
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     await user.click(toggle);
-    expect(screen.getByText('Bounty Essentials Select-A-Size Paper Towels, 6 Double Rolls')).toBeTruthy();
-    expect(screen.getByText(/costs more per unit \(\$1\.23 vs \$1\.50 per 100 sheets\)/)).toBeTruthy();
+    expect(screen.getByText(/Horizon Organic/)).toBeTruthy();
+    expect(screen.queryByText(/Bounty Essentials/)).toBeNull();
   });
 
   it('keeps evidence behind "Why?" and shows no scores, classes, criteria, or tables by default', async () => {
@@ -319,11 +329,11 @@ describe('See full analysis: every possible saving', () => {
     await user.click(screen.getByRole('button', { name: 'See full analysis' }));
     const section = screen.getByRole('region', { name: 'Every possible saving' });
     const rows = within(section).getAllByRole('listitem').map((row) => row.textContent ?? '');
-    // The tumbler has two options: skipping it (counted) and the cheaper tumbler (an alternative to the same item).
+    // The tumbler was bought recently, so its one option is skipping it (the cheaper tumbler is not offered alongside).
     expect(rows[0]).toMatch(/Stanley.*Consider skipping \(recent similar purchase\), \$24\.97 \(counted in the total\)/);
-    expect(rows.some((row) => /Stanley.*Cheaper alternative, \$12\.00 \(alternative, not added to the total\)/.test(row))).toBe(true);
-    // 7 items, 6 with a counted saving, plus the tumbler's alternative; the no-savings paper towels are absent.
-    expect(rows).toHaveLength(7);
+    expect(rows.some((row) => /Stanley.*Cheaper alternative/.test(row))).toBe(false);
+    // 7 items, 6 with a counted saving; the no-savings paper towels are absent.
+    expect(rows).toHaveLength(6);
     expect(rows.filter((row) => row.includes('counted in the total'))).toHaveLength(6);
     expect(rows.some((row) => row.includes('Bounty'))).toBe(false);
     const amounts = rows.map((row) => Number(/\$(\d+\.\d\d)/.exec(row)![1]));

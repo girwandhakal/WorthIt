@@ -13,7 +13,9 @@ import {
   ITEM_ID_FROM_URL,
   LINE_ITEM_SELECTORS,
   LINE_PRICE_SELECTORS,
+  NON_PRODUCT_IMAGE_PATH,
   PACKAGE_SIZE_SELECTORS,
+  PRODUCT_IMAGE_PATH,
   PRODUCT_LINK_SELECTOR,
   QUANTITY_INPUT_SELECTORS,
   QUANTITY_TEXT_SELECTORS,
@@ -278,21 +280,30 @@ function isSavingContext(el: Element): boolean {
   return false;
 }
 
-/** The line's product thumbnail, only from Walmart's image CDN over https. */
-function readImage(line: Element): string | null {
-  for (const img of Array.from(line.querySelectorAll('img'))) {
-    const candidates = [img.getAttribute('src'), img.getAttribute('data-src'), img.getAttribute('srcset')?.split(/\s+/)[0]];
+/**
+ * The line's product thumbnail, only from Walmart's image CDN over https. The CDN also serves fonts, icons,
+ * and badges (under /dfw/), so a product photo (/seo/ or /asr/) is preferred over anything else, and an
+ * icon is never used when no photo is found.
+ */
+export function readImage(line: Element): string | null {
+  const urls: URL[] = [];
+  for (const el of Array.from(line.querySelectorAll('img, source'))) {
+    const srcset = (attr: string) => el.getAttribute(attr)?.trim().split(/[\s,]+/)[0];
+    // currentSrc is what the browser actually chose (srcset, <picture>); the attributes cover lazy loading.
+    const candidates = [(el as HTMLImageElement).currentSrc, el.getAttribute('src'), el.getAttribute('data-src'), srcset('srcset'), srcset('data-srcset')];
     for (const candidate of candidates) {
       if (!candidate) continue;
       try {
-        const url = new URL(candidate);
-        if (url.protocol === 'https:' && IMAGE_HOST.test(url.hostname)) return url.href.slice(0, 2000);
+        // Protocol-relative and root-relative links resolve against Walmart itself.
+        const url = new URL(candidate, 'https://www.walmart.com/');
+        if (url.protocol === 'https:' && IMAGE_HOST.test(url.hostname)) urls.push(url);
       } catch {
-        // Relative or malformed: not a CDN thumbnail.
+        // Malformed: not a CDN thumbnail.
       }
     }
   }
-  return null;
+  const photo = urls.find((url) => PRODUCT_IMAGE_PATH.test(url.pathname)) ?? urls.find((url) => !NON_PRODUCT_IMAGE_PATH.test(url.pathname));
+  return photo ? photo.href.slice(0, 2000) : null;
 }
 
 function readQuantity(line: Element): number | null {

@@ -86,13 +86,11 @@ describe('shared assessment on Amazon data (no retailer-specific rules)', () => 
     expect(review.assessment.items.every((item) => item.purposeClass === 'unknown' && item.primary === null)).toBe(true);
   });
 
-  it('asks about an exact repeat from history', () => {
+  it('says nothing about a repeat while it cannot tell whether the item is food', () => {
+    // Amazon rows carry no category and no product page is read yet, so food or not is unknown.
     const history = [purchase('Owala FreeSip Insulated Stainless Steel Water Bottle, 24 oz', '2026-09-20', { merchant: 'Amazon', retailerItemId: 'B0WITEST01' })];
     const review = reviewCart(read('cart.html'), reviewContext({ history }));
-    expect(review.findings.map((finding) => [finding.kind, finding.itemName])).toEqual([
-      ['repeat_question', 'Owala FreeSip Insulated Stainless Steel Water Bottle, 24 oz'],
-    ]);
-    expect(review.findings[0]!.text).toBe('You bought this 20 days ago. A past receipt doesn’t show whether you still have it.');
+    expect(review.findings).toEqual([]);
   });
 
   it('flags unread lines using Amazon’s own item count', () => {

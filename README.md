@@ -32,7 +32,7 @@ Worth It informs and suggests. It never edits your cart and never clicks anythin
     <td width="50%"><img src="docs/images/savings-growth.png" alt="Savings meter and an animated chart of the savings invested for 40 years" /></td>
   </tr>
   <tr>
-    <td align="center"><sub>A short verdict and the amount you'd save, for each highlighted item</sub></td>
+    <td align="center"><sub>The product, the amount you'd save, and a few short reasons, for each highlighted item</sub></td>
     <td align="center"><sub>What you'd keep, and what it could grow to if invested</sub></td>
   </tr>
 </table>
