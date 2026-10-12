@@ -78,7 +78,7 @@ export function isIncomplete(input: Pick<PurchaseInput, 'quantity' | 'linePriceC
 }
 
 /** Clarification answer from the checkout panel, remembered so the question isn't asked again. */
-export const clarificationAnswerSchema = z.enum(['replacement', 'additional', 'different_purpose']);
+export const clarificationAnswerSchema = z.enum(['broke', 'replacement', 'gift', 'additional', 'different_purpose']);
 export type ClarificationAnswer = z.infer<typeof clarificationAnswerSchema>;
 
 export interface ClarificationRecord {

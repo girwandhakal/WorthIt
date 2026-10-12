@@ -1,4 +1,4 @@
-import { checkoutButton, clickCheckout, daysAgo, debugReport, expect, expectNothingShown, retailerClicks, retailerMarkup, seedHistory, serveAmazon, setPreferences, storedPurchase, test, openExtensionPage, waitForReview } from './extension';
+import { checkoutButton, daysAgo, debugReport, expect, expectNothingShown, retailerClicks, retailerMarkup, seedHistory, serveAmazon, setPreferences, storedPurchase, test, openExtensionPage, waitForReview } from './extension';
 
 test.describe('Amazon', () => {
   test('cart without reviewed data: nothing shown, nothing guessed, cart untouched', async ({ context, serviceWorker }) => {
@@ -16,20 +16,21 @@ test.describe('Amazon', () => {
     expect(await retailerMarkup(page)).toBe(before);
   });
 
-  test('asks about an exact repeat from purchase history', async ({ context, extensionId, serviceWorker }) => {
+  test('says nothing about a repeat purchase while it cannot tell whether the item is food', async ({ context, extensionId, serviceWorker }) => {
     await setPreferences(serviceWorker, {});
     await seedHistory(context, extensionId, [
       { ...storedPurchase({ title: 'Owala FreeSip Insulated Stainless Steel Water Bottle, 24 oz', purchasedOn: daysAgo(12), retailerItemId: 'B0WITEST01' }), merchant: 'Amazon' },
     ]);
     await serveAmazon(context, { '/cart': 'cart.html' });
     const page = await context.newPage();
-    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('https://www.amazon.com/cart');
-    await clickCheckout(page);
-    const panel = page.getByRole('dialog', { name: 'Worth It' });
-    await expect(panel.getByText('You bought this 12 days ago. A past receipt doesn’t show whether you still have it.')).toBeVisible();
-    await panel.getByRole('button', { name: 'It’s an extra' }).click();
-    await expect(panel.getByRole('button', { name: 'It’s an extra' })).toHaveCount(0);
+    await waitForReview(page);
+    // Amazon rows carry no category and no product page is read, so food or not is unknown: no question, no hold.
+    expect(await debugReport(page)).toMatchObject({ checkout: 'nothing-to-show' });
+    await expectNothingShown(page);
+    await checkoutButton(page).click();
+    await expectNothingShown(page);
+    expect(await retailerClicks(page)).toBe(1);
   });
 
   test('never appears on checkout', async ({ context }) => {

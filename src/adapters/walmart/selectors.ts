@@ -96,6 +96,9 @@ export const QUANTITY_TEXT_SELECTORS = [
 
 /** Product thumbnails come from Walmart's own image CDN; anything else is ignored. */
 export const IMAGE_HOST = /(^|\.)walmartimages\.com$/i;
+/** Product photos are served under /seo/ and /asr/; /dfw/ holds fonts, icons, and badges. */
+export const PRODUCT_IMAGE_PATH = /^\/(seo|asr)\//i;
+export const NON_PRODUCT_IMAGE_PATH = /^\/dfw\//i;
 
 export const PACKAGE_SIZE_SELECTORS = ['[data-testid="product-size"]', '[data-automation-id="product-variant"]'] as const;
 

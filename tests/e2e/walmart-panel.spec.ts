@@ -118,7 +118,7 @@ test.describe('Walmart cart panel', () => {
     await clickCheckout(page);
     const panel = page.getByRole('dialog', { name: 'Worth It' });
     await expect(page.getByRole('heading', { name: 'Worth It' })).toBeFocused();
-    await expect(panel.getByRole('button', { name: 'Continue' })).toBeDisabled();
+    await expect(panel.getByRole('button', { name: 'Continue' })).toHaveCount(0);
     await page.keyboard.press('Escape');
     await expect(panel).toBeVisible();
     // Once it has finished, Escape closes it like Continue does.

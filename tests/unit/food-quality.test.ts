@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateFood, type FoodInputs } from '../../src/assessment/rules/food-quality';
+import { CONCERN_INFO, evaluateFood, foodWatchNotes, type FoodInputs } from '../../src/assessment/rules/food-quality';
 
 const food = (overrides: Partial<FoodInputs>): FoodInputs => ({
   ingredients: null,
@@ -117,5 +117,62 @@ describe('food decision tree: real labels read from Walmart.com', () => {
       }),
     );
     expect(concerns.map((concern) => concern.id)).toEqual(['processed_meat', 'ultra_processed']);
+  });
+});
+
+describe('food concerns as short points', () => {
+  it('cuts every reviewed note to 2 or 3 short points that keep the label value', () => {
+    for (const info of Object.values(CONCERN_INFO)) {
+      const points = info.points('sodium nitrite');
+      expect(points.length).toBeGreaterThanOrEqual(2);
+      expect(points.length).toBeLessThanOrEqual(3);
+      for (const point of points) expect(point.length).toBeLessThanOrEqual(70);
+    }
+    expect(CONCERN_INFO.high_sodium.points('980 mg')[0]).toBe('980 mg of sodium per serving');
+    expect(CONCERN_INFO.added_sugar.points('')).toEqual(['Has added sugar', 'Too much over time is linked to type 2 diabetes and heart disease', 'Skip it, buy less, or have it less often']);
+  });
+});
+
+describe('ingredient wording on real labels', () => {
+  it.each([
+    ['mono- and diglycerides', 'emulsifiers'],
+    ['monoglycerides and diglycerides', 'emulsifiers'],
+  ])('reads "%s" as a marker of ultra-processed food', (ingredient, marker) => {
+    const [concern] = evaluateFood(food({ ingredients: `flour, water, ${ingredient}, salt` }));
+    expect(concern).toMatchObject({ id: 'ultra_processed' });
+    expect(concern!.detail).toContain(marker);
+  });
+
+  it('does not read "non-hydrogenated" oil as trans fat or a marker', () => {
+    expect(ids(food({ ingredients: 'non-hydrogenated palm oil, salt' }))).toEqual([]);
+    expect(ids(food({ ingredients: 'partially hydrogenated soybean oil' }))).toContain('trans_fat');
+  });
+
+  it.each(['Red #40', 'FD&C Yellow #5', 'Blue No. 1 lake'])('reads the dye "%s"', (ingredient) => {
+    expect(ids(food({ ingredients: `sugar, ${ingredient}` }))).toContain('dyes');
+  });
+
+  it('does not read a percentage such as "blue 2%" as a dye', () => {
+    expect(ids(food({ ingredients: 'water, blue 2% milk fat' }))).not.toContain('dyes');
+  });
+
+  it('says "artificial" only for partially hydrogenated oil, not for trans fat that may be natural', () => {
+    expect(CONCERN_INFO.trans_fat.note('partially hydrogenated oil')).toContain('artificial trans fat');
+    const natural = CONCERN_INFO.trans_fat.note('0.5 g of trans fat per serving');
+    expect(natural).not.toContain('artificial');
+    expect(natural).toContain('This has 0.5 g of trans fat per serving.');
+    expect(CONCERN_INFO.trans_fat.points('0.5 g of trans fat per serving')[0]).toBe('Trans fat (0.5 g of trans fat per serving)');
+  });
+});
+
+describe('ingredients worth noting but never counted', () => {
+  it.each(['modified cornstarch', 'modified food starch', 'modified corn starch', 'modified starch'])('notes "%s" without making it a concern', (ingredient) => {
+    expect(foodWatchNotes(`cheddar cheese, ${ingredient}, natamycin`)).toEqual(['modified starch']);
+    expect(ids(food({ ingredients: `cheddar cheese, ${ingredient}, natamycin` }))).toEqual([]);
+  });
+
+  it('notes nothing for plain starch or no ingredients', () => {
+    expect(foodWatchNotes('corn, water, corn starch')).toEqual([]);
+    expect(foodWatchNotes(null)).toEqual([]);
   });
 });

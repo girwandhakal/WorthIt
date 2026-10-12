@@ -58,19 +58,21 @@ describe('mixed walkthrough cart (TECH_SPEC section 2)', () => {
     expect(totalOfPrimaries(result.items)).toBe(3872);
   });
 
-  it('asks one question about the tumbler and keeps the cheaper option as context only', () => {
+  it('asks one question about the tumbler, and a warning replaces the cheaper-option advice', () => {
     const tumbler = byId(result.items, '18256507800');
     expect(tumbler.question?.prompt).toBe('Is this one replacing it, an extra, or for something different?');
-    expect(tumbler.secondary.map((s) => [s.kind, s.amountCents])).toEqual([['cheaper_alternative', 1200]]);
+    expect(tumbler.secondary).toEqual([]);
     expect(result.items.filter((item) => item.question)).toHaveLength(1);
   });
 
-  it('names the store brand for paper towels but claims no savings (it costs more)', () => {
+  it('says nothing about a store brand that costs more (paper towels), though the analysis shows the comparison', () => {
     const towels = byId(result.items, '5308263928');
     const storeBrand = criterion(towels, 'store_brand');
-    expect(storeBrand.status).toBe('finding');
-    expect(storeBrand.suggestion).toMatchObject({ kind: 'store_brand_note', amountCents: null });
-    expect(storeBrand.suggestion?.alternative).toMatchObject({ comparison: 'costs_more', savingsCents: null, unitPriceComparison: '$1.23 vs $1.50 per 100 sheets' });
+    expect(storeBrand.status).toBe('no_concern');
+    expect(storeBrand.suggestion).toBeUndefined();
+    expect(storeBrand.summary).toMatch(/costs more per unit/);
+    expect(storeBrand.evidence.map((e) => e.value)).toContain('$1.23 vs $1.50 per 100 sheets');
+    expect(towels.primary).toBeNull();
   });
 
   it('labels reference prices with their check date and as an estimate', () => {
@@ -99,7 +101,6 @@ describe('mixed walkthrough cart (TECH_SPEC section 2)', () => {
       ['cheaper_alternative', 'Horizon'],
       ['cheaper_alternative', 'Diet'],
       ['cheaper_alternative', 'Kraft'],
-      ['store_brand_note', 'Bounty'],
     ]);
     expect(findings[0]!.question).not.toBeNull();
   });
@@ -148,15 +149,15 @@ describe('clarification and the skip rule', () => {
     expect(assess(lights, { history: [old] }).items[0]!.primary).toBeNull();
   });
 
-  it('basic clothing uses a 60-day window', () => {
+  it('every non-food item uses the same 90-day window, clothing included', () => {
     const shirts = snapshot([line('697314670')]);
     const at = (date: string) => assess(shirts, { history: [purchase('Fruit of the Loom Crew T-Shirts 5 pk', date)] }).items[0]!;
-    expect(at('2026-08-12').primary?.kind).toBe('skip_redundant'); // 59 days
-    expect(at('2026-08-10').primary?.kind).toBe('cheaper_alternative'); // 61 days
-    expect(at('2026-08-12').purposeClass).toBe('essential_non_consumable');
+    expect(at('2026-07-13').primary?.kind).toBe('skip_redundant'); // 89 days
+    expect(at('2026-07-11').primary?.kind).toBe('cheaper_alternative'); // 91 days: not recent, so the cheaper store brand
+    expect(at('2026-07-13').purposeClass).toBe('essential_non_consumable');
   });
 
-  it('essential consumables are restocking, never skip-eligible', () => {
+  it('food is never checked against past purchases', () => {
     const eggs = snapshot([line('145051970'), line('10309701', {}, 1)]);
     const history = [
       purchase('Great Value Large White Eggs, 12 Count', '2026-10-05', { retailerItemId: '145051970' }),
@@ -166,15 +167,24 @@ describe('clarification and the skip rule', () => {
     for (const item of result.items) {
       expect(item.primary?.kind).not.toBe('skip_redundant');
       expect(item.question).toBeNull();
-      expect(criterion(item, 'repeat_purchase')).toMatchObject({ status: 'no_concern' });
-      expect(criterion(item, 'repeat_purchase').summary).toMatch(/routine restocking/);
+      expect(criterion(item, 'repeat_purchase')).toMatchObject({ status: 'not_applicable' });
+      expect(criterion(item, 'repeat_purchase').summary).toMatch(/bought again and again/);
     }
+  });
+
+  it('household consumables are restocking too: bought recently is routine, not a warning', () => {
+    const history = [purchase('Bounty Essentials Select-A-Size Paper Towels', '2026-10-05', { retailerItemId: '5308263928' })];
+    const towels = assess(snapshot([line('5308263928')]), { history }).items[0]!;
+    expect(towels.primary).toBeNull();
+    expect(towels.question).toBeNull();
+    expect(criterion(towels, 'repeat_purchase').status).toBe('no_concern');
+    expect(criterion(towels, 'repeat_purchase').summary).toMatch(/routine restocking/);
   });
 
   it('candy bought recently is mentioned only as history', () => {
     const skittles = assess(snapshot([line('656700117')]), { history: [purchase('Skittles Original', '2026-10-03', { retailerItemId: '656700117' })] }).items[0]!;
     expect(skittles.primary?.kind).toBe('reduce_added_sugar');
-    expect(criterion(skittles, 'repeat_purchase').status).toBe('no_concern');
+    expect(criterion(skittles, 'repeat_purchase').status).toBe('not_applicable');
     expect(skittles.historyMatches).toHaveLength(1);
   });
 });
@@ -211,14 +221,21 @@ describe('history matching', () => {
     expect(criterion(similar, 'repeat_purchase').summary).toMatch(/doesn’t prove you still have it/);
   });
 
-  it('for an item without reference data, asks about an exact repeat but never suggests skipping', () => {
+  it('when it cannot tell whether an item is food, it says nothing about past purchases', () => {
     const unknown = line('99999999', { title: 'Mystery Gadget' });
     const item = assess(snapshot([unknown]), { history: [purchase('Mystery Gadget', '2026-09-30')] }).items[0]!;
     expect(item.purposeClass).toBe('unknown');
     expect(item.primary).toBeNull();
-    expect(item.question).not.toBeNull();
-    expect(criterion(item, 'repeat_purchase').summary).toMatch(/^You bought this 10 days ago/);
-    expect(criterion(item, 'repeat_purchase').confidence).toBe('low');
+    expect(item.question).toBeNull();
+    expect(criterion(item, 'repeat_purchase').status).toBe('unknown');
+    expect(criterion(item, 'repeat_purchase').summary).toMatch(/couldn’t tell whether this is food/);
+  });
+
+  it('does not question eggs whose page was not read, even with a similar past purchase', () => {
+    const eggs = line('987654321', { title: 'Great Value Large White Eggs, 60 Count' });
+    const item = assess(snapshot([eggs]), { history: [purchase('Great Value Large White Eggs, 12 Count', '2026-08-15')] }).items[0]!;
+    expect(item.primary).toBeNull();
+    expect(item.question).toBeNull();
   });
 
   describe('an item with no reference data that looks like a past purchase', () => {
@@ -231,33 +248,51 @@ describe('history matching', () => {
     });
     const stanley = purchase('Stanley Quencher H2.0 FlowState Tumbler, 30 oz', '2026-09-20', { retailerItemId: '18256507800' });
 
-    it.each([
-      ['with its Walmart category', { '999000111': talFacts }],
-      ['without product-page facts (the page could not be read)', undefined],
-    ])('asks about a similar tumbler %s, and never suggests skipping', (_label, facts) => {
-      const item = assess(snapshot([tal]), { history: [stanley], ...(facts ? { facts } : {}) }).items[0]!;
+    it('flags a similar tumbler as a skip once the page shows it is not food, and asks why', () => {
+      const item = assess(snapshot([tal]), { history: [stanley], facts: { '999000111': talFacts } }).items[0]!;
       expect(item.historyMatches).toMatchObject([{ kind: 'similar', daysAgo: 20 }]);
-      expect(item.primary).toBeNull();
+      expect(item.primary).toEqual({ kind: 'skip_redundant', amountCents: 100 });
       expect(item.question).not.toBeNull();
       expect(criterion(item, 'repeat_purchase')).toMatchObject({
         status: 'finding',
         confidence: 'low',
-        summary: expect.stringMatching(/^You bought something similar 20 days ago/) as unknown as string,
+        summary: expect.stringMatching(/^You bought a similar item 20 days ago/) as unknown as string,
       });
     });
 
-    it('surfaces the question in the panel with "a similar one"', () => {
+    it('says nothing when the page could not be read, so it cannot tell it is not food', () => {
+      const item = assess(snapshot([tal]), { history: [stanley] }).items[0]!;
+      expect(item.historyMatches).toMatchObject([{ kind: 'similar', daysAgo: 20 }]);
+      expect(item.primary).toBeNull();
+      expect(item.question).toBeNull();
+    });
+
+    it('shows the skip with its amount, so it ranks among the highlights', () => {
       const result = assess(snapshot([tal]), { history: [stanley], facts: { '999000111': talFacts } });
-      const finding = panelFindings(result, snapshot([tal]).items).find((candidate) => candidate.kind === 'repeat_question');
+      const finding = panelFindings(result, snapshot([tal]).items).find((candidate) => candidate.kind === 'skip_redundant');
       expect(finding?.text).toMatch(/a similar one/);
+      expect(finding?.amountCents).toBe(100);
       expect(finding?.question).not.toBeNull();
+    });
+
+    it.each(['broke', 'gift', 'replacement', 'different_purpose'] as const)('a "%s" answer withdraws the skip', (value) => {
+      const item = assess(snapshot([tal]), { history: [stanley], facts: { '999000111': talFacts }, clarifications: [answer('999000111', value)] }).items[0]!;
+      expect(item.primary).toBeNull();
+      expect(item.question).toBeNull();
+    });
+
+    it('an "extra" answer keeps the skip', () => {
+      const item = assess(snapshot([tal]), { history: [stanley], facts: { '999000111': talFacts }, clarifications: [answer('999000111', 'additional')] }).items[0]!;
+      expect(item.primary?.kind).toBe('skip_redundant');
     });
 
     it('matches by name similarity alone, beyond the keyword types', () => {
       const cooker = line('999000222', { title: 'Instant Pot Duo 6 Qt Pressure Cooker' });
-      const item = assess(snapshot([cooker]), { history: [purchase('Ninja Foodi 8 Qt Pressure Cooker', '2026-09-01')] }).items[0]!;
+      const cookerFacts = factsFor({ id: '999000222', name: 'Instant Pot Duo 6 Qt Pressure Cooker', path: ['Home', 'Small Appliances', 'Pressure Cookers'] });
+      const history = [purchase('Ninja Foodi 8 Qt Pressure Cooker', '2026-09-01')];
+      const item = assess(snapshot([cooker]), { history, facts: { '999000222': cookerFacts } }).items[0]!;
       expect(item.historyMatches[0]?.kind).toBe('similar');
-      expect(item.primary).toBeNull();
+      expect(item.primary?.kind).toBe('skip_redundant');
       expect(item.question).not.toBeNull();
     });
 
@@ -300,11 +335,13 @@ describe('store-brand value', () => {
     expect(cheese.primary).toMatchObject({ kind: 'cheaper_alternative', amountCents: 56 });
   });
 
-  it('coffee: unit prices within 5% are "about the same", with no savings', () => {
-    const coffee = criterion(assess(snapshot([line('578550306')])).items[0]!, 'store_brand');
-    expect(coffee.suggestion).toMatchObject({ kind: 'store_brand_note', amountCents: null });
-    expect(coffee.suggestion?.alternative?.comparison).toBe('about_same');
+  it('coffee: unit prices within 5% are "about the same", so nothing is recommended', () => {
+    const item = assess(snapshot([line('578550306')])).items[0]!;
+    const coffee = criterion(item, 'store_brand');
+    expect(coffee.status).toBe('no_concern');
+    expect(coffee.suggestion).toBeUndefined();
     expect(coffee.summary).toMatch(/about the same/);
+    expect(item.primary).toBeNull();
   });
 
   it('orange juice: the store package costs more but its unit price is lower, saving about $0.38', () => {

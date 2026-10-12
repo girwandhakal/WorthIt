@@ -9,8 +9,11 @@ import { normalizeTitle, type ClarificationAnswer, type ClarificationRecord } fr
 
 export const REPEAT_PURPOSE_QUESTION_ID = 'repeat_purpose';
 
+/** Quick answers, in the order they are offered. Everything but "extra" says this one is not redundant. */
 export const ANSWER_LABELS: Record<ClarificationAnswer, string> = {
+  broke: 'The old one broke or got lost',
   replacement: 'Replacing a worn one',
+  gift: 'It’s a gift',
   additional: 'It’s an extra',
   different_purpose: 'For something different',
 };
@@ -42,7 +45,7 @@ export function storedAnswer(
   return records.find((record) => record.id === clarificationId(questionId, matchKey))?.answer ?? null;
 }
 
-/** A replacement or different-purpose answer means "not redundant". */
+/** Any answer but "extra" means "not redundant". */
 export function answerWithdrawsSkip(answer: ClarificationAnswer | null): boolean {
-  return answer === 'replacement' || answer === 'different_purpose';
+  return answer !== null && answer !== 'additional';
 }

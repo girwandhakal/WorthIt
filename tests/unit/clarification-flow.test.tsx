@@ -75,6 +75,8 @@ describe('FindingCard', () => {
     imageUrl: null,
     itemName: 'Stanley Quencher H2.0 FlowState Tumbler, 30 oz',
     text: 'You bought this 20 days ago. Do you need another? Skipping it would take $24.97 off your cart.',
+    points: ['You bought this 20 days ago', 'Do you need another one?'],
+    watch: [],
     wording: null,
     amountCents: 2497,
     question: {
@@ -111,5 +113,21 @@ describe('FindingCard', () => {
     expect(onAnswer).toHaveBeenCalledWith(finding.question, 'replacement', finding.itemName);
     await userEvent.click(screen.getByRole('button', { name: 'Skip question' }));
     expect(onSkipQuestion).toHaveBeenCalledWith(finding.question);
+  });
+
+  it('highlights an ingredient that is worth noting but not a concern, and shows nothing when there is none', () => {
+    const { rerender } = render(
+      <ul>
+        <FindingCard finding={{ ...finding, question: null, watch: ['modified starch'] }} onAnswer={vi.fn()} onSkipQuestion={vi.fn()} />
+      </ul>,
+    );
+    expect(screen.getByText('Also noted:', { exact: false })).toBeTruthy();
+    expect(document.querySelector('.wi-watch mark')?.textContent).toBe('modified starch');
+    rerender(
+      <ul>
+        <FindingCard finding={{ ...finding, question: null }} onAnswer={vi.fn()} onSkipQuestion={vi.fn()} />
+      </ul>,
+    );
+    expect(document.querySelector('.wi-watch')).toBeNull();
   });
 });

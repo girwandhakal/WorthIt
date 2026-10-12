@@ -70,6 +70,10 @@ export interface CriterionResult {
   status: CriterionStatus;
   /** One plain sentence for the full analysis. */
   summary: string;
+  /** The finding's reviewed wording cut to 2 or 3 short points, when it has a health note. */
+  points?: string[];
+  /** Ingredients worth noting that are not a concern and are never counted (for example modified starch). */
+  watch?: string[];
   evidence: Evidence[];
   confidence: Confidence;
   suggestion?: Suggestion;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { walmartAdapter } from '../../src/adapters/walmart';
-import { extractWalmartCart, itemIdFromHref } from '../../src/adapters/walmart/extract-cart';
+import { extractWalmartCart, itemIdFromHref, readImage } from '../../src/adapters/walmart/extract-cart';
 import { cartSnapshotSchema } from '../../src/domain/cart';
 import { loadRetailerDocument } from '../helpers/fixtures';
 
@@ -284,5 +284,37 @@ describe('a cart with a sale item is reviewed like any other', () => {
     expect(item.shareOfCartBps).not.toBeNull();
     expect(review.findings.some((finding) => finding.kind === 'uncertain')).toBe(false);
     expect(review.assessment.readableTotalCents).toBe(268 + 564 + 596 + 397);
+  });
+});
+
+describe('readImage: the thumbnail Walmart shows for the line', () => {
+  const line = (html: string) => {
+    const el = document.createElement('div');
+    el.innerHTML = html; // test markup only
+    return el;
+  };
+  const PHOTO = 'https://i5.walmartimages.com/seo/Great-Value-Whole-Milk_abc123.jpeg';
+
+  it('prefers the product photo over a badge or icon from the same CDN, whichever comes first', () => {
+    const badge = '<img src="https://i5.walmartimages.com/dfw/63fd9f59/rollback-badge.svg" alt="">';
+    expect(readImage(line(`${badge}<img src="${PHOTO}?odnHeight=117">`))).toBe(`${PHOTO}?odnHeight=117`);
+  });
+
+  it('never uses an icon when the line has no product photo', () => {
+    expect(readImage(line('<img src="https://i5.walmartimages.com/dfw/63fd9f59/pickup-icon.svg" alt="">'))).toBeNull();
+  });
+
+  it('reads protocol-relative links, srcset entries, and <picture> sources', () => {
+    expect(readImage(line('<img src="//i5.walmartimages.com/seo/Eggs_1.jpeg">'))).toBe('https://i5.walmartimages.com/seo/Eggs_1.jpeg');
+    expect(readImage(line('<img srcset="https://i5.walmartimages.com/seo/Eggs_2.jpeg 1x, https://i5.walmartimages.com/seo/Eggs_2b.jpeg 2x">'))).toBe(
+      'https://i5.walmartimages.com/seo/Eggs_2.jpeg',
+    );
+    expect(readImage(line('<picture><source srcset="https://i5.walmartimages.com/asr/abc-3.jpeg"><img alt=""></picture>'))).toBe(
+      'https://i5.walmartimages.com/asr/abc-3.jpeg',
+    );
+  });
+
+  it('ignores other hosts and non-https links', () => {
+    expect(readImage(line('<img src="https://tracker.example.com/seo/x.jpeg"><img src="http://i5.walmartimages.com/seo/y.jpeg">'))).toBeNull();
   });
 });

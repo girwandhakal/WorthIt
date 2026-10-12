@@ -158,7 +158,6 @@ function PanelForReview({
 
   return (
     <section ref={overlayRef} className="wi-overlay" role="dialog" aria-modal="true" aria-labelledby="wi-panel-title" onKeyDown={trapFocus}>
-      <div className="wi-aurora" aria-hidden="true" />
       <header className="wi-header">
         <h2 id="wi-panel-title" ref={headingRef} tabIndex={-1}>
           <span className="wi-logo" aria-hidden="true" />
@@ -191,25 +190,24 @@ function PanelForReview({
         )}
         {mode === 'full' && <FullAnalysis review={review} onBack={() => setMode('static')} />}
       </div>
-      <footer className={`wi-footer ${ready ? 'wi-footer-ready' : ''}`}>
-        {mode !== 'full' ? (
-          <button type="button" className="wi-secondary wi-analysis-button" onClick={() => setMode('full')} disabled={locked}>
-            See full analysis
-          </button>
-        ) : (
-          <span className="wi-handback">Worth It never changes your cart.</span>
-        )}
-        <span className="wi-footer-end">
-          {locked ? (
-            <span className="wi-footer-hint">Continue unlocks when the presentation ends.</span>
+      {/* Hidden, not just disabled, while the presentation plays for the first time: there is nothing to press until it ends. */}
+      {ready && (
+        <footer className="wi-footer wi-footer-ready">
+          {mode !== 'full' ? (
+            <button type="button" className="wi-secondary wi-analysis-button" onClick={() => setMode('full')}>
+              See full analysis
+            </button>
           ) : (
-            focusOnOpen && <span className="wi-footer-hint">Your next checkout click goes straight through.</span>
+            <span className="wi-handback">Worth It never changes your cart.</span>
           )}
-          <button type="button" className="wi-primary" onClick={close} disabled={locked}>
-            Continue
-          </button>
-        </span>
-      </footer>
+          <span className="wi-footer-end">
+            {focusOnOpen && <span className="wi-footer-hint">Your next checkout click goes straight through.</span>}
+            <button type="button" className="wi-primary" onClick={close}>
+              Continue
+            </button>
+          </span>
+        </footer>
+      )}
     </section>
   );
 }

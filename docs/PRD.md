@@ -266,7 +266,8 @@ The product should identify:
 
 The system should distinguish between:
 
-- Purchasing a replacement.
+- Purchasing a replacement, including for one that broke or was lost.
+- Purchasing a gift.
 - Purchasing an additional item.
 - Purchasing an item for a different purpose.
 - Repurchasing a consumable product.
@@ -579,16 +580,16 @@ The extension should not collect payment card details, passwords, or unrelated s
 
 **Priority: Must Have**
 
-When reliable product information and relevant evidence are available, Worth It should assess grocery items for price and product characteristics as well as purchase history. When a store-brand version is available, it should be the default brand recommendation, including when it is not cheaper or when the products are not established as equivalent, except that Worth It never recommends a food or drink with added sugar (see the added-sugar rule below). Worth It should concisely state actual price differences and material ingredient, nutrition, or package differences; describe ingredients as similar only when the labels support that claim. Quantify potential savings for the current quantity only when the store brand costs less. If purchase history contains comparable records, it may also estimate how much less the user might have spent by choosing the store brand for those past purchases. Historical savings are hypothetical and must be labeled as an estimate, especially when past prices are unavailable; use recorded historical price differences when available, otherwise state that the estimate applies today's price difference to recorded quantities. Do not present hypothetical savings as money actually saved.
+When reliable product information and relevant evidence are available, Worth It should assess grocery items for price and product characteristics as well as purchase history. When a store-brand version is available and costs less (at least 5% lower per unit), it is the brand recommendation, except that Worth It never recommends a food or drink with added sugar (see the added-sugar rule below); a store brand that costs the same or more gets no message. Worth It should concisely state actual price differences and material ingredient, nutrition, or package differences; describe ingredients as similar only when the labels support that claim. Quantify potential savings for the current quantity only when the store brand costs less. If purchase history contains comparable records, it may also estimate how much less the user might have spent by choosing the store brand for those past purchases. Historical savings are hypothetical and must be labeled as an estimate, especially when past prices are unavailable; use recorded historical price differences when available, otherwise state that the estimate applies today's price difference to recorded quantities. Do not present hypothetical savings as money actually saved.
 
-Health is a supporting lens in the purchase review, not a separate health score, diagnosis, or health-management feature. The owner approved a decision tree for food, applied to the product's own ingredient list and Nutrition Facts (read from its retailer product page):
+Health is a supporting lens in the purchase review, not a separate health score, diagnosis, or health-management feature. The owner approved one decision tree for every item: first food or not; for food, whether anything on its label makes it a concern; for non-food, whether it has a use and was bought recently; and for the rest, whether a cheaper store brand does the same job (TECH_SPEC section 7). For food it is applied to the product's own ingredient list and Nutrition Facts (read from its retailer product page):
 
 1. **Not food** → skip the food checks (see the non-food rule below).
 2. **Food with nothing flagged** (a whole or minimally processed food: milk, eggs, plain produce, plain grains) → **no comment**.
 3. **Food with a flagged characteristic** → investigate, say what is of concern in plain words, and cite the vetted source for that concern. The approved characteristics, each with fixed reviewed wording and one source (TECH_SPEC section 7), are: added sugar, cured/processed meat, artificial trans fat, a non-sugar sweetener (named), high sodium per serving, synthetic food dyes, and ultra-processed ingredients (identified from the ingredient list using the NOVA system). When an item has several, the note leads with the first in that order and the rest appear behind "Why?", each with its source.
 4. **Label not available** → unknown; no note, no guess.
 
-**Non-food:** an item gets a "probably not worth it" prompt only when it is a novelty item with no practical use (for example a collectible plush), recognized from the retailer's category path. Ordinary household goods, tools, clothing, and other items get no comment even when optional.
+**Non-food:** a novelty item with no practical use (for example a collectible plush, recognized from the retailer's category path) gets a "probably not worth it" prompt. Any other non-food item has a use: if a similar one was bought in the last 90 days (and it is not a consumable such as paper goods) it gets a warning and one question; if not, it gets a recommendation only when a cheaper store brand does the same job, and otherwise no comment. **Food is never warned about a past purchase** (it is restocking), and an item whose food-or-not Worth It could not tell gets no comment.
 
 The **added-sugar rule** within it:
 
@@ -919,7 +920,7 @@ The Hacklanta MVP should demonstrate the product's primary capabilities without 
 6. A single contextual clarification question when missing user context could change an assessment.
 7. At least one working, evidence-backed grocery value or nutrition insight based on actual product and label data, showing the store-brand recommendation, its actual price difference, and quantified potential savings when it costs less.
 8. A functional, evidence-backed lower-cost alternative recommendation for at least one supported product category.
-9. A short, polished animated pre-checkout recap that explains flagged items and potential cart reduction, with captions and controls to pause and replay; it cannot be skipped, and Continue unlocks when it ends.
+9. A short, polished animated pre-checkout recap that explains flagged items and potential cart reduction, with captions and controls to pause and replay; it cannot be skipped, and Continue appears when it ends.
 10. A clear, user-controlled checkout recommendation panel with source details and uncertainty available.
 11. One cart-level investment illustration, on by default, that states the total potential savings and what it could grow to under the stated assumptions.
 
