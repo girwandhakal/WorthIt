@@ -24,7 +24,6 @@ export const TEMPLATES = {
   cheaper_food: '{alternative} costs about {amount} less for the same amount. Try the store brand?',
   cheaper_other: '{alternative} is a lower-priced option, about {amount} less. Want to consider it?',
 
-  repeat_question: 'You bought {what} {when}. A past receipt doesn’t show whether you still have it.',
 } as const;
 
 export type TemplateKey = keyof typeof TEMPLATES;
@@ -41,7 +40,6 @@ export const PHRASABLE: readonly TemplateKey[] = [
   'cheaper_different',
   'cheaper_food',
   'cheaper_other',
-  'repeat_question',
 ];
 
 /** Templates that state an ingredient comparison (rephrasings may mention ingredients only here). */

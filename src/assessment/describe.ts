@@ -20,10 +20,6 @@ export function panelFindings(assessment: CartAssessment, items: readonly CartIt
     // Store-brand notes without savings are listed, never highlighted.
     const note = item.secondary.find((suggestion) => suggestion.kind === 'store_brand_note');
     if (note) findings.push(findingFor(item, note));
-    // A question with no skip suggestion (an exact repeat of an unclassified item).
-    if (item.question && !findings.some((finding) => finding.itemKey === item.itemKey && finding.question)) {
-      findings.push(questionFinding(item));
-    }
     if (cartItem && cartItem.issues.length > 0) {
       findings.push({
         id: `${item.itemKey}:uncertain`,
@@ -53,9 +49,8 @@ const KIND_RANK: Record<ReviewFinding['kind'], number> = {
   reduce_added_sugar: 2,
   reduce_food_concern: 3,
   cheaper_alternative: 4,
-  repeat_question: 5,
-  store_brand_note: 6,
-  uncertain: 7,
+  store_brand_note: 5,
+  uncertain: 6,
 };
 
 /** 0: a suggestion with a known amount; 1: a question or other suggestion without one; 2: notes and uncertainty. */
@@ -103,6 +98,9 @@ function findingFor(item: ItemAssessment, suggestion: Suggestion): ReviewFinding
   if (suggestion.alternative) {
     for (const difference of suggestion.alternative.differences) why.push({ label: 'Difference', value: difference, source: 'walmart_reference' });
   }
+  // An ingredient noted but not counted keeps its explanation and source on the finding it is shown with.
+  const watched = item.criteria.find((candidate) => candidate.criterion === 'food_quality');
+  if (watched?.watch?.length) why.push(...watched.evidence.filter((evidence) => evidence.label === 'Also noted (not counted)' && !why.includes(evidence)));
   if (item.shareOfCartBps !== null) {
     why.push({ label: 'Share of your cart', value: `${(item.shareOfCartBps / 100).toFixed(1)}%`, source: 'cart_page' });
   }
@@ -123,28 +121,6 @@ function findingFor(item: ItemAssessment, suggestion: Suggestion): ReviewFinding
     why,
     sources: sourcesFor(why.map((evidence) => evidence.source), suggestion.alternative),
     confidence: criterion.confidence,
-  };
-}
-
-function questionFinding(item: ItemAssessment): ReviewFinding {
-  const repeat = item.criteria.find((criterion) => criterion.criterion === 'repeat_purchase')!;
-  const match = latestKept(item);
-  return {
-    id: `${item.itemKey}:repeat_question`,
-    itemKey: item.itemKey,
-    position: item.position,
-    kind: 'repeat_question',
-    itemName: item.itemName,
-    imageUrl: item.imageUrl,
-    text: renderTemplate('repeat_question', whatWhen(match)),
-    points: [`You bought ${whatWhen(match).what} ${whatWhen(match).when}`, 'A receipt doesn’t show if you still have it'],
-    watch: [],
-    wording: { template: 'repeat_question', slots: whatWhen(match) },
-    amountCents: null,
-    question: item.question,
-    why: repeat.evidence,
-    sources: sourcesFor(repeat.evidence.map((evidence) => evidence.source)),
-    confidence: repeat.confidence,
   };
 }
 

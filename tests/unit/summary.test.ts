@@ -114,9 +114,9 @@ describe('groupedLabel when only notes are left', () => {
 });
 
 describe('groupedLabel counts items, not findings', () => {
-  it('an item with a cheaper option and a question is one item', () => {
+  it('an item with two findings is one item', () => {
     const finding = (kind: ReviewFinding['kind'], amountCents: number | null) => ({ kind, itemKey: 'walmart:1', amountCents }) as ReviewFinding;
-    expect(groupedLabel([finding('cheaper_alternative', 150), finding('repeat_question', null)])).toBe(
+    expect(groupedLabel([finding('cheaper_alternative', 150), finding('store_brand_note', null)])).toBe(
       'You also had 1 other item you could reconsider or swap for a different one, worth about $1.50 more.',
     );
   });

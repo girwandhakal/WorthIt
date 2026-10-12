@@ -7,7 +7,8 @@ import type { ClarificationAnswer, HistorySource, PurchaseStatus } from './histo
  * per criterion; the UI and any wording assistant only ever present these.
  */
 
-export const CRITERIA_VERSION = 1;
+/** Bumped when the decision rules change: 2 is the single food / non-food decision tree. */
+export const CRITERIA_VERSION = 2;
 
 export type CriterionId = 'readability' | 'purpose' | 'store_brand' | 'repeat_purchase' | 'added_sugar' | 'food_quality';
 

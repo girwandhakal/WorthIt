@@ -3,13 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { reviewCart } from '../../src/background/review-cart';
 import type { CartReview } from '../../src/domain/review';
-import { GROWTH_DRAW_MS } from '../../src/ui/animation/GrowthChart';
-import { SCENE_MS } from '../../src/ui/animation/Recap';
+import { SCENE_MS, finaleMs } from '../../src/ui/animation/Recap';
 import { CheckoutPanel } from '../../src/ui/checkout/CheckoutPanel';
 import { createReviewStore } from '../../src/ui/shared/review-store';
 import { line, snapshot, tumblerReceipt, walkthroughSnapshot } from '../helpers/assessment';
 import { reviewContext } from '../helpers/background';
 
+const summaryOf = (review: CartReview) => review.summary;
 const mixed = () => reviewCart(walkthroughSnapshot(), reviewContext({ history: [tumblerReceipt()] }));
 /** Same cart, but the tumbler question has been answered or skipped, so the presentation plays straight through. */
 const settled = () =>
@@ -176,7 +176,7 @@ describe('animated recap', () => {
     expect(screen.getByText('+3 more', { selector: '.wi-grouped-big', exact: false })).toBeTruthy();
     await act(() => vi.advanceTimersByTimeAsync(SCENE_MS.grouped));
     // The savings count up, then the growth chart draws to the exact illustrated amount.
-    await act(() => vi.advanceTimersByTimeAsync(1300 + GROWTH_DRAW_MS + 200));
+    await act(() => vi.advanceTimersByTimeAsync(finaleMs(summaryOf(settled())) + 100));
     expect(screen.getByText('$38.72', { selector: '.wi-amount-chip' })).toBeTruthy();
     expect(screen.getByText('$1,752.44', { selector: '.wi-growth-value' })).toBeTruthy();
     expect(screen.getByText('45× what you kept', { selector: '.wi-growth-multiple' })).toBeTruthy();
@@ -210,6 +210,9 @@ describe('animated recap', () => {
     expect(shown('Continue')).toBe(false);
 
     await playScenes(SCENE_MS.highlight, SCENE_MS.grouped);
+    // The last scene has started, but the presentation is only done once it has played out.
+    expect(shown('Continue')).toBe(false);
+    await act(() => vi.advanceTimersByTimeAsync(finaleMs(summaryOf(settled())) + 100));
     expect(shown('Continue')).toBe(true);
     expect(shown('See full analysis')).toBe(true);
     expect(shown('Dismiss Worth It panel')).toBe(true);

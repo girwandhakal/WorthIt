@@ -24,7 +24,7 @@ export interface CartReview {
   autoOpen: boolean;
 }
 
-export type ReviewFindingKind = SuggestionKind | 'repeat_question' | 'uncertain';
+export type ReviewFindingKind = SuggestionKind | 'uncertain';
 
 export interface FindingWording {
   template: TemplateKey;

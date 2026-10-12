@@ -5,7 +5,7 @@ import { FindingBody, type FindingHandlers } from '../checkout/FindingCard';
 import { Thumb } from '../checkout/Thumb';
 import { amountLabel, swapTarget, toneOf } from '../checkout/verdict';
 import { AnimatedNumber } from './AnimatedNumber';
-import { GrowthChart } from './GrowthChart';
+import { GROWTH_DRAW_MS, GrowthChart } from './GrowthChart';
 
 /**
  * How long each scene stays up before advancing, in milliseconds. The shopper
@@ -14,6 +14,11 @@ import { GrowthChart } from './GrowthChart';
  */
 const SPEED = import.meta.env.MODE === 'e2e' ? 0.25 : 1;
 export const SCENE_MS = { opening: 3200 * SPEED, highlight: 6000 * SPEED, grouped: 4000 * SPEED } as const;
+
+/** How long the closing scene takes to play out: the savings count up, then the growth chart draws. */
+export function finaleMs(summary: CartSummary): number {
+  return summary.investment ? 1300 + GROWTH_DRAW_MS + 400 : 2600;
+}
 
 /** Most cart thumbnails shown in the opening scene. */
 const OPENING_THUMBS = 12;
@@ -64,7 +69,15 @@ export function Recap({ review, onEnded, onAnswer, onSkipQuestion }: RecapProps)
     return () => clearTimeout(timer);
   }, [playing, atEnd, waiting, duration, index]);
 
-  useEffect(() => onEnded?.(atEnd), [atEnd, onEnded]);
+  // The presentation is done when the closing scene has played out (the count-up and the growth chart), not when it starts.
+  useEffect(() => {
+    if (!atEnd) {
+      onEnded?.(false);
+      return;
+    }
+    const timer = setTimeout(() => onEnded?.(true), finaleMs(summary));
+    return () => clearTimeout(timer);
+  }, [atEnd, onEnded, summary]);
 
   const caption = captionFor(current, summary);
   const savedSoFar = runningSavings(scenes, index, summary);
