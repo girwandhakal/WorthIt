@@ -70,9 +70,28 @@ function findLineContainers(doc: Document): Element[] {
     const found = Array.from(doc.querySelectorAll(selector)).filter(isActiveCartLine);
     // Keep only outermost matches so nested test ids do not double count.
     const outermost = found.filter((el) => !found.some((other) => other !== el && other.contains(el)));
-    if (outermost.length > 0) return outermost.flatMap(splitGroupedLines);
+    if (outermost.length > 0) {
+      const known = outermost.flatMap(splitGroupedLines);
+      return [...known, ...rowsOutsideKnownSections(doc, known)].sort(byDocumentOrder);
+    }
   }
   return heuristicLineContainers(doc);
+}
+
+/**
+ * Walmart groups the cart by how items arrive (pickup, delivery, shipping) and a section can be marked up
+ * differently from the rest, so the known hook finds some rows and misses a whole section, such as the
+ * items that ship. Rows the known hook missed are found from their product links, and only when they look
+ * like cart rows (they have a quantity), so a recommendation tile with a price is not taken for a cart item.
+ */
+function rowsOutsideKnownSections(doc: Document, known: readonly Element[]): Element[] {
+  return heuristicLineContainers(doc).filter(
+    (candidate) => !known.some((row) => row === candidate || row.contains(candidate) || candidate.contains(row)) && readQuantity(candidate) !== null,
+  );
+}
+
+function byDocumentOrder(a: Element, b: Element): number {
+  return a === b ? 0 : a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
 }
 
 /** Walmart may use one tile hook for several list rows, each with its own price and quantity. */
