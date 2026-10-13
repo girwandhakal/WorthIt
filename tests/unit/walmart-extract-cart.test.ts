@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { walmartAdapter } from '../../src/adapters/walmart';
-import { extractWalmartCart, itemIdFromHref, readImage } from '../../src/adapters/walmart/extract-cart';
+import { extractWalmartCart, itemIdFromHref, priceTextOf, readImage } from '../../src/adapters/walmart/extract-cart';
 import { cartSnapshotSchema } from '../../src/domain/cart';
 import { loadRetailerDocument } from '../helpers/fixtures';
 
@@ -316,5 +316,45 @@ describe('readImage: the thumbnail Walmart shows for the line', () => {
 
   it('ignores other hosts and non-https links', () => {
     expect(readImage(line('<img src="https://tracker.example.com/seo/x.jpeg"><img src="http://i5.walmartimages.com/seo/y.jpeg">'))).toBeNull();
+  });
+});
+
+describe('prices Walmart draws in pieces', () => {
+  const html = (inner: string) =>
+    `<!doctype html><html><body><main><h1>Cart (1 item)</h1><div data-testid="cart-line-item">
+      <a href="/ip/Fresh-Hass-Avocados-Each/44390949"><span data-testid="productName">Fresh Hass Avocados, Each</span></a>
+      ${inner}
+      <select aria-label="Quantity"><option value="2" selected>2</option></select>
+    </div></main></body></html>`;
+  const read = (inner: string) => extractWalmartCart(new DOMParser().parseFromString(html(inner), 'text/html'), CART_URL, NOW).items[0]!;
+
+  it('puts a split price back together: "$", "0", "73" is $0.73, not $73', () => {
+    const el = document.createElement('div');
+    el.innerHTML = '<span>$</span><span>0</span><span>73</span>';
+    expect(priceTextOf(el)).toBe('$0.73');
+    el.innerHTML = 'Now <span>$</span><span>1,347</span><span>00</span>';
+    expect(priceTextOf(el)).toBe('Now $1,347.00');
+    el.innerHTML = '<span>$4.18</span>';
+    expect(priceTextOf(el)).toBe('$4.18');
+  });
+
+  it('reads the line price from a split-price hook', () => {
+    const item = read('<div data-testid="line-price"><span>$</span><span>1</span><span>46</span></div>');
+    expect(item.linePriceCents).toBe(146);
+    expect(item.quantity).toBe(2);
+    expect(item.unitPriceCents).toBe(73);
+    expect(item.issues).toEqual([]);
+  });
+
+  it('is not confused by a price written twice (once with its decimal point squashed out)', () => {
+    const item = read('<div><span aria-label="current price $0.73">$0.73</span><span class="sr">$073</span></div>');
+    expect(item.linePriceCents).toBe(73);
+    expect(item.issues).toEqual([]);
+  });
+
+  it('reads an "each (est.)" price once, not as two prices', () => {
+    const item = read('<div><span>Price $0.20 each (est.)</span><span>$020</span><span>50.0 ¢/lb</span></div>');
+    expect(item.linePriceCents).toBe(20);
+    expect(item.issues).toEqual([]);
   });
 });
