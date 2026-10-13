@@ -73,6 +73,8 @@ export interface CriterionResult {
   summary: string;
   /** The finding's reviewed wording cut to 2 or 3 short points, when it has a health note. */
   points?: string[];
+  /** The label concerns behind a finding: an id from the food decision tree and the specific thing found. */
+  concerns?: Array<{ id: string; detail: string }>;
   /** Ingredients worth noting that are not a concern and are never counted (for example modified starch). */
   watch?: string[];
   evidence: Evidence[];

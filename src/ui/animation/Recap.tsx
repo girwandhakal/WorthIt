@@ -47,8 +47,8 @@ export interface RecapProps extends FindingHandlers {
 /**
  * The full-screen pre-checkout presentation: a short sequence of scenes built
  * from the deterministic summary (no generated video). It plays on its own and
- * is pausable and replayable, with captions and a live region so it reads the
- * same without animation. There is deliberately no way to skip ahead: the
+ * is pausable and replayable, with its captions always shown and a live region
+ * so it reads the same without animation. There is deliberately no way to skip ahead: the
  * shopper has to sit through it (reduced-motion shoppers get the static view).
  */
 export function Recap({ review, onEnded, onAnswer, onSkipQuestion }: RecapProps) {
@@ -56,7 +56,6 @@ export function Recap({ review, onEnded, onAnswer, onSkipQuestion }: RecapProps)
   const scenes = scenesFor(summary);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
-  const [captions, setCaptions] = useState(true);
   const current = scenes[Math.min(index, scenes.length - 1)]!;
   const atEnd = index >= scenes.length - 1;
   // A question waits for the shopper; it never advances away on its own.
@@ -90,14 +89,13 @@ export function Recap({ review, onEnded, onAnswer, onSkipQuestion }: RecapProps)
           {current.type === 'highlight' && (
             <HighlightScene
               finding={current.finding}
-              captions={captions}
               onAnswer={onAnswer}
               onSkipQuestion={onSkipQuestion}
               onWhyOpened={() => setPlaying(false)}
             />
           )}
-          {current.type === 'grouped' && summary.grouped && <GroupedScene summary={summary} captions={captions} />}
-          {current.type === 'closing' && <Finale summary={summary} captions={captions} animate />}
+          {current.type === 'grouped' && summary.grouped && <GroupedScene summary={summary} />}
+          {current.type === 'closing' && <Finale summary={summary} animate />}
         </div>
         <p className="wi-sr-only" aria-live="polite">
           {caption}
@@ -134,9 +132,6 @@ export function Recap({ review, onEnded, onAnswer, onSkipQuestion }: RecapProps)
         >
           <ControlIcon name="replay" />
         </button>
-        <button type="button" className="wi-control wi-control-text" aria-label="Captions" aria-pressed={captions} onClick={() => setCaptions((value) => !value)}>
-          CC
-        </button>
       </div>
     </div>
   );
@@ -150,7 +145,6 @@ function OpeningScene({ review }: { review: CartReview }) {
   const more = review.assessment.items.length - items.length;
   return (
     <div className="wi-opening">
-      <p className="wi-eyebrow">Worth It reviewed {review.itemCount} {review.itemCount === 1 ? 'item' : 'items'}</p>
       <p className="wi-scene-title">
         <Words text={review.summary.opening} />
       </p>
@@ -187,10 +181,9 @@ function Words({ text }: { text: string }) {
 
 function HighlightScene({
   finding,
-  captions,
   onWhyOpened,
   ...handlers
-}: FindingHandlers & { finding: ReviewFinding; captions: boolean; onWhyOpened: () => void }) {
+}: FindingHandlers & { finding: ReviewFinding; onWhyOpened: () => void }) {
   const tone = toneOf(finding.kind);
   const swap = swapTarget(finding);
   return (
@@ -220,7 +213,7 @@ function HighlightScene({
         )}
         <div className="wi-scene-body">
           {/* A few short points the shopper can read in the scene's time; the full sentence is read out and kept behind them. */}
-          {captions && finding.points.length > 0 && (
+          {finding.points.length > 0 && (
             <ul className="wi-points">
               {finding.points.map((point, i) => (
                 <li key={point} style={{ '--i': i } as CSSProperties}>
@@ -232,7 +225,7 @@ function HighlightScene({
           <FindingBody
             finding={finding}
             showName={false}
-            showText={captions && finding.points.length === 0}
+            showText={finding.points.length === 0}
             onWhyOpened={onWhyOpened}
             {...handlers}
           />
@@ -242,7 +235,7 @@ function HighlightScene({
   );
 }
 
-function GroupedScene({ summary, captions }: { summary: CartSummary; captions: boolean }) {
+function GroupedScene({ summary }: { summary: CartSummary }) {
   const grouped = summary.grouped!;
   const thumbs = [...new Map(grouped.findings.map((finding) => [finding.itemKey, finding])).values()].slice(0, 8);
   return (
@@ -273,7 +266,7 @@ function GroupedScene({ summary, captions }: { summary: CartSummary; captions: b
       ) : (
         <p className="wi-grouped-big">A few notes</p>
       )}
-      {captions && <p className="wi-scene-caption">{grouped.label}</p>}
+      <p className="wi-scene-caption">{grouped.label}</p>
     </div>
   );
 }
@@ -282,7 +275,7 @@ function GroupedScene({ summary, captions }: { summary: CartSummary; captions: b
  * The closing scene (and the end of the static view): the cart's potential
  * savings, then the one investment illustration, then the hand-back.
  */
-export function Finale({ summary, captions, animate }: { summary: CartSummary; captions: boolean; animate: boolean }) {
+export function Finale({ summary, animate }: { summary: CartSummary; animate: boolean }) {
   const total = summary.totals.combinedCents;
   const sentence = summary.investment?.sentence ?? summary.savingsSentence;
   return (
@@ -290,11 +283,11 @@ export function Finale({ summary, captions, animate }: { summary: CartSummary; c
       <div className="wi-finale-text">
         {total > 0 && (
           <div className="wi-finale-save">
-            <span className="wi-eyebrow">Follow this advice and keep</span>
+            <h3 className="wi-finale-title">Follow this advice and keep</h3>
             <AnimatedNumber className="wi-amount-chip wi-amount-total" cents={total} durationMs={1100} animate={animate} />
           </div>
         )}
-        {captions && sentence && <p className="wi-closing-sentence">{sentence}</p>}
+        {sentence && <p className="wi-closing-sentence">{sentence}</p>}
         <p className="wi-handback-line">{summary.handBack}</p>
       </div>
       {summary.investment && <GrowthChart investment={summary.investment} animate={animate} delayMs={animate ? 1300 : 0} />}

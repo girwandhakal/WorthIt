@@ -24,7 +24,7 @@ export function investmentIllustration(aggregateCents: number, enabled: boolean)
     futureValueCents: future,
     annualReturn: INVESTMENT_ASSUMPTIONS.annualReturn,
     years: INVESTMENT_ASSUMPTIONS.years,
-    sentence: `By following these suggestions, you would save ${x}. If you invested that ${x} at an assumed 10% annual return, compounded annually, it could grow to about ${formatCents(future)} in 40 years (before inflation; returns are not guaranteed).`,
+    sentence: `Invested at an assumed 10% a year, ${x} could grow to about ${formatCents(future)} in 40 years.`,
   };
 }
 

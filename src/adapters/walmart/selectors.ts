@@ -136,6 +136,13 @@ export const WAS_PRICE_TEXT = /\b(was|list price|reg(ular)?\.?)\b/i;
 export const CURRENT_PRICE_LABEL = /\b(current price|sale price|now)\s*:?\s*$/i;
 export const WAS_PRICE_LABEL = /\b(was|list price|reg(ular)?\.?|original price)\s*:?\s*$/i;
 export const SAVING_LABEL = /\b(you save|save|savings|off|discount|rebate)\s*:?\s*$/i;
+/**
+ * Rewards and offers shown next to a price are not the price: "Get $2.00 Walmart Cash", "Earn $1.50 cash back",
+ * "Clip coupon: $0.50 off", "$2.00 rebate". Words just before an amount, just after it, and anywhere in a short label.
+ */
+export const REWARD_LABEL = /\b(get|earn|receive|win|clip|coupon|offer|rebate|cash ?back|rewards?)s?\s*:?\s*$/i;
+export const REWARD_SUFFIX = /^\s*(off\b|walmart cash|cash ?back|back\b|rebate|rewards?|credit|coupon|offer|gift card)/i;
+export const REWARD_TEXT = /\b(walmart cash|cash ?back|manufacturer offer|coupon|rebate|rewards?)\b/i;
 /** Text around an amount that makes it a saving, not a price ("You save" + $0.46). */
 export const SAVING_TEXT = /\b(you save|save|savings)\b/i;
 /** What follows a per-unit price: "/oz", "/ea", "¢/oz". */

@@ -33,6 +33,21 @@ export const CONCERN_ORDER: readonly FoodConcernId[] = [
   'ultra_processed',
 ];
 
+/**
+ * How glaring each concern is, for what the presentation says first. Added sugar is the mildest: when something
+ * more glaring is on the label, that ingredient leads and added sugar follows. (CONCERN_ORDER above is the order
+ * the full analysis lists them in.)
+ */
+export const GLARE_ORDER: readonly FoodConcernId[] = [
+  'trans_fat',
+  'processed_meat',
+  'sweetener',
+  'dyes',
+  'ultra_processed',
+  'high_sodium',
+  'added_sugar',
+];
+
 /** Sodium per serving at or above this is "high" (FDA's 20%-of-Daily-Value line; the percentage itself is never quoted). */
 export const HIGH_SODIUM_MG = 460;
 
@@ -57,24 +72,25 @@ interface Pattern {
 }
 
 const SWEETENERS: Pattern[] = [
-  { name: 'aspartame', test: /\baspartame\b/ },
-  { name: 'sucralose', test: /\bsucralose\b/ },
-  { name: 'acesulfame potassium', test: /\bacesulfame\b|\bace[- ]?k\b/ },
-  { name: 'saccharin', test: /\bsaccharin\b/ },
-  { name: 'neotame', test: /\bneotame\b/ },
-  { name: 'advantame', test: /\badvantame\b/ },
-  { name: 'cyclamate', test: /\bcyclamates?\b/ },
-  { name: 'stevia (steviol glycosides)', test: /\bsteviol\b|\bstevia\b|\brebaudioside\b|\breb[- ]?[am]\b/ },
+  { name: 'aspartame', test: /\baspartame\b|\be951\b/ },
+  { name: 'sucralose', test: /\bsucralose\b|\be955\b/ },
+  { name: 'acesulfame potassium', test: /\bacesulfame\b|\bace[- ]?k\b|\be950\b/ },
+  { name: 'saccharin', test: /\bsaccharin\b|\be954\b/ },
+  { name: 'neotame', test: /\bneotame\b|\be961\b/ },
+  { name: 'advantame', test: /\badvantame\b|\be969\b/ },
+  { name: 'cyclamate', test: /\bcyclamates?\b|\be952\b/ },
+  { name: 'stevia (steviol glycosides)', test: /\bsteviol\b|\bstevia\b|\brebaudioside\b|\breb[- ]?[am]\b|\be960\b/ },
 ];
 
 const DYES: Pattern[] = [
-  { name: 'Red 40', test: /\b(red|fd&c red)\s*(no\.?\s*)?#?40\b(?!\s*%)|\ballura red\b/ },
-  { name: 'Red 3', test: /\b(red|fd&c red)\s*(no\.?\s*)?#?3\b(?!\s*%)|\berythrosine\b/ },
-  { name: 'Yellow 5', test: /\b(yellow|fd&c yellow)\s*(no\.?\s*)?#?5\b(?!\s*%)|\btartrazine\b/ },
-  { name: 'Yellow 6', test: /\b(yellow|fd&c yellow)\s*(no\.?\s*)?#?6\b(?!\s*%)|\bsunset yellow\b/ },
-  { name: 'Blue 1', test: /\b(blue|fd&c blue)\s*(no\.?\s*)?#?1\b(?!\s*%)|\bbrilliant blue\b/ },
-  { name: 'Blue 2', test: /\b(blue|fd&c blue)\s*(no\.?\s*)?#?2\b(?!\s*%)|\bindigotine\b/ },
-  { name: 'Green 3', test: /\b(green|fd&c green)\s*(no\.?\s*)?#?3\b(?!\s*%)|\bfast green\b/ },
+  // The seven FD&C dyes in OEHHA's 2021 assessment, by number, chemical name, or E-number.
+  { name: 'Red 40', test: /\b(red|fd&c red)\s*(no\.?\s*)?#?40\b(?!\s*%)|\ballura red\b|\be129\b/ },
+  { name: 'Red 3', test: /\b(red|fd&c red)\s*(no\.?\s*)?#?3\b(?!\s*%)|\berythrosine\b|\be127\b/ },
+  { name: 'Yellow 5', test: /\b(yellow|fd&c yellow)\s*(no\.?\s*)?#?5\b(?!\s*%)|\btartrazine\b|\be102\b/ },
+  { name: 'Yellow 6', test: /\b(yellow|fd&c yellow)\s*(no\.?\s*)?#?6\b(?!\s*%)|\bsunset yellow\b|\be110\b/ },
+  { name: 'Blue 1', test: /\b(blue|fd&c blue)\s*(no\.?\s*)?#?1\b(?!\s*%)|\bbrilliant blue\b|\be133\b/ },
+  { name: 'Blue 2', test: /\b(blue|fd&c blue)\s*(no\.?\s*)?#?2\b(?!\s*%)|\bindigotine\b|\bindigo carmine\b|\be132\b/ },
+  { name: 'Green 3', test: /\b(green|fd&c green)\s*(no\.?\s*)?#?3\b(?!\s*%)|\bfast green\b|\be143\b/ },
   { name: 'artificial color', test: /\bartificial colou?rs?\b/ },
 ];
 
@@ -84,11 +100,32 @@ const ULTRA_PROCESSED_MARKERS: Pattern[] = [
   { name: 'corn syrup', test: /\bcorn syrup\b|\bglucose syrup\b/ },
   { name: 'dextrose or maltodextrin', test: /\bdextrose\b|\bmaltodextrin\b|\bdextrin\b/ },
   { name: 'flavorings', test: /\bflavou?rs?\b|\bflavou?rings?\b/ },
-  { name: 'emulsifiers', test: /\bmono(?:glycerides?)?-?\s*(?:and|&)\s*diglycerides?\b|\b(?:mono|di)glycerides?\b|\bpolysorbate\b|\blecithin\b|\bdatem\b|\bstearoyl lactylate\b|\bpolyglycerol\b/ },
-  { name: 'gums and thickeners', test: /\b(xanthan|guar|gellan|cellulose|locust bean)\s+gum\b|\bcarrageenan\b|\bcarboxymethylcellulose\b|\bmethylcellulose\b/ },
+  {
+    name: 'emulsifiers',
+    test: /\bmono(?:glycerides?)?-?\s*(?:and|&)\s*diglycerides?\b|\b(?:mono|di)glycerides?\b|\bpolysorbate\b|\blecithin\b|\bdatem\b|\bstearoyl lactylate\b|\bpolyglycerol\b|\bsucrose (?:esters?|polyesters?)\b|\bsorbitan\b|\bpropylene glycol (?:mono|di)?esters?\b|\bammonium phosphatides?\b|\bglyceryl\b|\b(?:sodium|calcium) stearoyl\b|\bmono-? ?and ?di-?acetyl\b/,
+  },
+  {
+    name: 'gums and thickeners',
+    test: /\b(?:xanthan|guar|gellan|cellulose|locust bean|acacia|tara|cassia|konjac|karaya|ghatti)\s+gum\b|\bgum (?:arabic|acacia)\b|\bcarrageenan\b|\bcarboxymethylcellulose\b|\bmethylcellulose\b|\bmicrocrystalline cellulose\b|\b(?:sodium |propylene glycol )?alginate\b|\bkonjac\b/,
+  },
   { name: 'hydrolyzed protein', test: /\bhydrolyzed\b|\bhydrolysed\b|\bprotein isolate\b|\btextured (vegetable|soy) protein\b/ },
   { name: 'hydrogenated oil', test: /(?<!non[- ])\bhydrogenated\b|\binteresterified\b/ },
   { name: 'caramel color', test: /\bcaramel colou?r\b/ },
+  // The other NOVA group-4 markers named by Monteiro et al. 2019: sugars, proteins, and fibers rarely used in a home kitchen...
+  { name: 'fructose', test: /(?<!high[- ])(?<!glucose[- ])\bfructose\b(?! (?:corn )?syrup)/ },
+  { name: 'fruit juice concentrate', test: /\b(?:fruit|vegetable) juice concentrates?\b|\bconcentrated (?:fruit|vegetable) juices?\b/ },
+  { name: 'invert sugar', test: /\binvert (?:sugar|syrup)\b/ },
+  { name: 'lactose', test: /\blactose\b(?![- ]free)/ },
+  { name: 'casein or whey protein', test: /\bcasein(?:ate)?s?\b|\bwhey protein\b|\bmilk protein (?:concentrate|isolate)\b/ },
+  { name: 'protein concentrate', test: /\bprotein concentrates?\b/ },
+  { name: 'added gluten', test: /\b(?:vital|wheat|corn) gluten\b/ },
+  { name: 'mechanically separated meat', test: /\bmechanically (?:separated|deboned)\b/ },
+  { name: 'added fiber', test: /\b(?:soluble|insoluble|corn|oat|pea|wheat|citrus|potato|chicory(?: root)?|bamboo) fib(?:er|re)s?\b|\bpolydextrose\b|\binulin\b/ },
+  // ...and the cosmetic additives: flavor enhancers, emulsifying salts, glazing and anti-foaming agents, and colors.
+  { name: 'flavor enhancers', test: /\bmonosodium glutamate\b|\bmsg\b|\bdisodium (?:inosinate|guanylate|5'?-?ribonucleotides?)\b|\bribonucleotides\b/ },
+  { name: 'phosphate salts', test: /\b(?:mono|di|tri|tetra)?(?:sodium|potassium) (?:acid |aluminum |aluminium )?(?:pyro|hexameta|tripoly|poly)?phosphates?\b/ },
+  { name: 'glazes and anti-foaming agents', test: /\bconfectioner[’']?s? glaze\b|\bshellac\b|\bcarnauba wax\b|\bglazing agents?\b|\b(?:poly)?dimethylsiloxane\b|\bsimethicone\b|\bquillaja\b/ },
+  { name: 'color additives', test: /\bcitrus red\b|\bfd&c orange b\b|\borange b\b(?! vitamin)|\btitanium dioxide\b/ },
 ];
 
 /**
@@ -105,8 +142,14 @@ export function foodWatchNotes(ingredients: string | null): string[] {
   return text ? matches(WATCH_INGREDIENTS, text) : [];
 }
 
-const MEAT_WORDS = /\b(beef|pork|bacon|ham|sausage|salami|pepperoni|hot dogs?|franks?|bologna|turkey|chicken|jerky|deli|meat)\b/;
-const CURING = /\b(sodium|potassium) (nitrite|nitrate)\b/;
+const MEAT_WORDS =
+  /\b(beef|pork|lamb|veal|bacon|ham|sausages?|salami|pepperoni|hot dogs?|franks?|frankfurters?|wieners?|bologna|mortadella|prosciutto|pancetta|pastrami|corned beef|kielbasa|bratwurst|brats?|chorizo|capicola|andouille|turkey|chicken|jerky|deli|lunch ?meat|luncheon meat|cold cuts|meat)\b/;
+const CURING = /\b(sodium|potassium) (nitrite|nitrate)\b|\bcuring salts?\b|\bprague powder\b/;
+/** "Uncured" meats are cured with celery or similar vegetable powders that supply the same nitrite. */
+const NATURAL_NITRITE = /\b(?:cultured )?celery (?:powder|juice(?: powder)?|extract|salt)\b|\bcultured celery\b|\bbeet(?:root)? juice powder\b|\bswiss chard powder\b/;
+/** Only products that are cured meats by kind, so celery powder in a chicken soup is not read as a cure. */
+const CURED_MEAT_WORDS =
+  /\b(bacon|ham|sausages?|salami|pepperoni|hot dogs?|franks?|frankfurters?|wieners?|bologna|mortadella|prosciutto|pancetta|pastrami|corned beef|kielbasa|bratwurst|brats?|chorizo|capicola|andouille|jerky|deli|lunch ?meat|luncheon meat|cold cuts)\b/;
 
 const matches = (patterns: readonly Pattern[], text: string): string[] => patterns.filter((p) => p.test.test(text)).map((p) => p.name);
 
@@ -122,7 +165,9 @@ export function evaluateFood(inputs: FoodInputs): FoodConcern[] {
   if (inputs.addedSugarG !== null && inputs.addedSugarG > 0) add('added_sugar', 'listed on the label');
 
   const curing = text ? CURING.exec(text) : null;
+  const natural = text ? NATURAL_NITRITE.exec(text) : null;
   if (curing && MEAT_WORDS.test(`${text} ${inputs.context}`)) add('processed_meat', curing[0]);
+  else if (natural && CURED_MEAT_WORDS.test(`${text} ${inputs.context}`.toLowerCase())) add('processed_meat', `${natural[0]}, a natural nitrite source`);
 
   if (/partially hydrogenated/.test(text)) add('trans_fat', 'partially hydrogenated oil');
   else if (inputs.transFatG !== null && inputs.transFatG > 0) add('trans_fat', `${inputs.transFatG} g of trans fat per serving`);
@@ -221,10 +266,36 @@ export const CONCERN_INFO: Record<FoodConcernId, ConcernInfo> = {
     label: 'Ultra-processed ingredients',
     note: (detail) =>
       `Its ingredient list includes ${detail}, which mark a food as ultra-processed. In a controlled NIH trial, people on an ultra-processed diet ate about 500 more calories a day and gained weight. That study is about a whole diet, not one item. Consider having it less often.`,
-    points: () => ['Ultra-processed ingredients', 'NIH trial: an ultra-processed diet meant ~500 more calories a day', 'Have it less often'],
+    points: (detail) => [`Ultra-processed: ${detail}`, 'NIH trial: an ultra-processed diet meant ~500 more calories a day', 'Have it less often'],
     guidance:
       'In a 20-person inpatient trial, an ultra-processed diet led to about 500 more calories a day and weight gain over two weeks. It shows a dietary pattern, not that one item causes harm. Ultra-processed is identified by ingredients using the NOVA system.',
     source: 'hall_upf',
     alsoSource: 'monteiro_nova',
   },
 };
+
+/** Concerns sorted most glaring first. */
+export function byGlare<T extends { id: FoodConcernId }>(concerns: readonly T[]): T[] {
+  return [...concerns].sort((a, b) => GLARE_ORDER.indexOf(a.id) - GLARE_ORDER.indexOf(b.id));
+}
+
+/**
+ * Every concern on a food as short points for the presentation, most glaring first. One concern keeps its three
+ * points (what, why, what to do). Several give one point each, naming the ingredient (at most three), then the
+ * action for the most glaring one, so a food with high-fructose corn syrup does not just say "added sugar".
+ */
+export function concernPoints(concerns: readonly FoodConcern[]): string[] {
+  const ranked = byGlare(concerns);
+  if (ranked.length === 0) return [];
+  if (ranked.length === 1) return CONCERN_INFO[ranked[0]!.id].points(ranked[0]!.detail);
+  const headlines = ranked.slice(0, 3).map((concern) => CONCERN_INFO[concern.id].points(concern.detail)[0]!);
+  const lead = CONCERN_INFO[ranked[0]!.id].points(ranked[0]!.detail);
+  return [...headlines, lead[lead.length - 1]!];
+}
+
+/** The reviewed note for every concern, most glaring first, as one text. */
+export function concernNotes(concerns: readonly FoodConcern[]): string {
+  return byGlare(concerns)
+    .map((concern) => CONCERN_INFO[concern.id].note(concern.detail))
+    .join(' ');
+}

@@ -19,6 +19,9 @@ import {
   PRODUCT_LINK_SELECTOR,
   QUANTITY_INPUT_SELECTORS,
   QUANTITY_TEXT_SELECTORS,
+  REWARD_LABEL,
+  REWARD_SUFFIX,
+  REWARD_TEXT,
   SAVING_LABEL,
   SAVING_TEXT,
   STRIKE_SELECTORS,
@@ -236,6 +239,8 @@ function roleOfAmount(node: Text, before: string, after: string): PriceRole {
   if (CURRENT_PRICE_LABEL.test(before)) return 'current';
   if (WAS_PRICE_LABEL.test(before)) return 'was';
   if (SAVING_LABEL.test(before)) return 'saving';
+  // A reward or offer beside the price ("Get $2.00 Walmart Cash") is not the price.
+  if (REWARD_LABEL.test(before) || REWARD_SUFFIX.test(after)) return 'saving';
   const parent = node.parentElement;
   const parentText = parent?.textContent ?? '';
   if (UNIT_SUFFIX.test(after) || UNIT_PRICE_TEXT.test(parentText)) return 'unit';
@@ -245,8 +250,9 @@ function roleOfAmount(node: Text, before: string, after: string): PriceRole {
   const label = nearestAmountLabel(parent);
   if (label !== null) {
     if (WAS_PRICE_TEXT.test(label)) return 'was';
-    if (SAVING_TEXT.test(label)) return 'saving';
+    if (SAVING_TEXT.test(label) || REWARD_TEXT.test(label)) return 'saving';
   }
+  if (parentText.length <= 80 && REWARD_TEXT.test(parentText)) return 'saving';
   if (WAS_PRICE_TEXT.test(parentText)) return 'was';
   if (parent && isSavingContext(parent)) return 'saving';
   return 'plain';

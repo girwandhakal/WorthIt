@@ -32,9 +32,9 @@ describe('futureValueCents (FV = P × 1.1^40, rounded once)', () => {
 });
 
 describe('investmentIllustration', () => {
-  it('uses the exact approved sentence with code-calculated amounts', () => {
+  it('is one short sentence with code-calculated amounts', () => {
     expect(investmentIllustration(3872, true)?.sentence).toBe(
-      'By following these suggestions, you would save $38.72. If you invested that $38.72 at an assumed 10% annual return, compounded annually, it could grow to about $1,752.44 in 40 years (before inflation; returns are not guaranteed).',
+      'Invested at an assumed 10% a year, $38.72 could grow to about $1,752.44 in 40 years.',
     );
   });
 

@@ -2,7 +2,7 @@ import type { BrowserContext, Page, Worker } from '@playwright/test';
 import { checkoutButton, clickCheckout, daysAgo, expect, expectNothingShown, retailerClicks, retailerMarkup, seedHistory, serveWalmart, setPreferences, storedPurchase, test, waitForReview } from './extension';
 
 const INVESTMENT_SENTENCE = (x: string, y: string) =>
-  `By following these suggestions, you would save ${x}. If you invested that ${x} at an assumed 10% annual return, compounded annually, it could grow to about ${y} in 40 years (before inflation; returns are not guaranteed).`;
+  `Invested at an assumed 10% a year, ${x} could grow to about ${y} in 40 years.`;
 
 async function openMixedCart(
   context: BrowserContext,
@@ -62,7 +62,8 @@ test('acceptance walkthrough: the presentation cannot be skipped, takes the answ
   // Full analysis on request.
   await panel.getByRole('button', { name: 'See full analysis' }).click();
   await expect(panel.getByRole('heading', { name: 'Full analysis' })).toBeVisible();
-  await expect(panel.getByRole('table')).toHaveCount(7);
+  await expect(panel.locator('.wi-analysis-item')).toHaveCount(7);
+  await expect(panel.getByRole('region', { name: 'Worth a look' })).toBeVisible();
   await panel.getByRole('button', { name: 'Back to highlights' }).first().click();
 
   // Continue closes only Worth It; the cart is untouched.

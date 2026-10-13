@@ -62,11 +62,18 @@ describe('whole foods and plain household goods get no comment', () => {
 });
 
 describe('processed food is investigated, with a citation', () => {
-  it('Skittles: the approved added-sugar note leads, and dyes and processing sit behind "Why?" with their sources', () => {
+  it('Skittles: every concern is named, the most glaring first and added sugar (the mildest) last, each with its source', () => {
     const finding = review(['skittles']).findings[0]!;
     expect(finding.kind).toBe('reduce_added_sugar');
-    expect(finding.text).toMatch(/^This has added sugar\. Too much added sugar over time can contribute to health problems/);
-    expect(finding.text).toMatch(/Removing it would lower your cart by \$4\.97\.$/);
+    const text = finding.text;
+    expect(text).toMatch(/^This has synthetic food dye/);
+    expect(text.indexOf('synthetic food dye')).toBeLessThan(text.indexOf('ultra-processed'));
+    expect(text.indexOf('ultra-processed')).toBeLessThan(text.indexOf('This has added sugar. Too much added sugar over time can contribute to health problems'));
+    expect(text).toMatch(/Removing it would lower your cart by \$4\.97\.$/);
+    // The slide's points name them too, not just "added sugar".
+    expect(finding.points[0]).toMatch(/^Synthetic food dye \(/);
+    expect(finding.points.some((point) => point.startsWith('Ultra-processed: '))).toBe(true);
+    expect(finding.points).toContain('Has added sugar');
     const sourceIds = finding.sources.map((source) => source.id);
     expect(sourceIds).toEqual(expect.arrayContaining(['cdc_added_sugars', 'oehha_dyes', 'hall_upf', 'monteiro_nova', 'walmart_product_page']));
     expect(finding.why.map((row) => row.label)).toEqual(expect.arrayContaining(['Added sugars on label', 'Synthetic food dyes', 'Ultra-processed ingredients']));
