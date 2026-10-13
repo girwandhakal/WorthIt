@@ -289,6 +289,17 @@ describe('static view (reduced motion)', () => {
   });
 });
 
+describe('one screen, no extra scrollbar', () => {
+  it('stops the page behind from scrolling while open, and hands it back on Continue', async () => {
+    document.documentElement.style.overflow = 'auto';
+    const { user } = setup(mixed(), { reducedMotion: true });
+    expect(document.documentElement.style.overflow).toBe('hidden');
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(document.documentElement.style.overflow).toBe('auto');
+    document.documentElement.style.overflow = '';
+  });
+});
+
 describe('See full analysis', () => {
   const open = async (review: CartReview) => {
     const { user } = setup(review, { reducedMotion: true });
