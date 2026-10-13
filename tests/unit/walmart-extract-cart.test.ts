@@ -397,3 +397,19 @@ describe('a row with a reward or offer next to its price (real Walmart markup, O
   });
 });
 
+describe('a shipping section with protection-plan options in the row', () => {
+  const snapshot = () => extract('cart-shipping-2026-10.html');
+
+  it('reads the delivery rows and both shipped rows', () => {
+    expect(snapshot().items.map((item) => item.retailerItemId)).toEqual(['10315481', '50616469', '428494633', '20822869032']);
+  });
+
+  it('does not take the protection-plan prices for the item’s price', () => {
+    const phone = snapshot().items.find((item) => item.retailerItemId === '20822869032')!;
+    expect(phone).toMatchObject({ title: 'Apple iPhone 16 - AT&T - 128GB Pink', quantity: 1, linePriceCents: 55589, issues: [], confidence: 'high' });
+  });
+
+  it('still reads the rest of the cart as before', () => {
+    expect(snapshot().items.map((item) => [item.linePriceCents, item.quantity])).toEqual([[244, 1], [387, 1], [1399, 1], [55589, 1]]);
+  });
+});

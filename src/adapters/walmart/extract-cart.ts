@@ -2,6 +2,7 @@ import { CART_SNAPSHOT_VERSION, type CartItem, type CartSnapshot, type Extractio
 import { findAllPricesInCents, findPriceMentions, parsePriceToCents, withoutSquashedCopies } from '../../shared/currency';
 import { WORTH_IT_HOST_TAG, cleanText } from '../retailer-adapter';
 import {
+  ADD_ON_REGION_SELECTORS,
   BRAND_SELECTORS,
   CART_COUNT_PATTERN,
   CURRENT_PRICE_LABEL,
@@ -346,7 +347,10 @@ function priceTextNodes(root: Element): Text[] {
   const walker = doc.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */);
   const nodes: Text[] = [];
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    if (node.textContent?.includes('$')) nodes.push(node as Text);
+    if (!node.textContent?.includes('$')) continue;
+    // A protection plan or other add-on offered in the row has its own prices; they are not the item's.
+    if (isInside(node, ADD_ON_REGION_SELECTORS)) continue;
+    nodes.push(node as Text);
   }
   return nodes;
 }

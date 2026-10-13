@@ -113,6 +113,12 @@ export const EXCLUDED_REGION_SELECTORS = [
   '[data-testid^="horizontal-scroller"]',
 ] as const;
 
+/**
+ * Optional add-ons offered inside a cart row (a protection plan, a warranty, a service): their prices are
+ * not the item's price, so they are never read as one.
+ */
+export const ADD_ON_REGION_SELECTORS = ['[data-testid*="careplan" i]', '[data-testid*="protection" i]', '[data-testid*="warranty" i]', 'fieldset'] as const;
+
 /** Stepper buttons say e.g. "Decrease quantity <name>, Current Quantity 2". */
 export const CURRENT_QUANTITY_PATTERN = /current quantity\s*(\d{1,3})/i;
 
