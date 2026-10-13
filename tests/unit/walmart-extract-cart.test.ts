@@ -397,39 +397,19 @@ describe('a row with a reward or offer next to its price (real Walmart markup, O
   });
 });
 
-describe('items that ship are in a section of their own', () => {
-  const row = (id: string, name: string, price: string, hook: string) => `
-    <li ${hook}>
-      <a href="/ip/${name.replace(/ /g, '-')}/${id}"><span>${name}</span></a>
-      <div>Current price $${price}</div>
-      <select aria-label="Quantity"><option value="1" selected>1</option></select>
-    </li>`;
-  const page = (shipping: string) =>
-    new DOMParser().parseFromString(
-      `<html><body><main>
-        <h1>Cart (3 items)</h1>
-        <section aria-label="Delivery from store"><ul>
-          ${row('10309701', 'Horizon Organic Whole Milk', '4.99', 'data-testid="product-tile-container"')}
-          ${row('145051970', 'Great Value Large Eggs', '3.12', 'data-testid="product-tile-container"')}
-        </ul></section>
-        <section aria-label="Shipping"><ul>${shipping}</ul></section>
-        <div data-testid="you-may-like"><a href="/ip/Some-Other-Thing/5550001">Some Other Thing</a><div>$9.99</div><button>Add</button></div>
-      </main></body></html>`,
-      'text/html',
-    );
-  const read = (doc: Document) => extractWalmartCart(doc, CART_URL, NOW).items.map((item) => [item.retailerItemId, item.quantity, item.linePriceCents]);
+describe('a shipping section with protection-plan options in the row', () => {
+  const snapshot = () => extract('cart-shipping-2026-10.html');
 
-  it('reads the shipped item even though its section has no known row hook', () => {
-    const doc = page(row('101010101', 'Barbie Dream Besties Doll', '19.97', 'class="ship-row"'));
-    expect(read(doc)).toEqual([
-      ['10309701', 1, 499],
-      ['145051970', 1, 312],
-      ['101010101', 1, 1997],
-    ]);
+  it('reads the delivery rows and both shipped rows', () => {
+    expect(snapshot().items.map((item) => item.retailerItemId)).toEqual(['10315481', '50616469', '428494633', '20822869032']);
   });
 
-  it('keeps the order of the page, and does not take a recommendation tile for a cart item', () => {
-    const doc = page(row('101010101', 'Barbie Dream Besties Doll', '19.97', 'class="ship-row"') + row('202020202', 'Glass Vase', '12.99', 'class="ship-row"'));
-    expect(read(doc).map(([id]) => id)).toEqual(['10309701', '145051970', '101010101', '202020202']);
+  it('does not take the protection-plan prices for the item’s price', () => {
+    const phone = snapshot().items.find((item) => item.retailerItemId === '20822869032')!;
+    expect(phone).toMatchObject({ title: 'Apple iPhone 16 - AT&T - 128GB Pink', quantity: 1, linePriceCents: 55589, issues: [], confidence: 'high' });
+  });
+
+  it('still reads the rest of the cart as before', () => {
+    expect(snapshot().items.map((item) => [item.linePriceCents, item.quantity])).toEqual([[244, 1], [387, 1], [1399, 1], [55589, 1]]);
   });
 });
