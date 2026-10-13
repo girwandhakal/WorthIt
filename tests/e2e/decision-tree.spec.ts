@@ -37,7 +37,7 @@ test('reads product pages and shows the decision tree result: whole foods quiet,
     panel.getByText('This looks like a novelty item with no practical use, so it’s probably not worth it. Consider skipping it to take $3.97 off your cart.'),
   ).toBeVisible();
   // Added sugar keeps its approved wording.
-  await expect(panel.getByText(/^This has added sugar\. Too much added sugar over time can contribute to health problems/)).toBeVisible();
+  await expect(panel.getByText(/This has added sugar\. Too much added sugar over time can contribute to health problems/)).toBeVisible();
   // Cured, processed meat: the third highlight (same kind of finding ranks by dollar amount).
   const meat = highlights.filter({ hasText: 'cured, processed meat' });
   await expect(meat.getByText(/\(it lists sodium nitrite\)\. The WHO’s cancer agency \(IARC\) classifies processed meat as carcinogenic to humans/)).toBeVisible();
@@ -57,14 +57,11 @@ test('reads product pages and shows the decision tree result: whole foods quiet,
   await soda.getByRole('button', { name: 'Why?' }).click();
   await expect(soda.getByRole('link', { name: /WHO: guideline on non-sugar sweeteners/ })).toHaveAttribute('href', /who\.int/);
 
-  // Full analysis lists every item, including the quiet ones, with the new check.
+  // Full analysis lists every item, including the quiet ones, in plain groups with the source behind each health note.
   await panel.getByRole('button', { name: 'See full analysis' }).click();
-  await expect(panel.getByRole('table')).toHaveCount(7);
-  await expect(panel.getByRole('row', { name: /Ingredients and nutrition \(label\)/ }).first()).toBeVisible();
-  await expect(panel.getByRole('link', { name: 'The product’s own Walmart.com page (ingredients, Nutrition Facts, category)' }).first()).toHaveAttribute(
-    'href',
-    /^https:\/\/www\.walmart\.com\/ip\/9000000\d$/,
-  );
+  await expect(panel.locator('.wi-analysis-item')).toHaveCount(7);
+  await expect(panel.getByRole('region', { name: 'Looks fine' })).toContainText('Horizon Organic');
+  await expect(panel.getByRole('region', { name: 'Worth a look' }).getByRole('link', { name: /WHO \/ IARC/ }).first()).toHaveAttribute('href', /who\.int/);
 
   // Exactly one read of each cart item's own page; nothing else, and nothing clicked or changed.
   expect([...new Set(requested)].sort()).toEqual(products.map((product) => product.id).sort());

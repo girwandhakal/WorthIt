@@ -51,7 +51,7 @@ export function StaticSummary({ review, onReplay, ...handlers }: StaticSummaryPr
           )}
         </div>
       )}
-      <Finale summary={summary} captions animate={false} />
+      <Finale summary={summary} animate={false} />
       {summary.totals.uncountedItems > 0 && (
         <p className="wi-muted">
           {summary.totals.uncountedItems} {summary.totals.uncountedItems === 1 ? 'suggestion has' : 'suggestions have'} no

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CONCERN_INFO, evaluateFood, foodWatchNotes, type FoodInputs } from '../../src/assessment/rules/food-quality';
+import { CONCERN_INFO, byGlare, concernNotes, concernPoints, evaluateFood, foodWatchNotes, type FoodInputs } from '../../src/assessment/rules/food-quality';
 
 const food = (overrides: Partial<FoodInputs>): FoodInputs => ({
   ingredients: null,
@@ -174,5 +174,102 @@ describe('ingredients worth noting but never counted', () => {
   it('notes nothing for plain starch or no ingredients', () => {
     expect(foodWatchNotes('corn, water, corn starch')).toEqual([]);
     expect(foodWatchNotes(null)).toEqual([]);
+  });
+});
+
+describe('every concern on a food, most glaring first', () => {
+  const syrupy = food({
+    ingredients: 'water, high fructose corn syrup, corn syrup, natural flavors, xanthan gum, salt',
+    addedSugarG: 12,
+  });
+
+  it('ranks added sugar, the mildest, after anything more glaring', () => {
+    const order = byGlare(evaluateFood(syrupy)).map((concern) => concern.id);
+    expect(order).toEqual(['ultra_processed', 'added_sugar']);
+    expect(byGlare([{ id: 'added_sugar' }, { id: 'high_sodium' }, { id: 'dyes' }, { id: 'trans_fat' }, { id: 'sweetener' }].map((c) => c as { id: never })).map((c) => c.id)).toEqual(['trans_fat', 'sweetener', 'dyes', 'high_sodium', 'added_sugar']);
+  });
+
+  it('names the ultra-processed ingredients, not just "added sugar"', () => {
+    const points = concernPoints(evaluateFood(syrupy));
+    expect(points[0]).toBe('Ultra-processed: high-fructose corn syrup, corn syrup, flavorings, gums and thickeners');
+    expect(points[1]).toBe('Has added sugar');
+    expect(points).toHaveLength(3);
+  });
+
+  it('keeps all three points for a single concern, and says nothing for none', () => {
+    expect(concernPoints(evaluateFood(food({ addedSugarG: 5, ingredients: 'sugar, water' })))).toEqual(CONCERN_INFO.added_sugar.points(''));
+    expect(concernPoints([])).toEqual([]);
+  });
+
+  it('shows at most three concerns, then the action for the most glaring one', () => {
+    const many = evaluateFood(food({ ingredients: 'pork, sodium nitrite, partially hydrogenated oil, aspartame, red 40, high fructose corn syrup', addedSugarG: 3, sodiumMg: 900, context: 'bacon' }));
+    const points = concernPoints(many);
+    expect(points).toHaveLength(4);
+    expect(points[0]).toMatch(/^Artificial trans fat/);
+    expect(points.at(-1)).toBe(CONCERN_INFO.trans_fat.points('x').at(-1));
+  });
+
+  it('reads out the reviewed note for every concern, most glaring first', () => {
+    const text = concernNotes(evaluateFood(syrupy));
+    expect(text.indexOf('ultra-processed')).toBeLessThan(text.indexOf('This has added sugar.'));
+  });
+});
+
+describe('wider ingredient coverage, each tied to its source', () => {
+  const detail = (ingredients: string, id: string, extra: Partial<FoodInputs> = {}) =>
+    evaluateFood(food({ ingredients, ...extra })).find((concern) => concern.id === id)?.detail;
+
+  it('names non-sugar sweeteners given by E-number', () => {
+    expect(detail('WATER, E951, E950', 'sweetener')).toBe('aspartame, acesulfame potassium');
+  });
+
+  it('stays quiet on monk fruit, allulose, sugar alcohols, and plain sugar (no source names them)', () => {
+    expect(ids(food({ ingredients: 'WATER, MONK FRUIT EXTRACT, LUO HAN GUO, MOGROSIDES' }))).toEqual([]);
+    expect(ids(food({ ingredients: 'SUGAR, ALLULOSE, ERYTHRITOL, MALTITOL, MANNITOL' }))).toEqual([]);
+  });
+
+  it('reads dyes by E-number and chemical name', () => {
+    expect(detail('SUGAR, E129, E102, TARTRAZINE, INDIGO CARMINE', 'dyes')).toBe('Red 40, Yellow 5, Blue 2');
+  });
+
+  it.each([
+    ['fructose', 'WATER, CRYSTALLINE FRUCTOSE', 'fructose'],
+    ['juice concentrate used as a sweetener', 'OATS, FRUIT JUICE CONCENTRATE', 'fruit juice concentrate'],
+    ['invert sugar', 'SUGAR, INVERT SUGAR', 'invert sugar'],
+    ['casein', 'WATER, SODIUM CASEINATE, CORN OIL', 'casein or whey protein'],
+    ['whey protein', 'OATS, WHEY PROTEIN CONCENTRATE', 'casein or whey protein, protein concentrate'],
+    ['pea protein', 'PEA PROTEIN CONCENTRATE, WATER', 'protein concentrate'],
+    ['added gluten', 'FLOUR, WATER, VITAL WHEAT GLUTEN', 'added gluten'],
+    ['mechanically separated chicken', 'MECHANICALLY SEPARATED CHICKEN, WATER', 'mechanically separated meat'],
+    ['added fiber', 'WATER, SOLUBLE CORN FIBER, INULIN', 'added fiber'],
+    ['MSG', 'CHICKEN, SALT, MONOSODIUM GLUTAMATE', 'flavor enhancers'],
+    ['phosphates', 'MILK, DISODIUM PHOSPHATE, SODIUM HEXAMETAPHOSPHATE', 'phosphate salts'],
+    ['emulsifiers', 'FLOUR, SUCROSE ESTERS OF FATTY ACIDS, SORBITAN MONOSTEARATE', 'emulsifiers'],
+    ['gums', 'WATER, GUM ARABIC, SODIUM ALGINATE, MICROCRYSTALLINE CELLULOSE', 'gums and thickeners'],
+    ['glaze', 'SUGAR, CONFECTIONER’S GLAZE, CARNAUBA WAX', 'glazes and anti-foaming agents'],
+    ['white and orange colors', 'SUGAR, TITANIUM DIOXIDE, ORANGE B', 'color additives'],
+  ])('flags %s as an ultra-processed marker', (_name, ingredients, expected) => {
+    expect(detail(ingredients, 'ultra_processed')).toBe(expected);
+  });
+
+  it('does not add "fructose" on top of high-fructose corn syrup, or flag lactose-free milk', () => {
+    expect(detail('WATER, HIGH FRUCTOSE CORN SYRUP', 'ultra_processed')).toBe('high-fructose corn syrup, corn syrup');
+    expect(ids(food({ ingredients: 'LACTOSE-FREE MILK, LACTASE ENZYME, VITAMIN D3' }))).toEqual([]);
+  });
+
+  it('keeps everyday kitchen ingredients quiet', () => {
+    expect(ids(food({ ingredients: 'WHOLE MILK, CREAM, SALT, VANILLA EXTRACT, PECTIN, GELATIN, BAKING SODA, ORANGE JUICE FROM CONCENTRATE' }))).toEqual([]);
+    expect(ids(food({ ingredients: 'PASTEURIZED MILK, CHEESE CULTURES, ENZYMES, POWDERED CELLULOSE' }))).toEqual([]);
+  });
+
+  it('reads "uncured" celery-powder meats as cured, but only for cured-meat products', () => {
+    expect(detail('PORK, WATER, SEA SALT, CULTURED CELERY POWDER', 'processed_meat', { context: 'food > meat > bacon' })).toBe('cultured celery powder, a natural nitrite source');
+    expect(ids(food({ ingredients: 'CHICKEN BROTH, CARROTS, CELERY POWDER', context: 'food > soup' }))).toEqual([]);
+    expect(detail('TURKEY, WATER, CELERY JUICE POWDER', 'processed_meat', { context: 'deli turkey' })).toBe('celery juice powder, a natural nitrite source');
+  });
+
+  it('reads more cured meats and curing salts', () => {
+    expect(ids(food({ ingredients: 'PORK, SALT, CURING SALT', context: 'prosciutto' }))).toContain('processed_meat');
+    expect(ids(food({ ingredients: 'PORK, WATER, SODIUM NITRITE', context: 'food > chorizo' }))).toContain('processed_meat');
   });
 });

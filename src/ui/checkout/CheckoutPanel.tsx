@@ -168,7 +168,7 @@ function PanelForReview({
             This presentation can’t be skipped. Continue and See full analysis appear when it ends.
           </span>
         )}
-        {!locked && (
+        {!locked && mode !== 'full' && (
           <button type="button" className="wi-icon-button" aria-label="Dismiss Worth It panel" onClick={close}>
             <span aria-hidden="true">×</span>
           </button>
@@ -202,10 +202,9 @@ function PanelForReview({
             See full analysis
           </button>
         ) : (
-          <span className="wi-handback">Worth It never changes your cart.</span>
+          <span aria-hidden="true" />
         )}
         <span className="wi-footer-end">
-          {focusOnOpen && <span className="wi-footer-hint">Your next checkout click goes straight through.</span>}
           <button type="button" className="wi-primary" onClick={close}>
             Continue
           </button>

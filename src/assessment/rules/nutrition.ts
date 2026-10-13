@@ -84,6 +84,7 @@ export function assessAddedSugar(
     status: 'finding',
     summary: CONCERN_INFO.added_sugar.note(''),
     points: CONCERN_INFO.added_sugar.points(''),
+    concerns: [{ id: 'added_sugar', detail: '' }],
     evidence: [
       { label: 'Added sugars on label', value: 'Listed on the label', source },
       { label: 'Guidance', value: 'Too much added sugar over time is linked to health problems', source: 'cdc_added_sugars' },
@@ -144,6 +145,7 @@ export function assessFoodQuality(
     status: 'finding',
     summary: CONCERN_INFO[lead.id].note(lead.detail),
     points: CONCERN_INFO[lead.id].points(lead.detail),
+    concerns: concerns.map(({ id, detail }) => ({ id, detail })),
     watch,
     evidence: [...concernEvidence(concerns, source), ...watchEvidence],
     confidence: view.fromFacts ? 'high' : 'medium',

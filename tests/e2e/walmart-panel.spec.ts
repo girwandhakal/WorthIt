@@ -1,4 +1,4 @@
-import { checkoutButton, clickCheckout, debugReport, expect, expectNothingShown, retailerClicks, retailerMarkup, serveWalmart, test, waitForReview } from './extension';
+import { checkoutButton, clickCheckout, debugReport, expect, expectNothingShown, openFullAnalysis, retailerClicks, retailerMarkup, serveWalmart, test, waitForReview } from './extension';
 
 test.describe('Walmart cart panel', () => {
   test('a readable cart with no findings shows nothing, and checkout goes straight through', async ({ context }) => {
@@ -201,7 +201,7 @@ test('live walmart.com markup: reviews the 2 cart lines, not the recommendation 
   const panel = page.getByRole('dialog', { name: 'Worth It' });
   await expect(panel).toBeVisible();
   await panel.getByRole('button', { name: 'See full analysis' }).click();
-  await expect(panel.getByRole('table')).toHaveCount(2);
+  await expect(panel.locator('.wi-analysis-item')).toHaveCount(2);
   await expect(panel.getByText('Great Value Large White Eggs, 12 Count')).toHaveCount(0);
   await panel.getByRole('button', { name: 'Continue' }).click();
   expect(await retailerClicks(page)).toBe(0);
@@ -216,13 +216,13 @@ test('grouped Walmart tile: reviews cheese and milk independently with known pri
   const before = await retailerMarkup(page);
   const panel = page.getByRole('dialog', { name: 'Worth It' });
   await expect(panel).toBeVisible();
-  await panel.getByRole('button', { name: 'See full analysis' }).click();
-  await expect(panel.getByRole('table')).toHaveCount(2);
-  const cheese = panel.locator('.wi-full-item').filter({ hasText: 'Kraft Natural Mild Cheddar Shredded Cheese, 16 oz Bag' });
-  await expect(cheese.locator('.wi-full-facts').getByText('$5.64', { exact: true })).toHaveCount(2);
-  await expect(cheese.getByText('Essential (consumable)', { exact: true })).toBeVisible();
-  await expect(panel.getByRole('region', { name: 'Cart totals' }).getByText('$11.60', { exact: true })).toBeVisible();
-  await expect(panel.getByText('Unknown (a price wasn’t readable)', { exact: true })).toHaveCount(0);
+  const details = await openFullAnalysis(page, panel);
+  await expect(panel.locator('.wi-analysis-item')).toHaveCount(2);
+  // The details Worth It keeps for debugging: both prices read, so the cart total is known.
+  const cheese = details.items.find((item) => item.itemName.startsWith('Kraft Natural Mild Cheddar Shredded Cheese, 16 oz Bag'))!;
+  expect(cheese).toMatchObject({ linePriceCents: 564, purposeClass: 'essential_consumable' });
+  expect(details.readableTotalCents).toBe(1160);
+  await expect(panel.getByText(/You could keep/)).toBeVisible();
   const report = JSON.parse((await page.locator('html').getAttribute('data-worth-it-debug'))!);
   expect(report).toMatchObject({ extractedItems: 2, readableItems: 2, displayedItems: 2, review: 'delivered' });
   expect(await retailerClicks(page)).toBe(0);
@@ -237,21 +237,13 @@ test('three reviewed products: donut label finding, staple swaps, and correct so
   await clickCheckout(page);
   const before = await retailerMarkup(page);
   const panel = page.getByRole('dialog', { name: 'Worth It' });
-  await panel.getByRole('button', { name: 'See full analysis' }).click();
-  await expect(panel.getByRole('table')).toHaveCount(3);
-  const donuts = panel.locator('.wi-full-item').filter({ hasText: 'Hostess Donettes Frightfully Frosted Mini Donuts' });
-  await expect(donuts.getByText('Discretionary', { exact: true })).toBeVisible();
-  await expect(donuts.getByText('Skip or reduce (added sugar): $2.68', { exact: true })).toBeVisible();
+  const details = await openFullAnalysis(page, panel);
+  await expect(panel.locator('.wi-analysis-item')).toHaveCount(3);
+  expect(details.readableTotalCents).toBe(1428);
+  const donuts = panel.locator('.wi-analysis-item').filter({ hasText: 'Hostess Donettes Frightfully Frosted Mini Donuts' });
+  await expect(donuts.getByText('Could save $2.68', { exact: true })).toBeVisible();
   await expect(donuts.getByRole('link', { name: 'CDC: Get the Facts: Added Sugars' })).toHaveAttribute('href', 'https://www.cdc.gov/nutrition/php/data-research/added-sugars.html');
-  const totals = panel.getByRole('region', { name: 'Cart totals' });
-  await expect(totals.getByText('$14.28', { exact: true })).toBeVisible();
-  await expect(totals.getByText('$3.69', { exact: true })).toBeVisible();
-  await expect(totals.getByText('$2.68', { exact: true })).toBeVisible();
-  await expect(totals.getByText('$6.37', { exact: true })).toBeVisible();
-  await expect(panel.getByRole('link', { name: 'Your Walmart cart page' })).toHaveCount(2);
-  for (const link of await panel.getByRole('link', { name: 'Your Walmart cart page' }).all()) {
-    await expect(link).toHaveAttribute('href', 'https://www.walmart.com/cart');
-  }
+  await expect(panel.getByText(/You could keep/)).toContainText('$6.37');
   expect(await retailerClicks(page)).toBe(0);
   expect(await retailerMarkup(page)).toBe(before);
 });
@@ -285,10 +277,9 @@ test('a fourth item on Rollback is read at its current price, not reported as un
   await clickCheckout(page);
   const panel = page.getByRole('dialog', { name: 'Worth It' });
   await expect(panel.getByText(/couldn.t read this item.s price/i)).toHaveCount(0);
-  await panel.getByRole('button', { name: 'See full analysis' }).click();
-  const cheetos = panel.locator('.wi-full-item').filter({ hasText: 'Cheetos Puff Cheese Flavored Snack Chips, 8 oz' });
-  await expect(cheetos.locator('.wi-full-facts').getByText('$3.97', { exact: true }).first()).toBeVisible();
-  await expect(cheetos.getByText('21.8%', { exact: true })).toBeVisible(); // its share of the cart is known too
+  const details = await openFullAnalysis(page, panel);
+  const cheetos = details.items.find((item) => item.itemName.startsWith('Cheetos Puff Cheese Flavored Snack Chips, 8 oz'))!;
+  expect(cheetos).toMatchObject({ linePriceCents: 397, shareOfCartBps: 2175 }); // its price and share of the cart are known
   // The readable total matches the $18.25 Walmart showed for this cart.
-  await expect(panel.getByRole('region', { name: 'Cart totals' }).getByText('$18.25', { exact: true })).toBeVisible();
+  expect(details.readableTotalCents).toBe(1825);
 });

@@ -56,7 +56,8 @@ describe('opening on the checkout click', () => {
     expect(dialog.getAttribute('aria-modal')).toBe('true');
     expect(dialog.classList.contains('wi-overlay')).toBe(true);
     expect(document.activeElement).toBe(screen.getByRole('heading', { name: 'Worth It' }));
-    expect(screen.getByText('Your next checkout click goes straight through.')).toBeTruthy();
+    // No hint about the next click: it simply goes through.
+    expect(screen.queryByText(/goes straight through/)).toBeNull();
     expect(store.isOpen()).toBe(true);
   });
 
@@ -116,7 +117,7 @@ describe('animated recap', () => {
     // Every cart item appears in the opening scene, and the three highlights light up.
     expect(panel.querySelectorAll('.wi-constellation .wi-thumb')).toHaveLength(7);
     expect(panel.querySelectorAll('.wi-constellation .wi-star-lit')).toHaveLength(3);
-    for (const name of ['Pause recap', 'Replay recap', 'Captions', 'Previous scene']) {
+    for (const name of ['Pause recap', 'Replay recap', 'Previous scene']) {
       expect(within(panel).getByRole('button', { name })).toBeTruthy();
     }
     // There is no way to skip ahead.
@@ -149,7 +150,7 @@ describe('animated recap', () => {
     expect(screen.getByText('Stanley Quencher H2.0 FlowState Tumbler, 30 oz', { selector: '.wi-scene-item' })).toBeTruthy();
   });
 
-  it('can be paused, replayed, and captioned', async () => {
+  it('can be paused and replayed, with no captions switch', async () => {
     const { user } = setup(settled(), { fakeTimers: true });
     await playScenes(SCENE_MS.opening, SCENE_MS.highlight, SCENE_MS.highlight);
     expect(screen.getByText('Squishmallows FuzzAMallow 5 inch Plush', { selector: '.wi-scene-item' })).toBeTruthy();
@@ -158,11 +159,9 @@ describe('animated recap', () => {
     expect(screen.getByText('Squishmallows FuzzAMallow 5 inch Plush', { selector: '.wi-scene-item' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Play recap' })).toBeTruthy();
 
-    const captions = screen.getByRole('button', { name: 'Captions' });
-    expect(captions.getAttribute('aria-pressed')).toBe('true');
-    await user.click(captions);
-    expect(screen.queryByText(/probably not worth it/, { selector: '.wi-finding-text' })).toBeNull();
-    // Screen readers still get the caption through the live region.
+    // There is no captions switch: the reason is always shown, and screen readers get it through the live region.
+    expect(screen.queryByRole('button', { name: 'Captions' })).toBeNull();
+    expect([...document.querySelectorAll('.wi-highlight .wi-points li')].length).toBeGreaterThan(0);
     expect(screen.getByText(/probably not worth it/, { selector: '.wi-sr-only' })).toBeTruthy();
 
     await user.click(screen.getByRole('button', { name: 'Replay recap' }));
@@ -185,7 +184,7 @@ describe('animated recap', () => {
     expect(document.querySelector('.wi-footer-ready .wi-analysis-button')).toBeTruthy();
     expect(
       screen.getByText(
-        'By following these suggestions, you would save $38.72. If you invested that $38.72 at an assumed 10% annual return, compounded annually, it could grow to about $1,752.44 in 40 years (before inflation; returns are not guaranteed).',
+        'Invested at an assumed 10% a year, $38.72 could grow to about $1,752.44 in 40 years.',
         { selector: '.wi-closing-sentence' },
       ),
     ).toBeTruthy();
@@ -291,53 +290,73 @@ describe('static view (reduced motion)', () => {
 });
 
 describe('See full analysis', () => {
-  it('links cart prices to the cart and label evidence to the reviewed product', async () => {
-    const { user } = setup(reviewCart(snapshot([line('16275314128'), line('43981978'), line('10309701')]), reviewContext()), { reducedMotion: true });
+  const open = async (review: CartReview) => {
+    const { user } = setup(review, { reducedMotion: true });
     await user.click(screen.getByRole('button', { name: 'See full analysis' }));
-    const tables = screen.getAllByRole('table');
-    const donutLabelLink = within(tables[0]!).getAllByRole('link', { name: 'Worth It product reference (Walmart.com prices and labels)' });
-    expect(donutLabelLink.every(link => link.getAttribute('href') === 'https://www.walmart.com/ip/16275314128')).toBe(true);
-    expect(within(tables[0]!).getByRole('link', { name: 'CDC: Get the Facts: Added Sugars' }).getAttribute('href')).toBe('https://www.cdc.gov/nutrition/php/data-research/added-sugars.html');
-    for (const table of tables.slice(1)) {
-      expect(within(table).getByRole('link', { name: 'Your Walmart cart page' }).getAttribute('href')).toBe('https://www.walmart.com/cart');
-    }
-    const cheeseSources = within(tables[1]!).getAllByRole('link', { name: 'Worth It product reference (Walmart.com prices and labels)' });
-    expect(cheeseSources.map(link => link.getAttribute('href'))).toEqual(expect.arrayContaining([
-      'https://www.walmart.com/ip/43981978', 'https://www.walmart.com/ip/10452370',
-    ]));
-  });
+    return user;
+  };
 
-  it('opens only on request, lists every item and check, and returns to the highlights', async () => {
+  it('opens only on request, groups every item, and returns to the highlights', async () => {
     const { user } = setup(mixed(), { reducedMotion: true });
     expect(screen.queryByRole('heading', { name: 'Full analysis' })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'See full analysis' }));
     expect(screen.getByRole('heading', { name: 'Full analysis' })).toBeTruthy();
-    const tables = screen.getAllByRole('table');
-    expect(tables).toHaveLength(7);
-    expect(within(tables[2]!).getByText('Store-brand value')).toBeTruthy();
-    expect(screen.getByText('Combined (each item counted once)').nextSibling?.textContent).toBe('$38.72');
-    expect(screen.getAllByText('Essential (consumable)').length).toBeGreaterThan(0);
-    expect(screen.getByText(/10% assumed annual return, compounded annually, for 40 years, before inflation/)).toBeTruthy();
+    const worth = screen.getByRole('region', { name: 'Worth a look' });
+    expect(within(worth).getAllByRole('heading', { level: 5 }).map((heading) => heading.textContent)).toEqual(
+      expect.arrayContaining(['Stanley Quencher H2.0 FlowState Tumbler, 30 oz', 'Skittles Original Fruity Candy, Sharing Size, 15.6 oz', 'Squishmallows FuzzAMallow 5 inch Plush']),
+    );
+    // Every item in the cart is on the page, and the quiet ones say so.
+    expect(document.querySelectorAll('.wi-analysis-item')).toHaveLength(7);
+    expect(within(screen.getByRole('region', { name: 'Looks fine' })).getByText(/Bounty Essentials/)).toBeTruthy();
     await user.click(screen.getAllByRole('button', { name: 'Back to highlights' })[0]!);
     expect(screen.getByRole('list', { name: 'Worth a second thought' })).toBeTruthy();
   });
-});
 
-describe('See full analysis: every possible saving', () => {
-  it('lists every option, biggest first, marking which one the total counts', async () => {
-    const { user } = setup(mixed(), { reducedMotion: true });
-    await user.click(screen.getByRole('button', { name: 'See full analysis' }));
-    const section = screen.getByRole('region', { name: 'Every possible saving' });
-    const rows = within(section).getAllByRole('listitem').map((row) => row.textContent ?? '');
-    // The tumbler was bought recently, so its one option is skipping it (the cheaper tumbler is not offered alongside).
-    expect(rows[0]).toMatch(/Stanley.*Consider skipping \(recent similar purchase\), \$24\.97 \(counted in the total\)/);
-    expect(rows.some((row) => /Stanley.*Cheaper alternative/.test(row))).toBe(false);
-    // 7 items, 6 with a counted saving; the no-savings paper towels are absent.
-    expect(rows).toHaveLength(6);
-    expect(rows.filter((row) => row.includes('counted in the total'))).toHaveLength(6);
-    expect(rows.some((row) => row.includes('Bounty'))).toBe(false);
-    const amounts = rows.map((row) => Number(/\$(\d+\.\d\d)/.exec(row)![1]));
-    expect(amounts).toEqual([...amounts].sort((a, b) => b - a));
+  it('has no corner X and no "never changes your cart" line: Continue is the way out', async () => {
+    await open(mixed());
+    expect(screen.queryByRole('button', { name: 'Dismiss Worth It panel' })).toBeNull();
+    expect(screen.queryByText(/never changes your cart/i)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeTruthy();
+  });
+
+  it('gives each item its main points and what it could save, in plain words', async () => {
+    await open(mixed());
+    const stanley = screen.getByRole('heading', { level: 5, name: /Stanley Quencher/ }).closest('li')!;
+    expect(within(stanley).getByText('Could save $24.97')).toBeTruthy();
+    expect(within(stanley).getByText('You bought this 20 days ago')).toBeTruthy();
+    expect(screen.getByText(/You could keep/).textContent).toContain('$38.72');
+    // The hypothetical note, short and plain.
+    expect(screen.getByText(/^\*Hypothetical: 10% a year, compounded annually, for 40 years/)).toBeTruthy();
+  });
+
+  it('leaves out the technical detail: no tables, classes, prices, quantities, shares, or check names', async () => {
+    await open(mixed());
+    const page = document.querySelector('.wi-analysis')!;
+    expect(page.querySelector('table')).toBeNull();
+    for (const hidden of ['Purpose class', 'Price', 'Quantity', 'Unit price', 'Share of cart', 'Purchase history', 'Store-brand value', 'certainty', 'criteria version', 'Essential (consumable)']) {
+      expect(page.textContent).not.toContain(hidden);
+    }
+  });
+
+  it('names the source behind a health note, and links it', async () => {
+    await open(reviewCart(snapshot([line('16275314128'), line('43981978'), line('10309701')]), reviewContext()));
+    const donuts = screen.getByRole('heading', { level: 5, name: /Hostess Donettes/ }).closest('li')!;
+    expect(within(donuts).getByRole('link', { name: 'CDC: Get the Facts: Added Sugars' }).getAttribute('href')).toBe('https://www.cdc.gov/nutrition/php/data-research/added-sugars.html');
+    // Retailer pages and the shopper's own cart are not "sources" a reader would look up.
+    expect(within(document.querySelector('.wi-analysis') as HTMLElement).queryByRole('link', { name: /Your Walmart cart page|product reference/ })).toBeNull();
+  });
+
+  it('says plainly when an item could not be checked', async () => {
+    await open(unreadable());
+    const group = screen.getByRole('region', { name: 'Couldn’t check' });
+    expect(within(group).getByText(/Couldn't read this item's price reliably/)).toBeTruthy();
+  });
+
+  it('keeps the full assessment in the console for debugging, not on the page', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => undefined);
+    await open(mixed());
+    expect(debug).toHaveBeenCalledWith('[Worth It] full analysis details', expect.objectContaining({ items: expect.any(Array) }));
+    debug.mockRestore();
   });
 });
 

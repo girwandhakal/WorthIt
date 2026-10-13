@@ -131,7 +131,7 @@ export function GrowthChart({ investment, animate = true, delayMs = 0 }: { inves
           onPointerLeave={() => setHoverYear(null)}
         />
       </svg>
-      <p className="wi-growth-note">Hypothetical. Compounded annually, before inflation. Returns aren’t guaranteed.</p>
+      <p className="wi-growth-note">*Hypothetical</p>
     </figure>
   );
 }

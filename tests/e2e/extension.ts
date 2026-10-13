@@ -1,4 +1,4 @@
-import { test as base, chromium, type BrowserContext, type Page, type Worker } from '@playwright/test';
+import { test as base, chromium, type BrowserContext, type Locator, type Page, type Worker } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { productPageHtml, type PageSpec } from '../helpers/product-page';
@@ -201,4 +201,17 @@ export async function serveAmazon(context: BrowserContext, pages: Record<string,
       body: readFileSync(path.join(FIXTURES, 'amazon', file), 'utf8'),
     });
   });
+}
+
+/** What the checks found for each cart item, as Worth It writes it to the console when "See full analysis" opens. */
+export interface AnalysisDetails {
+  readableTotalCents: number | null;
+  items: Array<{ itemName: string; linePriceCents: number | null; quantity: number | null; purposeClass: string; shareOfCartBps: number | null }>;
+}
+
+/** Clicks "See full analysis" and returns the full assessment from the console record (the page itself stays simple). */
+export async function openFullAnalysis(page: Page, panel: Locator): Promise<AnalysisDetails> {
+  const logged = page.waitForEvent('console', (message) => message.text().includes('[Worth It] full analysis details'));
+  await panel.getByRole('button', { name: 'See full analysis' }).click();
+  return (await (await logged).args()[1]!.jsonValue()) as AnalysisDetails;
 }

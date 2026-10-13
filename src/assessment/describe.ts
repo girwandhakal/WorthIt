@@ -5,6 +5,7 @@ import { formatCents } from '../shared/currency';
 import { renderTemplate, type TemplateKey } from '../summary/templates';
 import { uncertaintyText } from './assess-cart';
 import { ADDED_SUGAR_NOTE, SOURCES, type Source, type SourceId } from './evidence/sources';
+import { concernNotes, concernPoints, type FoodConcern } from './rules/food-quality';
 import { removalSentence } from './rules/nutrition';
 
 /**
@@ -112,7 +113,7 @@ function findingFor(item: ItemAssessment, suggestion: Suggestion): ReviewFinding
     kind: suggestion.kind,
     itemName: item.itemName,
     imageUrl: item.imageUrl,
-    text: wording ? renderTemplate(wording.template, wording.slots) : fixedText(suggestion, criterion.summary),
+    text: wording ? renderTemplate(wording.template, wording.slots) : fixedText(item, suggestion, criterion.summary),
     points: pointsFor(item, suggestion, criterion),
     watch: item.criteria.find((candidate) => candidate.criterion === 'food_quality')?.watch ?? [],
     wording,
@@ -177,17 +178,31 @@ function pointsFor(item: ItemAssessment, suggestion: Suggestion, criterion: Crit
           return ['Same amount for less', 'Try the store brand?'];
       }
     case 'reduce_added_sugar':
-    case 'reduce_food_concern':
-      return criterion.points ?? [];
+    case 'reduce_food_concern': {
+      const concerns = foodConcerns(item);
+      return concerns.length > 0 ? concernPoints(concerns) : (criterion.points ?? []);
+    }
     default:
       return [];
   }
 }
 
-function fixedText(suggestion: Suggestion, criterionSummary: string): string {
-  if (suggestion.kind === 'reduce_added_sugar') return `${ADDED_SUGAR_NOTE}${removalSentence(suggestion.amountCents)}`;
-  if (suggestion.kind === 'reduce_food_concern') return `${criterionSummary}${removalSentence(suggestion.amountCents)}`;
+function fixedText(item: ItemAssessment, suggestion: Suggestion, criterionSummary: string): string {
+  if (suggestion.kind === 'reduce_added_sugar' || suggestion.kind === 'reduce_food_concern') {
+    // Every concern on the label, most glaring first (added sugar is the mildest and follows the others).
+    const concerns = foodConcerns(item);
+    const notes = concerns.length > 0 ? concernNotes(concerns) : suggestion.kind === 'reduce_added_sugar' ? ADDED_SUGAR_NOTE : criterionSummary;
+    return `${notes}${removalSentence(suggestion.amountCents)}`;
+  }
   return storeBrandNoteText(suggestion.alternative!);
+}
+
+/** Every label concern found on a food: added sugar plus everything the ingredient list and Nutrition Facts flagged. */
+function foodConcerns(item: ItemAssessment): FoodConcern[] {
+  return ['added_sugar', 'food_quality'].flatMap((id) => {
+    const criterion = item.criteria.find((candidate) => candidate.criterion === id);
+    return criterion?.status === 'finding' ? (criterion.concerns ?? []).map((concern) => concern as FoodConcern) : [];
+  });
 }
 
 function latestKept(item: ItemAssessment) {

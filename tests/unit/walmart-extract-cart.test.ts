@@ -358,3 +358,42 @@ describe('prices Walmart draws in pieces', () => {
     expect(item.issues).toEqual([]);
   });
 });
+
+describe('a row with a reward or offer next to its price (real Walmart markup, Oct 2026)', () => {
+  /** One row of the live cart: the price shown twice (text and split spans), then a Walmart Cash offer. */
+  const row = (promo: string) => `<li>
+    <h4>Blue Bunny Vanilla Bean Flavored Ice Cream, 48 fl oz</h4>
+    <span data-testid="badgeTagComponent" role="group"><span>Bought 1 time</span></span>
+    <a href="/ip/Blue-Bunny-Vanilla-Bean-Flavored-Ice-Cream-48-fl-oz/10449587" aria-label="Blue Bunny Vanilla Bean Flavored Ice Cream, 48 fl oz, 1 in cart">
+      <img data-testid="productTileImage" src="https://i5.walmartimages.com/seo/Blue-Bunny-Vanilla_abc.jpeg" alt="">
+    </a>
+    <div><span>$3.87</span><div aria-hidden="true"><span>$</span><span>3</span><span>87</span></div></div>
+    <a href="/ip/Blue-Bunny-Vanilla-Bean-Flavored-Ice-Cream-48-fl-oz/10449587"><div data-testid="productName"><span>Blue Bunny Vanilla Bean Flavored Ice Cream, 48 fl oz</span></div></a>
+    ${promo}
+    <button aria-label="Decrease quantity Blue Bunny Vanilla Bean Flavored Ice Cream, 48 fl oz, Current Quantity 1"></button>
+    <button aria-label="Increase quantity Blue Bunny Vanilla Bean Flavored Ice Cream, 48 fl oz, Current Quantity 1"></button>
+    <button aria-label="Remove Blue Bunny Vanilla Bean Flavored Ice Cream, 48 fl oz">Remove</button>
+  </li>`;
+  const cart = (promo: string) =>
+    `<!doctype html><html><body><main><h1>Cart (1 item)</h1><section data-testid="product-tile-container"><ul>${row(promo)}</ul></section></main></body></html>`;
+  const read = (promo: string) => extractWalmartCart(new DOMParser().parseFromString(cart(promo), 'text/html'), CART_URL, NOW).items[0]!;
+
+  it.each([
+    ['Walmart Cash', '<div><label aria-label="Get $2.00 Walmart Cash Walmart Plus, Manufacturer offer">Get $2.00 Walmart Cash</label><div>Manufacturer offer | Buy 2</div></div>'],
+    ['cash back', '<div><span>Earn $1.50 cash back</span></div>'],
+    ['a coupon', '<div><span>Clip coupon: $0.50 off</span></div>'],
+    ['a rebate', '<div><span>$2.00 rebate with purchase</span></div>'],
+  ])('reads the price, not the amount from %s', (_name, promo) => {
+    const item = read(promo);
+    expect(item.linePriceCents).toBe(387);
+    expect(item.quantity).toBe(1);
+    expect(item.issues).toEqual([]);
+  });
+
+  it('still reports an honestly ambiguous price as unknown', () => {
+    const item = read('<div><span>$5.00</span></div>');
+    expect(item.linePriceCents).toBeNull();
+    expect(item.issues).toContain('ambiguous_price');
+  });
+});
+

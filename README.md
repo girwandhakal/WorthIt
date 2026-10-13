@@ -47,7 +47,7 @@ Worth It informs and suggests. It never edits your cart and never clicks anythin
 | **Food labels** | Added sugar, processed meat, trans fat, and other fixed, sourced concerns. Silent when there's nothing to flag. |
 | **Investment illustration** | One hypothetical chart for the whole cart's savings. On by default, easy to turn off. |
 
-Want the detail? **See full analysis** opens the per-item breakdown with every check and source.
+Want the detail? **See full analysis** opens a short, plain list of every item with its main points and sources.
 
 <img src="docs/images/full-analysis.png" alt="Full per-item analysis with checks, results, and sources" width="860" />
 
