@@ -129,6 +129,17 @@ function PanelForReview({
     if (target?.isConnected) queueMicrotask(() => target.focus({ preventScroll: true }));
   };
 
+  // While the panel fills the screen, the page behind it does not scroll or show its own scrollbar.
+  useEffect(() => {
+    if (!open) return;
+    const root = document.documentElement;
+    const before = root.style.overflow;
+    root.style.overflow = 'hidden';
+    return () => {
+      root.style.overflow = before;
+    };
+  }, [open]);
+
   if (!open) return null;
 
   // Keep Tab inside the presentation while it covers the page.

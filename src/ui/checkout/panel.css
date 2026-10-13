@@ -343,11 +343,13 @@ select {
   --wi-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   position: fixed;
   inset: 0;
+  /* Exactly one screen tall: never more, never less, and no scrollbar of its own. */
+  height: 100vh;
+  height: 100dvh;
   z-index: 2147483646;
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  overflow-x: hidden;
-  overflow-y: auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
   overscroll-behavior: contain;
   background: var(--wi-bg);
   color: var(--wi-text);
@@ -544,7 +546,15 @@ select {
   justify-items: center;
   align-content: center;
   padding: 8px 32px 28px;
-  overflow: visible;
+  /* The header and footer stay put; if a long list ever needs more room it scrolls here, with the bar hidden. */
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.wi-overlay .wi-body::-webkit-scrollbar {
+  display: none;
 }
 
 .wi-overlay .wi-body-static,
@@ -603,8 +613,9 @@ select {
 }
 
 .wi-thumb-lg {
-  width: clamp(190px, 24vw, 300px);
-  height: clamp(190px, 24vw, 300px);
+  /* Sized by the shorter of width and height so the recap always fits one screen. */
+  width: clamp(130px, min(24vw, 34vh), 300px);
+  height: clamp(130px, min(24vw, 34vh), 300px);
   border-radius: 28px;
 }
 
@@ -628,7 +639,7 @@ select {
   position: relative;
   display: grid;
   place-items: center;
-  min-height: min(58vh, 540px);
+  min-height: min(48vh, 540px);
 }
 
 .wi-scene {
@@ -1730,8 +1741,8 @@ select {
   }
 
   .wi-thumb-lg {
-    width: 168px;
-    height: 168px;
+    width: min(168px, 22vh);
+    height: min(168px, 22vh);
     border-radius: 22px;
   }
 
@@ -1748,5 +1759,32 @@ select {
   .wi-overlay .wi-secondary,
   .wi-overlay .wi-primary {
     padding: 10px 18px;
+  }
+}
+
+/* ---- Short windows: tighten the spacing so the recap still fits one screen ---- */
+
+@media (max-height: 680px) {
+  .wi-overlay .wi-body {
+    padding-top: 0;
+    padding-bottom: 8px;
+  }
+
+  .wi-overlay .wi-footer {
+    padding-top: 10px;
+    padding-bottom: 12px;
+  }
+
+  .wi-thumb-lg {
+    width: min(132px, 20vh);
+    height: min(132px, 20vh);
+  }
+}
+
+/* A short phone: the text takes the room, so the photo gives some back. */
+@media (max-height: 680px) and (max-width: 720px) {
+  .wi-thumb-lg {
+    width: min(132px, 15vh);
+    height: min(132px, 15vh);
   }
 }
