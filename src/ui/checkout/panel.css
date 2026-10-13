@@ -1635,6 +1635,12 @@ select {
   color: var(--wi-splash-ink);
 }
 
+.wi-analysis-empty {
+  margin: 8px 0 0;
+  padding-left: 80px;
+  font-size: 14px;
+}
+
 .wi-analysis-points {
   list-style: none;
   margin: 0;
@@ -1696,6 +1702,7 @@ select {
   }
 
   .wi-analysis-points,
+  .wi-analysis-empty,
   .wi-analysis-note {
     padding-left: 0;
   }

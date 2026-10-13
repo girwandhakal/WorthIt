@@ -29,7 +29,12 @@ export function FullAnalysis({ review, onBack }: { review: CartReview; onBack: (
 
   const entries: Entry[] = assessment.items.map((item) => ({ item, findings: review.findings.filter((finding) => finding.itemKey === item.itemKey) }));
   const worthALook = entries.filter((entry) => entry.findings.some(isHighlightable));
-  const couldntCheck = entries.filter((entry) => !worthALook.includes(entry) && entry.findings.some((finding) => finding.kind === 'uncertain'));
+  // Couldn't read the item, or couldn't tell what kind of product it is: say so rather than calling it fine.
+  const couldntCheck = entries.filter(
+    (entry) =>
+      !worthALook.includes(entry) &&
+      (entry.findings.some((finding) => finding.kind === 'uncertain') || entry.item.criteria.some((criterion) => criterion.criterion === 'purpose' && criterion.status === 'unknown')),
+  );
   const looksFine = entries.filter((entry) => !worthALook.includes(entry) && !couldntCheck.includes(entry));
   const keep = summary.totals.combinedCents;
   const hasSwap = review.findings.some((finding) => finding.kind === 'cheaper_alternative');
@@ -51,8 +56,8 @@ export function FullAnalysis({ review, onBack }: { review: CartReview; onBack: (
       )}
 
       <Group title="Worth a look" entries={worthALook} />
-      <Group title="Couldn’t check" entries={couldntCheck} />
-      <Group title="Looks fine" entries={looksFine} />
+      <Group title="Couldn’t check" entries={couldntCheck} empty="Couldn’t check this one" />
+      <Group title="Looks fine" entries={looksFine} empty="Nothing to flag" />
 
       {summary.investment && (
         <p className="wi-analysis-note">
@@ -68,7 +73,7 @@ export function FullAnalysis({ review, onBack }: { review: CartReview; onBack: (
   );
 }
 
-function Group({ title, entries }: { title: string; entries: Entry[] }) {
+function Group({ title, entries, empty }: { title: string; entries: Entry[]; empty?: string }) {
   if (entries.length === 0) return null;
   return (
     <section className="wi-analysis-group" aria-label={title}>
@@ -77,14 +82,14 @@ function Group({ title, entries }: { title: string; entries: Entry[] }) {
       </h4>
       <ul className="wi-analysis-items">
         {entries.map(({ item, findings }) => (
-          <ItemBlock key={item.itemKey} item={item} findings={findings} />
+          <ItemBlock key={item.itemKey} item={item} findings={findings} empty={empty} />
         ))}
       </ul>
     </section>
   );
 }
 
-function ItemBlock({ item, findings }: { item: ItemAssessment; findings: ReviewFinding[] }) {
+function ItemBlock({ item, findings, empty }: { item: ItemAssessment; findings: ReviewFinding[]; empty?: string }) {
   const notable = findings.filter(isHighlightable);
   const shown = notable.length > 0 ? notable : findings.filter((finding) => finding.kind === 'uncertain');
   const points = shown.flatMap((finding) => (finding.points.length > 0 ? finding.points : [finding.text])).slice(0, 4);
@@ -100,6 +105,7 @@ function ItemBlock({ item, findings }: { item: ItemAssessment; findings: ReviewF
           {save !== null && <p className="wi-analysis-save">Could save {formatCents(save)}</p>}
         </div>
       </div>
+      {points.length === 0 && empty && <p className="wi-analysis-muted wi-analysis-empty">{empty}</p>}
       {points.length > 0 && (
         <ul className="wi-analysis-points">
           {points.map((point) => (

@@ -10,9 +10,11 @@ import type { ClarificationRecord, PurchaseRecord } from '../domain/history';
 import type { ProductFacts, ProductFactsMap } from '../domain/product-facts';
 import { sumCents } from '../shared/currency';
 import { REPEAT_PURPOSE_QUESTION_ID, itemMatchKey, storedAnswer } from './clarification';
+import { HIGH_VALUE_PURCHASE_DAYS, RECENT_PURCHASE_DAYS } from './reference/categories';
 import { REFERENCE_DATA_VERSION, referenceForItem, type ReferenceProduct } from './reference/products';
 import { assessAddedSugar, assessFoodQuality } from './rules/nutrition';
 import { assessPurpose } from './rules/purpose';
+import { worthComparingDecorBrands } from './rules/non-food';
 import { assessRepeatPurchase, findHistoryMatches } from './rules/repeat-purchase';
 import { assessStoreBrand, type ShopperPreferences } from './rules/store-brand';
 
@@ -70,6 +72,7 @@ function assessItem(
     matches,
     answer,
     matchKey,
+    windowDays: purpose.nonFood?.highValue ? HIGH_VALUE_PURCHASE_DAYS : RECENT_PURCHASE_DAYS,
   });
   const sugar = assessAddedSugar(reference, item.linePriceCents, facts);
   const foodQuality = assessFoodQuality(reference, facts, item.linePriceCents);
@@ -80,8 +83,11 @@ function assessItem(
   // The decision tree. Each item takes exactly one branch, so it gets at most one kind of advice.
   //   Food:      a concern on its label (what makes it processed) -> skip or reduce it, citing the source;
   //              a whole food, or nothing flagged -> a cheaper store brand, when one is as good; else nothing.
-  //   Non-food:  a novelty item with no use -> skip it; bought recently -> skip it, or ask;
-  //              otherwise -> a cheaper store brand, when one does the same job; else nothing.
+  //   Non-food:  bought recently -> skip it, or ask (a phone or other high-value gadget: within two years);
+  //              a toy or a novelty item with no use -> skip it;
+  //              otherwise -> a cheaper store brand, when one does the same job, except for gadgets;
+  //              decor with none -> compare Walmart's own lines; else nothing.
+  //              Decor and gadgets get soft prompts that are never added to the savings.
   //   Unknown:   Worth It couldn't tell whether it is food, so it says nothing.
   const candidates: Suggestion[] = [];
   if (purpose.food === true) {
@@ -89,9 +95,13 @@ function assessItem(
     if (foodQuality.suggestion) candidates.push(foodQuality.suggestion);
     if (candidates.length === 0 && storeBrand.suggestion) candidates.push(storeBrand.suggestion);
   } else if (purpose.food === false) {
-    if (repeat.skipEligible) candidates.push({ kind: 'skip_redundant', amountCents: item.linePriceCents });
+    const soft = purpose.nonFood?.kind === 'decor' || purpose.nonFood?.kind === 'gadget';
+    if (repeat.skipEligible) candidates.push(soft ? { kind: 'rethink', amountCents: null } : { kind: 'skip_redundant', amountCents: item.linePriceCents });
     if (purpose.result.suggestion) candidates.push(purpose.result.suggestion);
-    if (candidates.length === 0 && storeBrand.suggestion) candidates.push(storeBrand.suggestion);
+    if (candidates.length === 0 && storeBrand.suggestion && purpose.nonFood?.kind !== 'gadget') candidates.push(storeBrand.suggestion);
+    if (candidates.length === 0 && purpose.nonFood?.kind === 'decor' && worthComparingDecorBrands(item.title)) {
+      candidates.push({ kind: 'decor_brand_note', amountCents: null });
+    }
   }
   const actionable = item.issues.includes('unavailable') ? [] : candidates;
   const primary = actionable.find((suggestion) => suggestion.kind !== 'store_brand_note') ?? null;

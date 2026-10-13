@@ -4,6 +4,9 @@ import type { ReviewFinding, ReviewFindingKind } from '../../domain/review';
 export const VERDICTS: Record<ReviewFindingKind, string> = {
   skip_redundant: 'Already have one?',
   skip_novelty: 'Probably not worth it',
+  skip_toy: 'Want or need?',
+  rethink: 'Do you need it?',
+  decor_brand_note: 'Compare brands',
   reduce_added_sugar: 'Added sugar',
   reduce_food_concern: 'Check the label',
   cheaper_alternative: 'Cheaper swap',
@@ -16,7 +19,7 @@ export type Tone = 'warm' | 'mint' | 'muted';
 /** Warm for "think twice", mint for a swap that saves, muted for notes. */
 export function toneOf(kind: ReviewFindingKind): Tone {
   if (kind === 'cheaper_alternative' || kind === 'store_brand_note') return 'mint';
-  if (kind === 'uncertain') return 'muted';
+  if (kind === 'uncertain' || kind === 'decor_brand_note') return 'muted';
   return 'warm';
 }
 

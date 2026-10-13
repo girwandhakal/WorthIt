@@ -35,6 +35,12 @@ export interface Evidence {
 export type SuggestionKind =
   | 'skip_redundant'
   | 'skip_novelty'
+  /** A toy: more of a want than a need. Counted like a novelty item. */
+  | 'skip_toy'
+  /** A decor item or gadget the shopper bought a similar one of recently. Soft: never counted in the savings. */
+  | 'rethink'
+  /** Decor: worth comparing with Walmart's own decor lines. A prompt only, with no amount. */
+  | 'decor_brand_note'
   | 'reduce_added_sugar'
   /** Any other label-based food concern (sweetener, processed meat, trans fat, sodium, dyes, ultra-processed). */
   | 'reduce_food_concern'

@@ -3,12 +3,13 @@ import { CRITERIA_VERSION, type ClarificationQuestion, type CriterionResult, typ
 import { normalizeTitle, PURCHASE_STATUS_LABELS, type ClarificationAnswer, type PurchaseRecord } from '../../domain/history';
 import { daysBetween } from '../../shared/dates';
 import { ANSWER_LABELS, answerWithdrawsSkip, repeatPurposeQuestion } from '../clarification';
-import { RECENT_PURCHASE_DAYS } from '../reference/categories';
+import { HIGH_VALUE_PURCHASE_DAYS, RECENT_PURCHASE_DAYS } from '../reference/categories';
 import { ITEM_TYPE_KEYWORDS, referenceProduct, type ReferenceProduct } from '../reference/products';
 import { SIMILAR_TITLE_THRESHOLD, titleSimilarity } from '../similarity';
+import { gadgetFamily } from './non-food';
 
-/** History older than this is not considered at all. */
-const MAX_HISTORY_DAYS = 365;
+/** History older than this is not considered at all (the longest recent-purchase window). */
+const MAX_HISTORY_DAYS = HIGH_VALUE_PURCHASE_DAYS;
 
 /**
  * Finds past purchases of the same item (item ID or identical name) or a
@@ -43,7 +44,11 @@ export function findHistoryMatches(
         recordReference?.itemType === reference.itemType ||
         keywords.some((keyword) => recordTitle.includes(normalizeTitle(keyword)));
     } else if (!exact && item.title) {
-      similar = sameKeywordType(item.title, record.title) || titleSimilarity(item.title, categoryPath, record.title) >= SIMILAR_TITLE_THRESHOLD;
+      const family = gadgetFamily(item.title);
+      similar =
+        (family !== null && family === gadgetFamily(record.title)) ||
+        sameKeywordType(item.title, record.title) ||
+        titleSimilarity(item.title, categoryPath, record.title) >= SIMILAR_TITLE_THRESHOLD;
     }
     if (!exact && !similar) continue;
     matches.push({
@@ -91,8 +96,10 @@ export function assessRepeatPurchase(input: {
   matches: readonly HistoryMatch[];
   answer: ClarificationAnswer | null;
   matchKey: string;
+  /** How far back a similar purchase counts as recent for this kind of item. */
+  windowDays?: number;
 }): RepeatAssessment {
-  const { food, consumable, reviewed, matches, answer, matchKey } = input;
+  const { food, consumable, reviewed, matches, answer, matchKey, windowDays = RECENT_PURCHASE_DAYS } = input;
   const base = { criterion: 'repeat_purchase' as const, version: CRITERIA_VERSION };
   const kept = matches.filter((match) => match.status === 'purchased' || match.status === 'unknown');
   const notKept = matches.filter((match) => !kept.includes(match));
@@ -121,8 +128,8 @@ export function assessRepeatPurchase(input: {
   const latest = kept[0]!;
   if (consumable) return none(`Bought ${latest.daysAgo} days ago; treated as routine restocking, not a concern.`);
 
-  const recent = kept.find((match) => match.daysAgo <= RECENT_PURCHASE_DAYS);
-  if (!recent) return none(`Last bought ${latest.daysAgo} days ago, outside the ${RECENT_PURCHASE_DAYS}-day window.`);
+  const recent = kept.find((match) => match.daysAgo <= windowDays);
+  if (!recent) return none(`Last bought ${latest.daysAgo} days ago, outside the ${windowDays}-day window.`);
   if (answer) return answeredResult(base, evidence, answer, !answerWithdrawsSkip(answer));
 
   return {
