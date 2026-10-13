@@ -39,6 +39,27 @@ const ICONS: Record<IconKind, ReactElement> = {
       <path d="M32 16l4 12 12 4-12 4-4 12-4-12-12-4 12-4z" />
     </g>
   ),
+  // A ball: a toy.
+  skip_toy: (
+    <g {...stroke}>
+      <circle cx="32" cy="32" r="14" />
+      <path d="M19 28c8 3 18 3 26 0M19 36c8-3 18-3 26 0" />
+    </g>
+  ),
+  // A question mark: do you need it?
+  rethink: (
+    <g {...stroke}>
+      <path d="M24 26a8 8 0 1 1 11 7c-3 2-3 4-3 6" />
+      <line x1="32" y1="46" x2="32" y2="46.5" />
+    </g>
+  ),
+  // A frame: decor.
+  decor_brand_note: (
+    <g {...stroke}>
+      <rect x="19" y="21" width="26" height="22" rx="2" />
+      <path d="M24 38l7-8 5 5 4-4 5 7" />
+    </g>
+  ),
   // A sugar cube.
   reduce_added_sugar: (
     <g {...stroke}>

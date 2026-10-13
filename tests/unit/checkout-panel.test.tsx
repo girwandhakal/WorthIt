@@ -308,6 +308,7 @@ describe('See full analysis', () => {
     // Every item in the cart is on the page, and the quiet ones say so.
     expect(document.querySelectorAll('.wi-analysis-item')).toHaveLength(7);
     expect(within(screen.getByRole('region', { name: 'Looks fine' })).getByText(/Bounty Essentials/)).toBeTruthy();
+    expect(within(screen.getByRole('region', { name: 'Looks fine' })).getAllByText('Nothing to flag').length).toBeGreaterThan(0);
     await user.click(screen.getAllByRole('button', { name: 'Back to highlights' })[0]!);
     expect(screen.getByRole('list', { name: 'Worth a second thought' })).toBeTruthy();
   });

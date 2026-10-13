@@ -19,6 +19,13 @@ export const TEMPLATES = {
   skip_novelty: 'This looks like a novelty item with no practical use, so it’s probably not worth it. Consider skipping it to take {amount} off your cart.',
   skip_novelty_no_amount: 'This looks like a novelty item with no practical use, so it’s probably not worth it. Consider skipping it.',
 
+  skip_toy: 'This is a toy, which is more of a want than a need, so it’s worth a second thought. Consider skipping it to take {amount} off your cart.',
+  skip_toy_no_amount: 'This is a toy, which is more of a want than a need, so it’s worth a second thought. Consider skipping it.',
+
+  rethink: 'You bought {what} {when}. Do you really need another one?',
+
+  decor_brand_note: 'Worth comparing with Walmart’s own decor lines, like Mainstays and Better Homes & Gardens, before you buy.',
+
   cheaper_similar: '{alternative} has similar ingredients and costs about {amount} less for the same amount. Try the store brand?',
   cheaper_different: '{alternative} has some ingredient differences but costs about {amount} less for the same amount. Try the store brand?',
   cheaper_food: '{alternative} costs about {amount} less for the same amount. Try the store brand?',

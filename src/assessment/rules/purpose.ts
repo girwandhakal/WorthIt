@@ -2,6 +2,7 @@ import { CRITERIA_VERSION, type CriterionResult } from '../../domain/finding';
 import { isFoodByCategory, type ProductFacts } from '../../domain/product-facts';
 import { CATEGORIES, PURPOSE_CLASS_LABELS, purposeClassFor, type PurposeClass } from '../reference/categories';
 import type { ReferenceProduct } from '../reference/products';
+import { nonFoodType, type NonFoodType } from './non-food';
 
 export interface PurposeAssessment {
   result: CriterionResult;
@@ -9,6 +10,8 @@ export interface PurposeAssessment {
   /** Null when the category is unknown. */
   consumable: boolean | null;
   food: boolean | null;
+  /** Toy, decor, or gadget, when it is one (see non-food.ts). */
+  nonFood?: NonFoodType | null;
 }
 
 /**
@@ -85,10 +88,30 @@ export function assessPurpose(
     };
   }
 
+  const nonFood = nonFoodType(facts, reference.category);
+  if (nonFood?.kind === 'toy') {
+    return {
+      purposeClass,
+      consumable: category.consumable,
+      food: category.food,
+      nonFood,
+      result: {
+        criterion: 'purpose',
+        version: CRITERIA_VERSION,
+        status: 'finding',
+        summary: TOY_SUMMARY,
+        evidence,
+        confidence: 'high',
+        suggestion: { kind: 'skip_toy', amountCents: linePriceCents },
+      },
+    };
+  }
+
   return {
     purposeClass,
     consumable: category.consumable,
     food: category.food,
+    nonFood,
     result: {
       criterion: 'purpose',
       version: CRITERIA_VERSION,
@@ -99,6 +122,8 @@ export function assessPurpose(
     },
   };
 }
+
+const TOY_SUMMARY = 'A toy: more of a want than a need.';
 
 function assessFromPage(facts: ProductFacts, linePriceCents: number | null): PurposeAssessment {
   const base = { criterion: 'purpose' as const, version: CRITERIA_VERSION };
@@ -150,16 +175,48 @@ function assessFromPage(facts: ProductFacts, linePriceCents: number | null): Pur
       },
     };
   }
+  const nonFood = nonFoodType(facts);
+  const categoryEvidence = facts.categoryPath.length > 0 ? [{ label: 'Walmart category', value: facts.categoryPath.slice(-2).join(' > '), source }] : [];
+  if (nonFood?.kind === 'toy') {
+    return {
+      purposeClass: 'discretionary',
+      consumable: false,
+      food: false,
+      nonFood,
+      result: {
+        ...base,
+        status: 'finding',
+        summary: TOY_SUMMARY,
+        evidence: categoryEvidence,
+        confidence: 'medium',
+        suggestion: { kind: 'skip_toy', amountCents: linePriceCents },
+      },
+    };
+  }
+  if (nonFood) {
+    return {
+      purposeClass: nonFood.kind === 'decor' ? 'discretionary' : 'useful',
+      consumable: false,
+      food: false,
+      nonFood,
+      result: { ...base, status: 'no_concern', summary: nonFood.kind === 'decor' ? 'Home decor.' : 'An electronic gadget.', evidence: categoryEvidence, confidence: 'medium' },
+    };
+  }
+  // No category on the page: Worth It can't tell what this is, and says so rather than calling it fine.
+  if (food === null) {
+    return {
+      purposeClass: 'unknown',
+      consumable: null,
+      food: null,
+      nonFood: null,
+      result: { ...base, status: 'unknown', summary: 'Worth It couldn’t tell what kind of product this is.', evidence: [], confidence: 'low' },
+    };
+  }
   return {
     purposeClass: 'unknown',
     consumable: null,
     food,
-    result: {
-      ...base,
-      status: 'no_concern',
-      summary: 'Nothing suggests this is a novelty item with no practical use.',
-      evidence: facts.categoryPath.length > 0 ? [{ label: 'Walmart category', value: facts.categoryPath.slice(-2).join(' > '), source }] : [],
-      confidence: 'medium',
-    },
+    nonFood: null,
+    result: { ...base, status: 'no_concern', summary: 'Nothing to flag.', evidence: categoryEvidence, confidence: 'medium' },
   };
 }

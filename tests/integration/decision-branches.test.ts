@@ -11,11 +11,11 @@ import { reviewContext } from '../helpers/background';
  *   ├─ Food ─ something on its label (what makes it processed)?
  *   │         ├─ yes → say what it is and cite the source (no store-brand switch)
  *   │         └─ no  → a cheaper store brand of the same quality? yes → recommend it; no → nothing
- *   ├─ Not food ─ useful?
- *   │         ├─ a novelty item with no use → skip it
- *   │         └─ useful ─ bought recently?
- *   │                   ├─ yes → warn (and ask)
- *   │                   └─ no  → a cheaper store brand that does the same job? yes → recommend it; no → nothing
+ *   ├─ Not food ─ the first that applies (see non-food-branches.test.ts for toys, decor, and gadgets)
+ *   │         ├─ bought recently (90 days; two years for a phone or similar) → warn and ask (soft for decor and gadgets)
+ *   │         ├─ a novelty item with no use, or a toy → skip it
+ *   │         ├─ a cheaper store brand that does the same job (not for gadgets) → recommend it
+ *   │         └─ otherwise → nothing ("Nothing to flag")
  *   └─ Can't tell whether it is food → nothing
  */
 const kindOf = (item: ReturnType<typeof assess>['items'][number]) => item.primary?.kind ?? null;
@@ -66,9 +66,9 @@ describe('not food', () => {
     expect(tumbler.primary).toMatchObject({ kind: 'cheaper_alternative', amountCents: 1200 });
   });
 
-  it('a useful item bought long ago, with no cheaper store brand, gets nothing', () => {
+  it('decor bought long ago, with no cheaper store brand on file, only gets the brand-comparison prompt', () => {
     const lights = assess(snapshot([line('18110413708')]), { history: [purchase('Govee LED Strip Lights 32.8ft', '2026-06-01')] }).items[0]!;
-    expect(kindOf(lights)).toBeNull();
+    expect(kindOf(lights)).toBe('decor_brand_note');
   });
 
   it('a household consumable is restocking, not a warning', () => {

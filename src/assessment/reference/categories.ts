@@ -56,6 +56,9 @@ export const PURPOSE_CLASS_LABELS: Record<PurposeClass, string> = {
 /** How far back a similar purchase of a non-consumable counts as recent. One window for every kind of item. */
 export const RECENT_PURCHASE_DAYS = 90;
 
+/** Phones, laptops, TVs, and similar gadgets are re-checked over two years, not three months. */
+export const HIGH_VALUE_PURCHASE_DAYS = 730;
+
 /** Store-brand savings are claimed only when its unit price is at least this much lower. */
 export const STORE_BRAND_MIN_SAVINGS_RATIO = 0.05;
 

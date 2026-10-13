@@ -47,11 +47,14 @@ export function panelFindings(assessment: CartAssessment, items: readonly CartIt
 const KIND_RANK: Record<ReviewFinding['kind'], number> = {
   skip_redundant: 0,
   skip_novelty: 1,
-  reduce_added_sugar: 2,
-  reduce_food_concern: 3,
-  cheaper_alternative: 4,
-  store_brand_note: 5,
-  uncertain: 6,
+  skip_toy: 2,
+  reduce_added_sugar: 3,
+  reduce_food_concern: 4,
+  cheaper_alternative: 5,
+  rethink: 6,
+  decor_brand_note: 7,
+  store_brand_note: 8,
+  uncertain: 9,
 };
 
 /** 0: a suggestion with a known amount; 1: a question or other suggestion without one; 2: notes and uncertainty. */
@@ -81,9 +84,9 @@ export function isHighlightable(finding: ReviewFinding): boolean {
 
 function findingFor(item: ItemAssessment, suggestion: Suggestion): ReviewFinding {
   const criterionId =
-    suggestion.kind === 'skip_redundant'
+    suggestion.kind === 'skip_redundant' || suggestion.kind === 'rethink'
       ? 'repeat_purchase'
-      : suggestion.kind === 'skip_novelty'
+      : suggestion.kind === 'skip_novelty' || suggestion.kind === 'skip_toy' || suggestion.kind === 'decor_brand_note'
         ? 'purpose'
         : suggestion.kind === 'reduce_added_sugar'
           ? 'added_sugar'
@@ -118,7 +121,7 @@ function findingFor(item: ItemAssessment, suggestion: Suggestion): ReviewFinding
     watch: item.criteria.find((candidate) => candidate.criterion === 'food_quality')?.watch ?? [],
     wording,
     amountCents: suggestion.amountCents,
-    question: suggestion.kind === 'skip_redundant' ? item.question : null,
+    question: suggestion.kind === 'skip_redundant' || suggestion.kind === 'rethink' ? item.question : null,
     why,
     sources: sourcesFor(why.map((evidence) => evidence.source), suggestion.alternative),
     confidence: criterion.confidence,
@@ -136,6 +139,12 @@ function wordingFor(item: ItemAssessment, suggestion: Suggestion): FindingWordin
     }
     case 'skip_novelty':
       return amount === null ? { template: 'skip_novelty_no_amount', slots: {} } : { template: 'skip_novelty', slots: { amount } };
+    case 'skip_toy':
+      return amount === null ? { template: 'skip_toy_no_amount', slots: {} } : { template: 'skip_toy', slots: { amount } };
+    case 'rethink':
+      return { template: 'rethink', slots: whatWhen(latestKept(item)) };
+    case 'decor_brand_note':
+      return { template: 'decor_brand_note', slots: {} };
     case 'cheaper_alternative': {
       const alternative = suggestion.alternative!;
       const template: TemplateKey =
@@ -166,6 +175,14 @@ function pointsFor(item: ItemAssessment, suggestion: Suggestion, criterion: Crit
     }
     case 'skip_novelty':
       return ['A novelty item with no practical use', 'Probably not worth it'];
+    case 'skip_toy':
+      return ['A toy', 'More of a want than a need', 'Worth a second thought'];
+    case 'rethink': {
+      const { what, when } = whatWhen(latestKept(item));
+      return [`You bought ${what} ${when}`, 'Do you really need another one?'];
+    }
+    case 'decor_brand_note':
+      return ['Home decor', 'Compare with Walmart’s own decor lines', 'Mainstays, Better Homes & Gardens'];
     case 'cheaper_alternative':
       switch (suggestion.alternative!.similarity) {
         case 'similar_ingredients':
@@ -210,7 +227,15 @@ function latestKept(item: ItemAssessment) {
 }
 
 function whatWhen(match: { kind: 'exact' | 'similar'; daysAgo: number } | null): Record<string, string> {
-  const when = !match ? 'recently' : match.daysAgo === 0 ? 'today' : match.daysAgo === 1 ? 'yesterday' : `${match.daysAgo} days ago`;
+  const when = !match
+    ? 'recently'
+    : match.daysAgo === 0
+      ? 'today'
+      : match.daysAgo === 1
+        ? 'yesterday'
+        : match.daysAgo >= 100
+          ? `about ${Math.round(match.daysAgo / 30.4)} months ago`
+          : `${match.daysAgo} days ago`;
   return { what: match?.kind === 'exact' ? 'this' : 'a similar one', when };
 }
 

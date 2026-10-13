@@ -141,12 +141,12 @@ describe('clarification and the skip rule', () => {
     expect(assess(snapshot([line('17741466139')])).items[0]!.primary).toEqual({ kind: 'skip_novelty', amountCents: 397 });
   });
 
-  it('decor bought recently is skip-eligible; long ago it is not', () => {
+  it('decor bought recently gets a soft rethink (never counted); long ago it just gets the brand-comparison prompt', () => {
     const lights = snapshot([line('18110413708')]);
     const recent = purchase('Govee LED Strip Lights 32.8ft', '2026-08-01');
     const old = purchase('Govee LED Strip Lights 32.8ft', '2026-06-01');
-    expect(assess(lights, { history: [recent] }).items[0]!.primary?.kind).toBe('skip_redundant');
-    expect(assess(lights, { history: [old] }).items[0]!.primary).toBeNull();
+    expect(assess(lights, { history: [recent] }).items[0]!.primary).toEqual({ kind: 'rethink', amountCents: null });
+    expect(assess(lights, { history: [old] }).items[0]!.primary).toEqual({ kind: 'decor_brand_note', amountCents: null });
   });
 
   it('every non-food item uses the same 90-day window, clothing included', () => {
