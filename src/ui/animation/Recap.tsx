@@ -29,7 +29,7 @@ type Scene =
   | { type: 'grouped' }
   | { type: 'closing' };
 
-export function scenesFor(summary: CartSummary): Scene[] {
+function scenesFor(summary: CartSummary): Scene[] {
   return [
     { type: 'opening' },
     ...summary.highlights.map((finding, index) => ({ type: 'highlight' as const, finding, number: index + 1 })),

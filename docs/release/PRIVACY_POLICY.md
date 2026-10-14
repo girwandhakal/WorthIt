@@ -14,7 +14,7 @@ Worth It is a browser extension that reviews your Walmart or Amazon shopping car
 ## What Worth It stores
 
 On your device only:
-- purchase records you approve (from manual entry, Gmail import, or order pages), your answers to Worth It's questions, and feedback, in the extension's local database;
+- purchase records you approve (from manual entry, Gmail import, or order pages), and your answers to Worth It's questions, in the extension's local database;
 - your preferences, including allergies and dietary preferences you choose to enter;
 - ingredient and nutrition labels Worth It read from Walmart product pages for items in your cart, kept for 24 hours so the next visit to your cart is quicker. This is public product information; it contains nothing about you and is deleted by "Delete everything" in settings.
 

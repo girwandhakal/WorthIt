@@ -2,7 +2,7 @@ import type { Merchant } from '../domain/cart';
 
 // Replaced by Vite at build time; the fallback is used by unit tests.
 declare const __WORTH_IT_BUILD__: string;
-export const CONTENT_BUILD = typeof __WORTH_IT_BUILD__ === 'undefined' ? 'test' : __WORTH_IT_BUILD__;
+const CONTENT_BUILD = typeof __WORTH_IT_BUILD__ === 'undefined' ? 'test' : __WORTH_IT_BUILD__;
 export const DIAGNOSTIC_ATTRIBUTE = 'data-worth-it-debug';
 
 export interface DiagnosticUpdate {

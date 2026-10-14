@@ -27,7 +27,7 @@ export interface ImportReview {
   unparsed: UnparsedMessage[];
 }
 
-export function receiptToInputs(receipt: ParsedReceipt): PurchaseInput[] {
+function receiptToInputs(receipt: ParsedReceipt): PurchaseInput[] {
   const source: HistorySource = receipt.synthetic ? 'synthetic_gmail' : 'gmail_import';
   return receipt.items.map((item) => ({
     source,

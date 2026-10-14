@@ -2,10 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { panelFindings } from '../../src/assessment/describe';
 import { summarizeCart } from '../../src/assessment/summarize-cart';
 import type { CartSummary } from '../../src/domain/review';
-import { OPENAI_ENDPOINT, OPENAI_MODEL, wordingTransport, type PostLike, type WordingResponse } from '../../src/summary/openai-client';
-import { buildWordingRequest, phraseSummary, type WordingCache } from '../../src/summary/phrase-summary';
-import { TEMPLATES } from '../../src/summary/templates';
-import { validateRephrasing } from '../../src/summary/validate-phrasing';
+import { OPENAI_ENDPOINT, OPENAI_MODEL, wordingTransport, type PostLike, type WordingResponse } from '../../src/wording/openai-client';
+import { buildWordingRequest, phraseSummary, type WordingCache } from '../../src/wording/phrase-summary';
+import { TEMPLATES } from '../../src/wording/templates';
+import { validateRephrasing } from '../../src/wording/validate-phrasing';
 import { assess, tumblerReceipt, walkthroughSnapshot } from '../helpers/assessment';
 
 const KEY = 'sk-test-abcdefghijklmnopqrstuvwxyz';

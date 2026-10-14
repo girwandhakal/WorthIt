@@ -13,8 +13,6 @@ import type { CategoryId } from './categories';
 
 export const REFERENCE_DATA_VERSION = '2026-10-10';
 export const PRICES_CHECKED_ON = '2026-10-09';
-export const PRICE_SOURCE_NOTE = 'Walmart.com online price, Atlanta, GA 30303 (store 3709)';
-export const LABELS_RECORDED_ON = '2026-10-10';
 
 export interface LabelFacts {
   /** Grams of added sugars per serving as listed on the label. */

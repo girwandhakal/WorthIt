@@ -1,11 +1,11 @@
 import type { CartAssessment } from '../domain/finding';
 import type { CartSummary, ReviewFinding } from '../domain/review';
 import { formatCents } from '../shared/currency';
-import { countPhrase, renderTemplate, TEMPLATES } from '../summary/templates';
+import { countPhrase, renderTemplate, TEMPLATES } from '../wording/templates';
 import { isHighlightable } from './describe';
 import { investmentIllustration, savingsOnlySentence } from './investment';
 
-export const MAX_HIGHLIGHTS = 3;
+const MAX_HIGHLIGHTS = 3;
 
 /**
  * Deterministic cart summary: the sole authority for counts and totals.

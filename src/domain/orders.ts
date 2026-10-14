@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { purchaseStatusSchema, type PurchaseInput } from './history';
 import { MERCHANT_LABELS, type Merchant } from './cart';
+import { purchaseStatusSchema, type PurchaseInput } from './history';
+import { centsSchema, isoDateSchema } from './schemas';
 
 /** Order-page kinds a retailer adapter can record purchases from (opt-in). */
 export type OrderPageKind = 'confirmation' | 'history' | 'details';
@@ -10,9 +11,9 @@ export const observedOrderItemSchema = z.object({
   title: z.string().min(1).max(300),
   retailerItemId: z.string().min(1).max(40).nullable(),
   quantity: z.number().int().min(1).max(999).nullable(),
-  linePriceCents: z.number().int().min(0).max(100_000_000).nullable(),
+  linePriceCents: centsSchema.nullable(),
   orderId: z.string().min(1).max(80).nullable(),
-  orderDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+  orderDate: isoDateSchema.nullable(),
   status: purchaseStatusSchema,
 });
 export type ObservedOrderItem = z.infer<typeof observedOrderItemSchema>;
@@ -33,4 +34,3 @@ export function observedToInput(item: ObservedOrderItem, merchant: Merchant, tod
     gmailMessageId: null,
   };
 }
-

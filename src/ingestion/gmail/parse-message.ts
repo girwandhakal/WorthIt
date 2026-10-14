@@ -1,4 +1,5 @@
-import type { PurchaseStatus } from '../../domain/history';
+import { reversalStatus, type PurchaseStatus } from '../../domain/history';
+import { ITEM_ID_PATTERN } from '../../domain/schemas';
 import { parsePriceToCents } from '../../shared/currency';
 import { localIsoDate, toIsoDate } from '../../shared/dates';
 
@@ -124,7 +125,7 @@ function parseTemplate(body: string, messageId: string, fallbackDate: string, sy
     if (!title) continue;
     items.push({
       title: title.slice(0, 300),
-      retailerItemId: /^\d{5,15}$/.test(get('id')) ? get('id') : null,
+      retailerItemId: ITEM_ID_PATTERN.test(get('id')) ? get('id') : null,
       quantity: toQuantity(get('qty')),
       linePriceCents: parsePriceToCents(get('price')),
       status: get('status') ? toStatus(get('status')) : defaultStatus,
@@ -164,13 +165,7 @@ function parseWalmartEmail(body: string, subject: string, messageId: string, fal
     .split(/\r?\n/)
     .map(cleanLine)
     .filter((line) => line.length > 0);
-  const subjectStatus: PurchaseStatus = /cancel/i.test(subject)
-    ? 'canceled'
-    : /refund/i.test(subject)
-      ? 'refunded'
-      : /return/i.test(subject)
-        ? 'returned'
-        : 'purchased';
+  const subjectStatus = reversalStatus(subject) ?? 'purchased';
 
   const orderId = /order\s*(?:number|#|no\.?)?[:#\s]*([0-9]{7,}-[0-9]{4,}|[0-9]{10,})/i.exec(`${subject}\n${body}`)?.[1] ?? null;
   const dateLine = lines.find((line) => /^(order date|ordered on|placed on)\b/i.test(line));
@@ -220,7 +215,7 @@ function collectBodies(part: GmailPart | undefined): { text: string | null; html
   return { text, html };
 }
 
-export function decodeBase64Url(data: string): string {
+function decodeBase64Url(data: string): string {
   const base64 = data.replace(/-/g, '+').replace(/_/g, '/');
   const binary = atob(base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '='));
   const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
@@ -277,11 +272,7 @@ function toQuantity(value: string): number | null {
 
 function toStatus(value: string | null): PurchaseStatus {
   if (!value) return 'purchased';
-  if (/cancel/i.test(value)) return 'canceled';
-  if (/refund/i.test(value)) return 'refunded';
-  if (/return/i.test(value)) return 'returned';
-  if (/deliver|purchas|shipped|placed|picked up|complete/i.test(value)) return 'purchased';
-  return 'unknown';
+  return reversalStatus(value) ?? (/deliver|purchas|shipped|placed|picked up|complete/i.test(value) ? 'purchased' : 'unknown');
 }
 
 function dateFromInternal(internalDate: string | undefined): string {

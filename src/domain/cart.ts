@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { centsSchema } from './schemas';
 
 /**
  * Normalized cart model shared by every retailer adapter. Values that could not
@@ -15,9 +16,7 @@ export const MERCHANT_LABELS: Record<Merchant, string> = {
   amazon: 'Amazon',
 };
 
-const centsSchema = z.number().int().min(0).max(100_000_000);
-
-export const extractionIssueSchema = z.enum([
+const extractionIssueSchema = z.enum([
   'missing_title',
   'missing_price',
   'ambiguous_price',
@@ -26,7 +25,7 @@ export const extractionIssueSchema = z.enum([
 ]);
 export type ExtractionIssue = z.infer<typeof extractionIssueSchema>;
 
-export const cartItemSchema = z.object({
+const cartItemSchema = z.object({
   /** Stable local key, e.g. `walmart:10309701`. */
   key: z.string().min(1).max(300),
   merchant: merchantSchema,

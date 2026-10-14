@@ -1,4 +1,5 @@
 import { defineConfig } from 'wxt';
+import { GMAIL_READONLY_SCOPE } from './src/ingestion/gmail/oauth';
 
 /**
  * Worth It build configuration.
@@ -29,8 +30,6 @@ const wordingProxyOrigin = (() => {
     return null;
   }
 })();
-
-export const GMAIL_READONLY_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
 
 /**
  * `wxt build --mode e2e` (used by `npm run test:e2e`) writes to dist/chrome-mv3-e2e with a

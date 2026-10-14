@@ -100,7 +100,3 @@ export function sumCents(values: ReadonlyArray<number | null>): number | null {
   }
   return total;
 }
-
-export function isValidCents(value: unknown): value is number {
-  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
-}

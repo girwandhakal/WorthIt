@@ -1,16 +1,16 @@
 /**
  * OpenAI call for the wording assistant: directly with the owner's key in the
  * single-user hackathon build, or through a key-holding proxy in a public
- * build (src/summary/config.ts). Requests carry only finding types, check names, and
+ * build (src/wording/config.ts). Requests carry only finding types, check names, and
  * placeholder templates — never names, prices, history, or settings.
  */
 
 /** Small, fast, low-cost chat model. Change here if it is retired. */
 export const OPENAI_MODEL = 'gpt-4.1-mini';
 export const OPENAI_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
-export const OPENAI_TIMEOUT_MS = 3000;
-export const MAX_REQUEST_CHARS = 8000;
-export const MAX_RESPONSE_CHARS = 6000;
+const OPENAI_TIMEOUT_MS = 3000;
+const MAX_REQUEST_CHARS = 8000;
+const MAX_RESPONSE_CHARS = 6000;
 const MAX_OUTPUT_TOKENS = 400;
 
 export interface WordingRequest {

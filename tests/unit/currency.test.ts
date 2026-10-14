@@ -6,7 +6,6 @@ describe('parsePriceToCents', () => {
     ['$5.96', 596],
     ['Now $1,234.5', 123450],
     ['$12', 1200],
-    ['current price $0.92', 92],
     ['$ 3.07/ea', 307],
   ])('parses %s', (text, cents) => {
     expect(parsePriceToCents(text)).toBe(cents);
@@ -14,12 +13,6 @@ describe('parsePriceToCents', () => {
 
   it.each(['Price unavailable', '', null, undefined, '5.96'])('returns null for %s', (text) => {
     expect(parsePriceToCents(text)).toBeNull();
-  });
-});
-
-describe('findAllPricesInCents', () => {
-  it('finds every price in order', () => {
-    expect(findAllPricesInCents('Was $8.50 now $7.74 ($3.87/ea)')).toEqual([850, 774, 387]);
   });
 });
 

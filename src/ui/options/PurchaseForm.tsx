@@ -1,5 +1,6 @@
 import { useId, useState, type FormEvent } from 'react';
 import { PURCHASE_STATUS_LABELS, purchaseStatusSchema, type PurchaseInput, type PurchaseStatus } from '../../domain/history';
+import { ITEM_ID_PATTERN } from '../../domain/schemas';
 import { localIsoDate } from '../../shared/dates';
 import { parseDollarInput } from './context';
 
@@ -32,7 +33,7 @@ export function PurchaseForm({ initial, today, submitLabel, onSubmit, onCancel }
     if (!title.trim()) return setError('Enter the item name.');
     if (parsedPrice.error) return setError(parsedPrice.error);
     if (qty !== null && (!Number.isInteger(qty) || qty < 1 || qty > 999)) return setError('Quantity must be 1–999.');
-    if (itemId.trim() && !/^\d{5,15}$/.test(itemId.trim())) return setError('Item ID should be the number from the product link.');
+    if (itemId.trim() && !ITEM_ID_PATTERN.test(itemId.trim())) return setError('Item ID should be the number from the product link.');
     setError(null);
     setBusy(true);
     try {

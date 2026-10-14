@@ -1,8 +1,8 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import type { ClarificationRecord, FeedbackRecord, PurchaseRecord } from '../domain/history';
+import type { ClarificationRecord, PurchaseRecord } from '../domain/history';
 import { LATEST_VERSION, MIGRATIONS, runMigrations, type Migration } from './migrations';
 
-export const DATABASE_NAME = 'worth-it';
+const DATABASE_NAME = 'worth-it';
 
 export interface WorthItSchema extends DBSchema {
   purchases: {
@@ -11,12 +11,11 @@ export interface WorthItSchema extends DBSchema {
     indexes: { 'by-purchased-on': string; 'by-source': string; 'by-dedupe-key': string };
   };
   clarifications: { key: string; value: ClarificationRecord };
-  feedback: { key: string; value: FeedbackRecord };
 }
 
 export type WorthItDb = IDBPDatabase<WorthItSchema>;
 
-export interface OpenOptions {
+interface OpenOptions {
   name?: string;
   version?: number;
   migrations?: Record<number, Migration>;

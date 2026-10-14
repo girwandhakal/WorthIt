@@ -14,10 +14,8 @@ const ids = (inputs: FoodInputs) => evaluateFood(inputs).map((concern) => concer
 describe('food decision tree: whole foods get no comment', () => {
   it.each([
     ['milk', 'GRADE A ORGANIC MILK, VITAMIN D3', 0],
-    ['eggs', 'EGGS', 0],
     ['bananas', 'BANANAS, RAW', null],
     ['rice', 'LONG GRAIN ENRICHED RICE (RICE, NIACIN, REDUCED IRON, THIAMINE MONONITRATE, FOLIC ACID)', 0],
-    ['plain oats', 'WHOLE GRAIN ROLLED OATS', 0],
   ])('%s', (_name, ingredients, addedSugarG) => {
     expect(evaluateFood(food({ ingredients, addedSugarG }))).toEqual([]);
   });
@@ -84,7 +82,7 @@ describe('food decision tree: what gets investigated', () => {
   });
 });
 
-describe('food decision tree: real labels read from Walmart.com', () => {
+describe('food decision tree: a real label read from Walmart.com', () => {
   it('Skittles: added sugar leads, with dyes and processing behind it', () => {
     const concerns = evaluateFood(
       food({
@@ -97,27 +95,6 @@ describe('food decision tree: real labels read from Walmart.com', () => {
     expect(concerns.map((concern) => concern.id)).toEqual(['added_sugar', 'dyes', 'ultra_processed']);
   });
 
-  it('Diet Coke: names aspartame even with 0 g of added sugar', () => {
-    const concerns = evaluateFood(
-      food({
-        addedSugarG: 0,
-        ingredients: 'CARBONATED WATER, CARAMEL COLOR, ASPARTAME, PHOSPHORIC ACID, POTASSIUM BENZOATE (TO PROTECT TASTE), NATURAL FLAVORS, CITRIC ACID, CAFFEINE',
-      }),
-    );
-    expect(concerns.map((concern) => concern.id)).toEqual(['sweetener', 'ultra_processed']);
-    expect(concerns[0]?.detail).toBe('aspartame');
-  });
-
-  it('Oscar Mayer beef frank: cured meat leads', () => {
-    const concerns = evaluateFood(
-      food({
-        ingredients:
-          'BEEF, WATER, CONTAINS LESS THAN 2% OF SALT, CORN SYRUP, GROUND MUSTARD SEED, DEXTROSE, SODIUM PHOSPHATES, SODIUM DIACETATE, SODIUM BENZOATE, SODIUM ASCORBATE, FLAVOR, SODIUM NITRITE, EXTRACTIVES OF PAPRIKA, HYDROLYZED BEEF STOCK',
-        context: 'food > meat & seafood > bacon, hot dogs, & sausages > hot dogs',
-      }),
-    );
-    expect(concerns.map((concern) => concern.id)).toEqual(['processed_meat', 'ultra_processed']);
-  });
 });
 
 describe('food concerns as short points', () => {

@@ -14,9 +14,11 @@ export interface PurposeAssessment {
   nonFood?: NonFoodType | null;
 }
 
+const NOVELTY_SUMMARY = 'A novelty or collectible item with no practical use.';
+const TOY_SUMMARY = 'A toy: more of a want than a need.';
+
 /**
- * The non-food branch of the decision tree: is this a novelty item with no
- * practical use? Recognized from the retailer's own category path or a
+ * Novelty detection for the non-food branch of the decision tree: a category path or a
  * product line that exists only as a collectible. Ordinary toys, tools, and
  * household goods are never flagged just for being optional.
  */
@@ -30,7 +32,7 @@ const CONSUMABLE_CATEGORY =
 /** Categories (by Walmart path) whose foods are treats, not staples. */
 const TREAT_CATEGORY = /\b(candy|snacks?|cookies?|soda|soft drinks?|chips)\b/i;
 
-export function noveltyEvidence(facts: ProductFacts): string | null {
+function noveltyEvidence(facts: ProductFacts): string | null {
   if (isFoodByCategory(facts) === true) return null;
   const path = facts.categoryPath.join(' > ');
   if (NOVELTY_CATEGORY.test(path) || (facts.name !== null && NOVELTY_PRODUCT_LINE.test(facts.name))) {
@@ -80,7 +82,7 @@ export function assessPurpose(
         criterion: 'purpose',
         version: CRITERIA_VERSION,
         status: 'finding',
-        summary: 'A novelty or collectible item with no practical use.',
+        summary: NOVELTY_SUMMARY,
         evidence,
         confidence: 'high',
         suggestion: { kind: 'skip_novelty', amountCents: linePriceCents },
@@ -123,8 +125,6 @@ export function assessPurpose(
   };
 }
 
-const TOY_SUMMARY = 'A toy: more of a want than a need.';
-
 function assessFromPage(facts: ProductFacts, linePriceCents: number | null): PurposeAssessment {
   const base = { criterion: 'purpose' as const, version: CRITERIA_VERSION };
   const food = isFoodByCategory(facts);
@@ -139,7 +139,7 @@ function assessFromPage(facts: ProductFacts, linePriceCents: number | null): Pur
       result: {
         ...base,
         status: 'finding',
-        summary: 'A novelty or collectible item with no practical use.',
+        summary: NOVELTY_SUMMARY,
         evidence: [{ label: 'Walmart category', value: novelty, source }],
         confidence: 'medium',
         suggestion: { kind: 'skip_novelty', amountCents: linePriceCents },

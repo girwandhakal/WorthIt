@@ -1,3 +1,4 @@
+import { reversalStatus } from '../../domain/history';
 import type { ObservedOrderItem, OrderPageKind } from '../../domain/orders';
 import { localIsoDate, toIsoDate } from '../../shared/dates';
 import { parsePriceToCents } from '../../shared/currency';
@@ -56,19 +57,11 @@ export function extractWalmartOrders(doc: Document, now: Date): ObservedOrderIte
         linePriceCents: parsePriceToCents(first(row, ORDER_ITEM_PRICE_SELECTORS)?.textContent),
         orderId: orderId ? orderId.slice(0, 80) : null,
         orderDate: orderDate ?? (containers.length === 0 ? localIsoDate(now) : null),
-        status: statusFrom(cleanText(row.querySelector('[data-testid="item-status"]')?.textContent) ?? orderStatus),
+        status: reversalStatus(cleanText(row.querySelector('[data-testid="item-status"]')?.textContent) ?? orderStatus ?? '') ?? 'purchased',
       });
     }
   }
   return items.slice(0, 200);
-}
-
-function statusFrom(text: string | null): ObservedOrderItem['status'] {
-  if (!text) return 'purchased';
-  if (/cancel/i.test(text)) return 'canceled';
-  if (/refund/i.test(text)) return 'refunded';
-  if (/return/i.test(text)) return 'returned';
-  return 'purchased';
 }
 
 function isExcluded(el: Element): boolean {

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { centsSchema, isoDateSchema } from './schemas';
 
 /**
  * Item-level purchase history. A record proves an order was placed (and,
@@ -26,9 +27,6 @@ export const PURCHASE_STATUS_LABELS: Record<PurchaseStatus, string> = {
   refunded: 'Refunded',
   unknown: 'Status unknown',
 };
-
-const centsSchema = z.number().int().min(0).max(100_000_000);
-const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD');
 
 /** Fields a person or importer supplies. */
 export const purchaseInputSchema = z.object({
@@ -73,6 +71,14 @@ export function dedupeKeyFor(input: Pick<PurchaseInput, 'merchant' | 'orderId' |
   return `${input.merchant.toLowerCase()}|${order}|${item}`;
 }
 
+/** Cancel, refund, or return wording in order text; null when it mentions none of them. */
+export function reversalStatus(text: string): PurchaseStatus | null {
+  if (/cancel/i.test(text)) return 'canceled';
+  if (/refund/i.test(text)) return 'refunded';
+  if (/return/i.test(text)) return 'returned';
+  return null;
+}
+
 export function isIncomplete(input: Pick<PurchaseInput, 'quantity' | 'linePriceCents' | 'status'>): boolean {
   return input.quantity === null || input.linePriceCents === null || input.status === 'unknown';
 }
@@ -89,14 +95,4 @@ export interface ClarificationRecord {
   itemTitle: string;
   answer: ClarificationAnswer;
   answeredAt: string;
-}
-
-export const feedbackKindSchema = z.enum(['useful', 'incorrect', 'planned', 'not_relevant']);
-export type FeedbackKind = z.infer<typeof feedbackKindSchema>;
-
-export interface FeedbackRecord {
-  id: string;
-  findingId: string;
-  kind: FeedbackKind;
-  createdAt: string;
 }

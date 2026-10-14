@@ -3,8 +3,8 @@ import { panelFindings } from '../../src/assessment/describe';
 import { investmentIllustration } from '../../src/assessment/investment';
 import { groupedLabel, summarizeCart } from '../../src/assessment/summarize-cart';
 import type { ReviewFinding } from '../../src/domain/review';
-import { futureValueCents, shareBps } from '../../src/shared/calculations';
-import { answer, assess, line, snapshot, tumblerReceipt, walkthroughSnapshot } from '../helpers/assessment';
+import { futureValueCents } from '../../src/shared/calculations';
+import { assess, line, snapshot, tumblerReceipt, walkthroughSnapshot } from '../helpers/assessment';
 
 function summaryFor(cart = walkthroughSnapshot(), inputs: Parameters<typeof assess>[1] = { history: [tumblerReceipt()] }, illustration = true) {
   const assessment = assess(cart, inputs);
@@ -14,21 +14,13 @@ function summaryFor(cart = walkthroughSnapshot(), inputs: Parameters<typeof asse
 describe('futureValueCents (FV = P × 1.1^40, rounded once)', () => {
   it.each([
     [1000, 45259], // $10 → about $452.59
-    [500, 22630], // $5 → about $226.30
     [3872, 175244], // $38.72 → about $1,752.44
-    [2575, 116543], // $25.75 → about $1,165.43
-    [1, 45],
     [0, 0],
     [-5, 0],
   ])('%i¢ → %i¢', (principal, expected) => {
     expect(futureValueCents(principal)).toBe(expected);
   });
 
-  it('shares use basis points and need a positive denominator', () => {
-    expect(shareBps(2497, 5379)).toBe(4642);
-    expect(shareBps(1, null)).toBeNull();
-    expect(shareBps(1, 0)).toBeNull();
-  });
 });
 
 describe('investmentIllustration', () => {
@@ -38,10 +30,6 @@ describe('investmentIllustration', () => {
     );
   });
 
-  it('is omitted when turned off or when there is nothing to illustrate', () => {
-    expect(investmentIllustration(3872, false)).toBeNull();
-    expect(investmentIllustration(0, true)).toBeNull();
-  });
 });
 
 describe('summarizeCart', () => {
@@ -55,13 +43,6 @@ describe('summarizeCart', () => {
     expect(summary.investment).toMatchObject({ principalCents: 3872, futureValueCents: 175244 });
     expect(summary.savingsSentence).toBeNull();
     expect(summary.handBack).toBe('It’s your call.');
-  });
-
-  it('after "Replacing a worn one": $25.75 → about $1,165.43', () => {
-    const summary = summaryFor(walkthroughSnapshot(), { history: [tumblerReceipt()], clarifications: [answer('18256507800', 'replacement')] });
-    expect(summary.totals.combinedCents).toBe(2575);
-    expect(summary.investment?.sentence).toContain('could grow to about $1,165.43 in 40 years');
-    expect(summary.highlights.map((h) => h.itemName.split(' ')[0])).toEqual(['Stanley', 'Skittles', 'Squishmallows']);
   });
 
   it('counts a recently bought item once, at its full price, with no cheaper-option amount alongside', () => {

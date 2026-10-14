@@ -5,7 +5,7 @@ import { WORTH_IT_HOST_TAG } from './retailer-adapter';
  * Stable fingerprint of what the review depends on, so cosmetic rerenders of
  * the retailer page do not trigger a new review.
  */
-export function snapshotSignature(snapshot: CartSnapshot): string {
+function snapshotSignature(snapshot: CartSnapshot): string {
   return snapshot.items
     .map((item) =>
       [item.key, item.title ?? '', item.quantity ?? '?', item.linePriceCents ?? '?', item.issues.join('+')].join('|'),

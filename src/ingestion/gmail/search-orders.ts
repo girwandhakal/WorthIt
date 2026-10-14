@@ -3,7 +3,7 @@ import { SYNTHETIC_SUBJECT_MARKER, parseGmailMessage, type GmailMessage, type Pa
 
 export const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me';
 export const WALMART_SENDERS = ['help@walmart.com', 'noreply@walmart.com', 'no-reply@walmart.com', 'orders@walmart.com'];
-export const MAX_MESSAGES = 50;
+const MAX_MESSAGES = 50;
 
 export interface SearchOptions {
   /** Inclusive start of the shopper-chosen date range. */
@@ -66,7 +66,7 @@ export async function listMessageIds(fetchFn: FetchLike, token: string, query: s
   return ids.slice(0, max);
 }
 
-export async function fetchMessage(fetchFn: FetchLike, token: string, id: string): Promise<GmailMessage> {
+async function fetchMessage(fetchFn: FetchLike, token: string, id: string): Promise<GmailMessage> {
   const message = (await gmailGet(fetchFn, token, `${GMAIL_API}/messages/${encodeURIComponent(id)}?format=full`)) as GmailMessage;
   return { id, internalDate: message.internalDate, payload: message.payload };
 }

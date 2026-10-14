@@ -153,6 +153,7 @@ describe('Chrome identity', () => {
     expect(api.cleared).toBe(1);
   });
 
+
   it('detects whether this build has an OAuth client', () => {
     expect(isGmailConfigured({})).toBe(false);
     expect(isGmailConfigured({ oauth2: { client_id: 'x.apps.googleusercontent.com' } })).toBe(true);

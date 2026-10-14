@@ -3,7 +3,7 @@ import { contentRequestSchema, type ContentRequest } from './messages';
 export type ValidationResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
 /** Maximum serialized message size accepted from a content script. */
-export const MAX_MESSAGE_BYTES = 512 * 1024;
+const MAX_MESSAGE_BYTES = 512 * 1024;
 
 /**
  * Validates a message received by the service worker. Rejects messages from

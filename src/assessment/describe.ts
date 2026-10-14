@@ -1,8 +1,8 @@
 import type { CartItem } from '../domain/cart';
-import type { AlternativeInfo, CartAssessment, CriterionResult, ItemAssessment, Suggestion } from '../domain/finding';
+import type { AlternativeInfo, CartAssessment, CriterionId, CriterionResult, ItemAssessment, Suggestion, SuggestionKind } from '../domain/finding';
 import type { FindingWording, ReviewFinding } from '../domain/review';
 import { formatCents } from '../shared/currency';
-import { renderTemplate, type TemplateKey } from '../summary/templates';
+import { renderTemplate, type TemplateKey } from '../wording/templates';
 import { uncertaintyText } from './assess-cart';
 import { ADDED_SUGAR_NOTE, SOURCES, type Source, type SourceId } from './evidence/sources';
 import { concernNotes, concernPoints, type FoodConcern } from './rules/food-quality';
@@ -11,12 +11,13 @@ import { removalSentence } from './rules/nutrition';
 /**
  * Turns the deterministic assessment into concise, non-shaming findings.
  * Wording comes from reviewed templates; names and numbers come from verified
- * fields. Sorted in the presentation ranking (see compareFindings).
+ * fields. Sorted by biggest potential savings first (see compareFindings).
  */
 export function panelFindings(assessment: CartAssessment, items: readonly CartItem[]): ReviewFinding[] {
   const findings: ReviewFinding[] = [];
+  const cartItems = new Map(items.map((item) => [item.key, item]));
   for (const item of assessment.items) {
-    const cartItem = items.find((candidate) => candidate.key === item.itemKey);
+    const cartItem = cartItems.get(item.itemKey);
     if (item.primary) findings.push(findingFor(item, item.primary));
     // Store-brand notes without savings are listed, never highlighted.
     const note = item.secondary.find((suggestion) => suggestion.kind === 'store_brand_note');
@@ -28,7 +29,7 @@ export function panelFindings(assessment: CartAssessment, items: readonly CartIt
         position: item.position,
         kind: 'uncertain',
         itemName: item.itemName,
-    imageUrl: item.imageUrl,
+        imageUrl: item.imageUrl,
         text: uncertaintyText(cartItem),
         points: [],
         watch: [],
@@ -68,7 +69,7 @@ function tier(finding: ReviewFinding): number {
  * most to the cart. Ties fall back to the kind of suggestion (skips before
  * cheaper options), then cart order.
  */
-export function compareFindings(a: ReviewFinding, b: ReviewFinding): number {
+function compareFindings(a: ReviewFinding, b: ReviewFinding): number {
   return (
     tier(a) - tier(b) ||
     (b.amountCents ?? -1) - (a.amountCents ?? -1) ||
@@ -82,29 +83,33 @@ export function isHighlightable(finding: ReviewFinding): boolean {
   return finding.kind !== 'store_brand_note' && finding.kind !== 'uncertain';
 }
 
+/** The check that produced each kind of suggestion, so a finding can cite that check's evidence. */
+const CRITERION_FOR_KIND: Record<SuggestionKind, CriterionId> = {
+  skip_redundant: 'repeat_purchase',
+  rethink: 'repeat_purchase',
+  skip_novelty: 'purpose',
+  skip_toy: 'purpose',
+  decor_brand_note: 'purpose',
+  reduce_added_sugar: 'added_sugar',
+  reduce_food_concern: 'food_quality',
+  cheaper_alternative: 'store_brand',
+  store_brand_note: 'store_brand',
+};
+
 function findingFor(item: ItemAssessment, suggestion: Suggestion): ReviewFinding {
-  const criterionId =
-    suggestion.kind === 'skip_redundant' || suggestion.kind === 'rethink'
-      ? 'repeat_purchase'
-      : suggestion.kind === 'skip_novelty' || suggestion.kind === 'skip_toy' || suggestion.kind === 'decor_brand_note'
-        ? 'purpose'
-        : suggestion.kind === 'reduce_added_sugar'
-          ? 'added_sugar'
-          : suggestion.kind === 'reduce_food_concern'
-            ? 'food_quality'
-            : 'store_brand';
+  const criterionId = CRITERION_FOR_KIND[suggestion.kind];
   const criterion = item.criteria.find((candidate) => candidate.criterion === criterionId)!;
+  const foodQuality = item.criteria.find((candidate) => candidate.criterion === 'food_quality');
   const why = [...criterion.evidence];
   // Everything else the label shows is listed behind "Why?" too, each with its source.
   if (suggestion.kind === 'reduce_added_sugar') {
-    why.push(...(item.criteria.find((candidate) => candidate.criterion === 'food_quality')?.evidence ?? []));
+    why.push(...(foodQuality?.evidence ?? []));
   }
   if (suggestion.alternative) {
     for (const difference of suggestion.alternative.differences) why.push({ label: 'Difference', value: difference, source: 'walmart_reference' });
   }
   // An ingredient noted but not counted keeps its explanation and source on the finding it is shown with.
-  const watched = item.criteria.find((candidate) => candidate.criterion === 'food_quality');
-  if (watched?.watch?.length) why.push(...watched.evidence.filter((evidence) => evidence.label === 'Also noted (not counted)' && !why.includes(evidence)));
+  if (foodQuality?.watch?.length) why.push(...foodQuality.evidence.filter((evidence) => evidence.label === 'Also noted (not counted)' && !why.includes(evidence)));
   if (item.shareOfCartBps !== null) {
     why.push({ label: 'Share of your cart', value: `${(item.shareOfCartBps / 100).toFixed(1)}%`, source: 'cart_page' });
   }
@@ -118,7 +123,7 @@ function findingFor(item: ItemAssessment, suggestion: Suggestion): ReviewFinding
     imageUrl: item.imageUrl,
     text: wording ? renderTemplate(wording.template, wording.slots) : fixedText(item, suggestion, criterion.summary),
     points: pointsFor(item, suggestion, criterion),
-    watch: item.criteria.find((candidate) => candidate.criterion === 'food_quality')?.watch ?? [],
+    watch: foodQuality?.watch ?? [],
     wording,
     amountCents: suggestion.amountCents,
     question: suggestion.kind === 'skip_redundant' || suggestion.kind === 'rethink' ? item.question : null,
@@ -226,6 +231,7 @@ function latestKept(item: ItemAssessment) {
   return item.historyMatches.find((match) => match.status === 'purchased' || match.status === 'unknown') ?? null;
 }
 
+/** Slot values for "You bought {what} {when}". Past roughly three months, days read better as months. */
 function whatWhen(match: { kind: 'exact' | 'similar'; daysAgo: number } | null): Record<string, string> {
   const when = !match
     ? 'recently'

@@ -37,7 +37,7 @@ export async function resetDismissed(area: SessionArea, tabId: number): Promise<
   await area.remove(keyFor('dismissed', tabId));
 }
 
+/** Forgets everything remembered for a tab (it was closed). */
 export async function clearDismissed(area: SessionArea, tabId: number): Promise<void> {
-  await area.remove(keyFor('dismissed', tabId));
-  await area.remove(keyFor('skipped', tabId));
+  await Promise.all([resetDismissed(area, tabId), area.remove(keyFor('skipped', tabId))]);
 }

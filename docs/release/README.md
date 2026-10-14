@@ -8,7 +8,7 @@ The hackathon build is a single-user, load-unpacked extension. These drafts and 
 
 | Item | Where | Notes |
 |---|---|---|
-| No OpenAI key in public builds | `src/summary/config.ts`, `src/summary/openai-client.ts` (`wordingTransport`) | Build with `WXT_WORDING_PROXY_URL=https://…`: the extension posts wording requests to the proxy with no key, the manifest requests the proxy origin instead of `api.openai.com`, and the settings tab no longer asks for a key |
+| No OpenAI key in public builds | `src/wording/config.ts`, `src/wording/openai-client.ts` (`wordingTransport`) | Build with `WXT_WORDING_PROXY_URL=https://…`: the extension posts wording requests to the proxy with no key, the manifest requests the proxy origin instead of `api.openai.com`, and the settings tab no longer asks for a key |
 | Reference wording proxy | `server/wording-proxy/` | Holds the key server-side; accepts only Worth It wording bodies (fixed model, output cap, schema, system prompt, placeholder-only templates with no digits/money/links), extension-origin CORS, per-client rate limit, size caps, no body logging. Tested in `tests/unit/wording-proxy.test.ts` |
 | Privacy policy draft | [PRIVACY_POLICY.md](PRIVACY_POLICY.md) | Matches current data flows |
 | Store listing, single purpose, permission justifications, data-use disclosures | [STORE_LISTING.md](STORE_LISTING.md) | Drafts for the owner to edit |

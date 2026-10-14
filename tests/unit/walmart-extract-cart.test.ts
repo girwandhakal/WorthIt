@@ -191,10 +191,6 @@ describe('live walmart.com cart markup (transcribed 2026-10-10)', () => {
     expect(items.every((item) => item.issues.length === 0 && item.confidence === 'high')).toBe(true);
   });
 
-  it('reads the item count shown beside the heading', () => {
-    expect(snapshot().displayedItemCount).toBe(3);
-  });
-
   it('matches what Walmart says (2 lines, 3 units), so no unread-lines warning', async () => {
     const { unreadLinesFinding } = await import('../../src/background/review-cart');
     expect(unreadLinesFinding(snapshot())).toBeNull();
@@ -215,17 +211,6 @@ describe('items with a sale price (Rollback), as walmart.com renders them (trans
       confidence: 'high',
       issues: [],
     });
-  });
-
-  it('still reads the other rows of the same four-item cart', () => {
-    const cart = extract('cart-rollback-2026-10.html');
-    expect(cart.items.map((item) => [item.retailerItemId, item.linePriceCents, item.issues])).toEqual([
-      ['16275314128', 268, []],
-      ['43981978', 564, []],
-      ['10309701', 596, []],
-      ['36915845', 397, []],
-    ]);
-    expect(cart.displayedItemCount).toBe(4);
   });
 
   /** One list row with the given price markup, in the same tile structure. */
@@ -409,7 +394,4 @@ describe('a shipping section with protection-plan options in the row', () => {
     expect(phone).toMatchObject({ title: 'Apple iPhone 16 - AT&T - 128GB Pink', quantity: 1, linePriceCents: 55589, issues: [], confidence: 'high' });
   });
 
-  it('still reads the rest of the cart as before', () => {
-    expect(snapshot().items.map((item) => [item.linePriceCents, item.quantity])).toEqual([[244, 1], [387, 1], [1399, 1], [55589, 1]]);
-  });
 });

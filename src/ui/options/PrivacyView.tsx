@@ -31,7 +31,7 @@ export function PrivacySummary() {
       <div className="wi-card">
         <h3>What Worth It stores, and where</h3>
         <ul className="wi-list">
-          <li>Purchase history, clarification answers, and feedback: in this browser’s extension storage (IndexedDB).</li>
+          <li>Purchase history and clarification answers: in this browser’s extension storage (IndexedDB).</li>
           <li>Preferences, allergies, and your OpenAI key: in <code>chrome.storage.local</code> on this device.</li>
           <li>
             Ingredient and nutrition labels Worth It read from Walmart product pages for items in your cart: kept on this device for a
@@ -62,8 +62,8 @@ export function ResetAllData() {
   const [done, setDone] = useState(false);
 
   const reset = async () => {
-    const { purchases, clarifications, feedback } = await repositories();
-    await Promise.all([purchases.deleteAll(), clarifications.deleteAll(), feedback.deleteAll(), clearOpenAiKey(local), clearStoredFacts(local)]);
+    const { purchases, clarifications } = await repositories();
+    await Promise.all([purchases.deleteAll(), clarifications.deleteAll(), clearOpenAiKey(local), clearStoredFacts(local)]);
     await updatePreferences(local, { ...DEFAULT_PREFERENCES, onboardingComplete: true });
     setConfirming(false);
     setDone(true);
@@ -73,7 +73,7 @@ export function ResetAllData() {
     <div className="wi-card wi-danger-zone">
       <h3>Delete everything</h3>
       <p className="wi-hint">
-        Deletes purchase history, clarification answers, feedback, saved product labels, your OpenAI key, and resets preferences. Gmail access
+        Deletes purchase history, clarification answers, saved product labels, your OpenAI key, and resets preferences. Gmail access
         is managed separately under “Import from Gmail.”
       </p>
       {confirming ? (

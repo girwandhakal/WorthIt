@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ITEM_ID_PATTERN } from './schemas';
 
 /**
  * Facts read from a product's own retailer page (ingredients, Nutrition Facts,
@@ -7,10 +8,8 @@ import { z } from 'zod';
  * read is `null`; nothing here is ever guessed.
  */
 
-export const PRODUCT_FACTS_VERSION = 1;
-
 export const productFactsSchema = z.object({
-  itemId: z.string().regex(/^\d{5,15}$/),
+  itemId: z.string().regex(ITEM_ID_PATTERN),
   name: z.string().max(500).nullable(),
   /** Retailer category breadcrumb, e.g. `Food > Candy > Fruit Flavored Candy`. */
   categoryPath: z.array(z.string().max(120)).max(10),
@@ -30,7 +29,7 @@ export const productFactsSchema = z.object({
 export type ProductFacts = z.infer<typeof productFactsSchema>;
 
 /** Facts keyed by retailer item ID. */
-export const productFactsMapSchema = z.record(z.string().regex(/^\d{5,15}$/), productFactsSchema);
+export const productFactsMapSchema = z.record(z.string().regex(ITEM_ID_PATTERN), productFactsSchema);
 export type ProductFactsMap = z.infer<typeof productFactsMapSchema>;
 
 /** True for products the retailer files under food or drink (not pet food or household goods). */

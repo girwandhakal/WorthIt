@@ -1,6 +1,6 @@
 import { slotsIn } from './templates';
 
-export const MAX_PHRASE_LENGTH = 220;
+const MAX_PHRASE_LENGTH = 220;
 
 /** Words a rephrasing may never introduce: judgment, pressure, health or financial claims. */
 const BANNED =
