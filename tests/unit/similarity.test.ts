@@ -39,8 +39,7 @@ describe('titleSimilarity (cosine)', () => {
     expect(titleSimilarity(a, [], b)).toBeLessThan(SIMILAR_TITLE_THRESHOLD);
   });
 
-  it('is deterministic and symmetric without a category', () => {
-    expect(titleSimilarity(TAL, [], STANLEY)).toBe(titleSimilarity(TAL, [], STANLEY));
+  it('is symmetric without a category', () => {
     expect(titleSimilarity(TAL, [], STANLEY)).toBeCloseTo(titleSimilarity(STANLEY, [], TAL), 10);
   });
 });

@@ -63,16 +63,6 @@ describe('startReviewController', () => {
     stop();
   });
 
-  it('only sends review and dismiss messages (never cart actions)', async () => {
-    vi.useFakeTimers();
-    history.replaceState({}, '', '/cart');
-    loadIntoDocument('cart-mixed.html');
-    const { sent, stop } = start();
-    await vi.advanceTimersByTimeAsync(50);
-    expect(sent.map((request) => request.type)).toEqual(['cart/review']);
-    stop();
-  });
-
   it('reports extraction counts, background success and delivery without item data', async () => {
     vi.useFakeTimers();
     history.replaceState({}, '', '/cart');

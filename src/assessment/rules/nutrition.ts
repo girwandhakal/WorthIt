@@ -154,7 +154,7 @@ export function assessFoodQuality(
 }
 
 /** One "what was found" row and one "guidance" row per concern, each naming its source. */
-export function concernEvidence(concerns: readonly FoodConcern[], labelSourceId: Evidence['source']): Evidence[] {
+function concernEvidence(concerns: readonly FoodConcern[], labelSourceId: Evidence['source']): Evidence[] {
   return concerns.flatMap((concern) => {
     const info = CONCERN_INFO[concern.id];
     const rows: Evidence[] = [

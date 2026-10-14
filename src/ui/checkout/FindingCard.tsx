@@ -3,6 +3,7 @@ import type { ClarificationQuestion } from '../../domain/finding';
 import type { ClarificationAnswer } from '../../domain/history';
 import type { ReviewFinding } from '../../domain/review';
 import { formatCents } from '../../shared/currency';
+import { SourceLink } from './SourceLink';
 import { Thumb } from './Thumb';
 import { VERDICTS, amountLabel, toneOf } from './verdict';
 
@@ -87,13 +88,7 @@ export function FindingBody({ finding, onAnswer, onSkipQuestion, onWhyOpened, sh
                 <ul className="wi-sources" aria-label="Sources">
                   {finding.sources.map((source) => (
                     <li key={source.id}>
-                      {source.url ? (
-                        <a href={source.url} target="_blank" rel="noreferrer noopener">
-                          {source.label}
-                        </a>
-                      ) : (
-                        source.label
-                      )}
+                      <SourceLink source={source} />
                     </li>
                   ))}
                 </ul>

@@ -5,7 +5,7 @@ import type { IdentityApi } from '../../src/ingestion/gmail/oauth';
 import { isGmailConfigured } from '../../src/ingestion/gmail/oauth';
 import { openWorthItDb } from '../../src/storage/database';
 import { createRepositories, type Repositories } from '../../src/storage/repositories';
-import { WORDING_PROXY_URL } from '../../src/summary/config';
+import { WORDING_PROXY_URL } from '../../src/wording/config';
 import { OptionsApp } from '../../src/ui/options/OptionsApp';
 import type { OptionsServices } from '../../src/ui/options/context';
 import '../../src/ui/shared/page.css';

@@ -116,10 +116,10 @@ Walmart's `product-tile-container` hook can wrap an entire fulfillment list rath
 - **Service worker:** Coordinates extension messages and access to extension APIs. It is short-lived in Manifest V3, so it must not keep essential state only in memory.
 - **Assessment module:** Applies fixed, versioned rules to normalized cart items, local preferences, user-approved purchase records, and bundled evidence. Each item yields structured results for each criterion, including applicability/status, score where defined, evidence/source, confidence, and calculation inputs. “Not applicable” and “no concern” are distinct from “unknown.”
 - **Summary builder:** Deterministically groups applicable item findings, calculates counts and cart totals, keeps alternative savings separate from possible remove/skip amounts and historical estimates, and prevents double counting. It omits non-applicable/no-concern criteria from the visible recap while retaining relevant uncertainty. It also ranks findings deterministically for presentation (section 8): suggestions with a known amount first, biggest potential savings first, then questions without an amount, then notes. Ties fall back to the kind of suggestion (skips, added sugar and other label concerns, then cheaper alternatives) and then cart order. Store-brand notes with no savings are never highlighted.
-- **LLM wording client:** The service worker calls the OpenAI API (`https://api.openai.com`) with the minimum structured, already-verified summary fields needed to phrase the recap naturally, and accepts validated phrasing only. The request uses finding types and placeholder slots (for example `{item_1}`, `{amount_1}`) rather than product names, prices, or history details; the extension substitutes the real values from validated code data after the response passes validation. Validate size-limited requests and responses; reject output that drops, adds, or alters slots, adds digits or URLs, or introduces unsupported advice. Use a short timeout (about 3 seconds) and reviewed templates on errors or unsupported output, and cache accepted wording by summary hash so cart rerenders do not trigger repeat calls. For the single-user hackathon build, the owner enters their own OpenAI API key in Worth It's settings. Store it in `chrome.storage.local` with access restricted to trusted extension contexts; never put it in source, the build, exports, logs, or `storage.sync`; let the owner clear it at any time; set a low monthly spending limit in the OpenAI dashboard; and cap output size. Use a small, low-cost OpenAI chat model named in one constant (`OPENAI_MODEL` in `src/summary/openai-client.ts`, currently `gpt-4.1-mini`), with structured JSON output. Public distribution must replace this with a server-side proxy that holds the key (issue #11). The model does not receive raw page/email data or calculate assessments.
+- **LLM wording client:** The service worker calls the OpenAI API (`https://api.openai.com`) with the minimum structured, already-verified summary fields needed to phrase the recap naturally, and accepts validated phrasing only. The request uses finding types and placeholder slots (for example `{item_1}`, `{amount_1}`) rather than product names, prices, or history details; the extension substitutes the real values from validated code data after the response passes validation. Validate size-limited requests and responses; reject output that drops, adds, or alters slots, adds digits or URLs, or introduces unsupported advice. Use a short timeout (about 3 seconds) and reviewed templates on errors or unsupported output, and cache accepted wording by summary hash so cart rerenders do not trigger repeat calls. For the single-user hackathon build, the owner enters their own OpenAI API key in Worth It's settings. Store it in `chrome.storage.local` with access restricted to trusted extension contexts; never put it in source, the build, exports, logs, or `storage.sync`; let the owner clear it at any time; set a low monthly spending limit in the OpenAI dashboard; and cap output size. Use a small, low-cost OpenAI chat model named in one constant (`OPENAI_MODEL` in `src/wording/openai-client.ts`, currently `gpt-4.1-mini`), with structured JSON output. Public distribution must replace this with a server-side proxy that holds the key (issue #11). The model does not receive raw page/email data or calculate assessments.
 - **Checkout panel:** Renders structured findings and the prebuilt animated recap inside an isolated Shadow DOM root to reduce style collisions. The visuals are populated from the recap data; no video is generated. All buttons are user-initiated and act only on Worth It’s interface; “Continue” closes the panel and never clicks a retailer control. With no findings, nothing is shown. After the shopper dismisses the panel, it stays closed for that cart during the tab session and the checkout click is held again only if a new finding appears. Product thumbnails are the cart line's own image, read only from Walmart's image CDN (`*.walmartimages.com`, https) and resized through the CDN's size parameters; any other image host is ignored and an illustration or the item's initial is shown instead. The investment illustration is drawn with `d3-scale` and `d3-shape` as an SVG area chart animated with `requestAnimationFrame`; it is fully drawn at once under reduced motion.
 - **Gmail receipt importer:** After the user chooses Connect Gmail and grants Google consent, requests a short-lived OAuth token, searches a bounded set of likely order messages with Gmail API `messages.list`, fetches selected messages with `messages.get`, parses them locally, and shows a review step before saving item records. The hackathon requires one parser for a documented synthetic receipt template (fixed subject marker, plain-text and HTML item tables). Parsing real Walmart order-confirmation emails is best effort, tested only with fictional fixtures that mimic their structure, and must report unparsed messages instead of guessing. It marks records parsed from the synthetic marker as `synthetic_gmail`. It never sends, modifies, or deletes email.
-- **Local data layer:** Stores settings, user-approved parsed purchase history, clarification answers, and feedback locally. It offers review, correction, export, and deletion operations from settings.
+- **Local data layer:** Stores settings, user-approved parsed purchase history, and clarification answers locally. It offers review, correction, export, and deletion operations from settings.
 - **Bundled reference data:** Contains the versioned product reference records from [Walmart reference products](WALMART_REFERENCE_PRODUCTS.md), the category-to-purpose map, health/evidence notes, and conservative thresholds. Updates arrive only through a reviewed extension release; the extension does not execute remote code or download rules.
 
 ### Normalized cart item
@@ -164,7 +164,7 @@ Use CSS transitions and inline SVG for the short animated summary. The extension
 
 ### Storage
 
-Use **IndexedDB** for purchase history, clarification answers, feedback, and any growing record set; wrap it with `idb` to keep transactions readable. Use `chrome.storage.local` for small extension preferences such as enabled retailers, whether the investment illustration is on, whether observed purchases are recorded, reduced-motion preference, user-entered dietary preferences/allergens, and the owner's OpenAI API key. Use `chrome.storage.session` for per-tab panel state such as dismissal. Do not put history in `storage.sync` or sync it to a server.
+Use **IndexedDB** for purchase history, clarification answers, and any growing record set; wrap it with `idb` to keep transactions readable. Use `chrome.storage.local` for small extension preferences such as enabled retailers, whether the investment illustration is on, whether observed purchases are recorded, reduced-motion preference, user-entered dietary preferences/allergens, and the owner's OpenAI API key. Use `chrome.storage.session` for per-tab panel state such as dismissal. Do not put history in `storage.sync` or sync it to a server.
 
 Use schema versioning and an explicit migration path. Store the source of each history record (`gmail_import`, `synthetic_gmail`, `manual`, or `observed_purchase`) and the purchase date, merchant, item, quantity, and price when available. Provide review, correction, and deletion. Synthetic Gmail records remain distinguishable from real Gmail imports. Disconnecting Gmail clears Worth It's cached OAuth token and does not delete already imported records unless the user chooses “remove imported records” too. Export is explicit and local; if re-importing an exported file is offered, validate its schema and size.
 
@@ -183,106 +183,77 @@ WorthIt/
 ├── README.md
 ├── AGENTS.md
 ├── package.json
-├── package-lock.json
-├── wxt.config.ts
+├── wxt.config.ts                # Manifest, permissions, build-time env (see .env.example)
+├── vitest.config.ts
+├── playwright.config.ts
+├── eslint.config.js
 ├── tsconfig.json
-├── .gitignore
 ├── .env.example                 # Empty placeholders only; never store provider credentials here
+├── .github/workflows/ci.yml
+├── docs/                        # PRD, this spec, the implementation plan, setup and release docs
+│   └── release/                 # Draft privacy policy, listing, reviewer guide (issue #11)
+├── public/icon/                 # Extension icon sizes
+├── scripts/                     # generate-icons.mjs, synthetic-receipts.mjs
 ├── server/
 │   └── wording-proxy/           # Reference key-holding OpenAI proxy for a public release (issue #11)
-├── docs/
-│   ├── PRD.md
-│   ├── TECH_SPEC.md
-│   ├── IMPLEMENTATION_PLAN.md
-│   ├── WALMART_REFERENCE_PRODUCTS.md
-│   └── release/                 # Draft privacy policy, listing, reviewer guide (issue #11)
-├── public/
-│   ├── icon/                    # Extension sizes required for browser surfaces
-│   └── sources/                 # Optional bundled evidence metadata, no executable code
-├── entrypoints/
+├── entrypoints/                 # Thin WXT entry points; the logic lives in src/
 │   ├── background.ts            # MV3 service worker
-│   ├── popup/
-│   │   ├── index.html
-│   │   ├── main.tsx
-│   │   └── App.tsx
-│   ├── options/
-│   │   ├── index.html
-│   │   └── main.tsx
 │   ├── walmart.content.tsx      # Walmart cart review panel and opt-in purchase recorder
-│   └── amazon.content.tsx       # Same, for Amazon
+│   ├── amazon.content.tsx       # Same, for Amazon
+│   ├── popup/
+│   └── options/
 ├── src/
-│   ├── domain/
-│   │   ├── cart.ts
-│   │   ├── product.ts
-│   │   ├── finding.ts
-│   │   ├── history.ts
-│   │   └── orders.ts             # Observed order-page rows
-│   ├── ingestion/
-│   │   ├── review-import.ts      # Shared review step for Gmail imports and observed purchases
-│   │   └── gmail/
-│   │       ├── oauth.ts
-│   │       ├── search-orders.ts
-│   │       ├── parse-message.ts
-│   │       └── review-import.ts
-│   ├── adapters/
-│   │   ├── retailer-adapter.ts
-│   │   ├── observe-page.ts       # Shared cart observer and SPA route watcher
-│   │   ├── amazon/               # Amazon cart and order-page adapter (issue #10)
-│   │   └── walmart/
-│   │       ├── selectors.ts
-│   │       ├── extract-cart.ts
-│   │       ├── observe-cart.ts
-│   │       └── extract-orders.ts     # Item rows from order confirmation and purchase-history pages
-│   ├── assessment/
-│   │   ├── assess-cart.ts
-│   │   ├── summarize-cart.ts
-│   │   ├── investment.ts         # Cart-level projection; not a per-item rule
-│   │   ├── clarification.ts      # Selects at most one question per item; applies stored answers
-│   │   ├── rules/
-│   │   │   ├── purpose.ts
-│   │   │   ├── store-brand.ts
-│   │   │   ├── repeat-purchase.ts
-│   │   │   └── nutrition.ts
-│   │   ├── reference/
-│   │   │   ├── products.ts       # Reviewed product reference records, keyed by retailer item ID
-│   │   │   └── categories.ts     # Category-to-purpose map
-│   │   └── evidence/
-│   │       └── sources.ts
-│   ├── summary/
-│   │   ├── openai-client.ts      # Direct OpenAI call with the owner's key; template fallback
-│   │   ├── phrase-summary.ts
-│   │   ├── templates.ts          # Reviewed fallback wording
-│   │   └── validate-phrasing.ts
-│   ├── storage/
-│   │   ├── database.ts
-│   │   ├── migrations.ts
-│   │   ├── repositories.ts
-│   │   └── preferences.ts        # chrome.storage.local settings and the OpenAI key
-│   ├── messaging/
-│   │   ├── messages.ts
-│   │   └── validate-message.ts
-│   ├── background/              # Service-worker message handlers and per-tab dismissal state
+│   ├── domain/                  # Types and zod schemas shared by every layer
+│   │   ├── schemas.ts           # Cents, ISO date, and item-ID primitives
+│   │   ├── cart.ts              # Normalized cart snapshot
+│   │   ├── product-facts.ts     # Ingredients, Nutrition Facts, category read from a product page
+│   │   ├── finding.ts           # Per-item assessment output
+│   │   ├── review.ts            # What the checkout panel renders
+│   │   ├── history.ts           # Purchase records and clarification answers
+│   │   └── orders.ts            # Observed order-page rows
+│   ├── adapters/                # Everything retailer-specific
+│   │   ├── retailer-adapter.ts  # The interface assessment and UI depend on
+│   │   ├── observe-page.ts      # Cart observer and SPA route watcher
+│   │   ├── walmart/             # selectors, cart and order extraction, product-page facts and their cache
+│   │   └── amazon/              # Cart and order-page adapter (issue #10)
+│   ├── assessment/              # Pure, deterministic decision tree
+│   │   ├── assess-cart.ts       # Runs every rule on every line
+│   │   ├── describe.ts          # Turns suggestions into ranked findings
+│   │   ├── summarize-cart.ts    # Highlights, grouping, and the cart totals
+│   │   ├── investment.ts        # Cart-level projection; not a per-item rule
+│   │   ├── clarification.ts     # The one question per item and stored answers
+│   │   ├── similarity.ts        # On-device title similarity for items with no reference data
+│   │   ├── rules/               # purpose, non-food, repeat-purchase, store-brand, nutrition, food-quality
+│   │   ├── reference/           # Reviewed products and the category-to-purpose map
+│   │   └── evidence/            # Vetted sources cited behind "Why?"
+│   ├── wording/                 # Optional OpenAI phrasing of the reviewed templates
+│   │   ├── templates.ts         # Reviewed fixed wording
+│   │   ├── phrase-summary.ts    # Builds the minimized request and applies validated phrasing
+│   │   ├── validate-phrasing.ts # Rejects anything that adds numbers, claims, or slots
+│   │   ├── openai-client.ts     # Direct call with the owner's key, or through the proxy
+│   │   └── config.ts            # Build-time proxy URL
+│   ├── ingestion/               # Optional Gmail receipt import
+│   │   ├── review-import.ts     # Review step shared by Gmail imports and observed purchases
+│   │   └── gmail/               # oauth, search-orders, parse-message
+│   ├── storage/                 # IndexedDB history (database, migrations, repositories) and chrome.storage settings
+│   ├── messaging/               # Typed content-script to service-worker messages and their validation
+│   ├── background/              # Service-worker handlers, the cart review, and per-tab dismissal state
 │   ├── content/                 # Retailer-agnostic controllers and shared content-script setup
 │   ├── ui/
-│   │   ├── options/              # Onboarding, preferences, history, Gmail import, OpenAI key, privacy
-│   │   ├── orders/               # Opt-in purchase recorder panel
-│   │   ├── checkout/
-│   │   ├── animation/
-│   │   └── shared/
-│   └── shared/
-│       ├── currency.ts
-│       ├── calculations.ts
-│       └── validation.ts
-├── tests/
-│   ├── fixtures/
-│   │   ├── retailer/             # Sanitized, synthetic retailer DOM snapshots
-│   │   └── email/                # Fictional MIME / .eml receipt parser cases
-│   ├── unit/
-│   ├── integration/
-│   └── e2e/
-└── .github/
-    └── workflows/
-        └── ci.yml
+│   │   ├── checkout/            # Full-screen presentation, finding cards, full analysis
+│   │   ├── animation/           # Recap scenes, savings meter, growth chart
+│   │   ├── options/             # Onboarding, preferences, history, Gmail import, OpenAI key, privacy
+│   │   ├── orders/              # Opt-in purchase recorder panel
+│   │   └── shared/              # Review store, image preload, formatting, shared styles
+│   └── shared/                  # currency, dates, and the documented investment calculation
+└── tests/
+    ├── fixtures/
+    │   ├── retailer/            # Sanitized, synthetic retailer DOM snapshots
+    │   └── email/               # Fictional MIME / .eml receipt parser cases
+    ├── helpers/                 # Shared builders for carts, history, product pages, and fake storage
+    ├── unit/
+    ├── integration/             # The decision tree end to end over the pure assessment code
+    └── e2e/                     # Playwright against the built extension and fixture pages
 ```
 
 Keep retailer-specific selectors out of rules and UI. A second retailer should add a new adapter and tests without changing the normalized assessment model.

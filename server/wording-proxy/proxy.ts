@@ -40,7 +40,7 @@ const SYSTEM_PREFIX = 'You rephrase short shopping-advice sentences for a browse
 type Validation = { ok: true } | { ok: false; error: string };
 
 /**
- * Accepts exactly the body the extension builds (src/summary/openai-client.ts):
+ * Accepts exactly the body the extension builds (src/wording/openai-client.ts):
  * the allowed model, a small output cap, the Worth It JSON schema, a Worth It
  * system prompt, and a user message holding only placeholder templates — no
  * digits, money, links, or emails, so no prices or personal data pass through.

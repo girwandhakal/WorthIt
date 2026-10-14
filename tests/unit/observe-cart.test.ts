@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { extractWalmartCart } from '../../src/adapters/walmart/extract-cart';
-import { observeCart, snapshotSignature, watchRoute } from '../../src/adapters/observe-page';
+import { observeCart, watchRoute } from '../../src/adapters/observe-page';
 import type { CartSnapshot } from '../../src/domain/cart';
 import { readFixture } from '../helpers/fixtures';
 
@@ -73,15 +73,6 @@ describe('observeCart', () => {
     await vi.advanceTimersByTimeAsync(60);
     expect(snapshots).toHaveLength(1);
     observer.stop();
-  });
-});
-
-describe('snapshotSignature', () => {
-  it('ignores observation time', () => {
-    const doc = new DOMParser().parseFromString(readFixture('retailer', 'walmart', 'cart-normal.html'), 'text/html');
-    const a = extractWalmartCart(doc, CART_URL, new Date('2026-01-01'));
-    const b = extractWalmartCart(doc, CART_URL, new Date('2026-02-01'));
-    expect(snapshotSignature(a)).toBe(snapshotSignature(b));
   });
 });
 

@@ -2,7 +2,7 @@ import { HISTORY_SOURCE_LABELS, PURCHASE_STATUS_LABELS, type PurchaseInput } fro
 import { formatCents } from '../../shared/currency';
 
 /** "Sep 20, 2026" from a YYYY-MM-DD string, without timezone drift. */
-export function formatDate(isoDate: string): string {
+function formatDate(isoDate: string): string {
   const [year, month, day] = isoDate.split('-').map(Number);
   if (!year || !month || !day) return isoDate;
   return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('en-US', {

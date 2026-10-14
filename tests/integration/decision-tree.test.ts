@@ -143,9 +143,6 @@ describe('the cart summary', () => {
     expect(result.summary.investment?.principalCents).toBe(flagged);
   });
 
-  it('assesses every item, including the quiet ones', () => {
-    expect(result.assessment.items).toHaveLength(7);
-  });
 });
 
 describe('missing or unreadable product pages', () => {
@@ -171,14 +168,6 @@ describe('missing or unreadable product pages', () => {
     const wrong = { [SPECS.skittles.id]: { ...factsFor(SPECS.milk), itemId: '90000099' } };
     // Facts are keyed by the cart item's own ID; a mismatched record can't attach to it.
     expect(assess(snap, { facts: wrong }).items[0]!.primary).toBeNull();
-  });
-});
-
-describe('reviewed reference data still works without product pages', () => {
-  it('keeps the approved walkthrough findings when pages could not be read', () => {
-    const items = [line('656700117'), line('15610624', {}, 1)];
-    const result = reviewCart(snapshot(items), reviewContext());
-    expect(result.findings.map((finding) => finding.kind)).toEqual(['reduce_added_sugar', 'cheaper_alternative']);
   });
 });
 

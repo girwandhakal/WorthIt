@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { createProxy, validateWordingBody } from '../../server/wording-proxy/proxy';
 import { panelFindings } from '../../src/assessment/describe';
 import { summarizeCart } from '../../src/assessment/summarize-cart';
-import { WORDING_PROXY_URL, parseProxyUrl } from '../../src/summary/config';
-import { OPENAI_MODEL, buildRequestBody, wordingTransport } from '../../src/summary/openai-client';
-import { buildWordingRequest } from '../../src/summary/phrase-summary';
+import { WORDING_PROXY_URL, parseProxyUrl } from '../../src/wording/config';
+import { OPENAI_MODEL, buildRequestBody, wordingTransport } from '../../src/wording/openai-client';
+import { buildWordingRequest } from '../../src/wording/phrase-summary';
 import { assess, tumblerReceipt, walkthroughSnapshot } from '../helpers/assessment';
 
 const ORIGIN = 'chrome-extension://abcdefghijklmnopabcdefghijklmnop';

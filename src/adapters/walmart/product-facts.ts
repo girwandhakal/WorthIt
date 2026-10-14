@@ -1,5 +1,6 @@
 import { cleanText } from '../retailer-adapter';
 import { productFactsSchema, type ProductFacts, type ProductFactsMap } from '../../domain/product-facts';
+import { ITEM_ID_PATTERN } from '../../domain/schemas';
 
 /**
  * Reads the facts the decision tree needs (category path, ingredient statement,
@@ -88,9 +89,6 @@ export function parseAmount(raw: string | undefined, unit: 'g' | 'mg'): number |
   return value;
 }
 
-/** Only these characters can appear in an item ID we are willing to request. */
-const ITEM_ID = /^\d{5,15}$/;
-
 /** What Walmart's bot check looks like. Seeing it once means stop asking. */
 const BOT_CHECK = /robot or human|px-captcha|are you a robot|access denied/i;
 
@@ -130,7 +128,7 @@ export interface LoadFactsOptions {
  * every item has been looked at (read or found unreadable). Lets a review start before the network does.
  */
 export function knownProductFacts(itemIds: readonly string[], cache: Map<string, ProductFacts | null>): { facts: ProductFactsMap; complete: boolean } {
-  const wanted = [...new Set(itemIds)].filter((id) => ITEM_ID.test(id));
+  const wanted = [...new Set(itemIds)].filter((id) => ITEM_ID_PATTERN.test(id));
   const facts: ProductFactsMap = {};
   for (const id of wanted) {
     const known = cache.get(id);
@@ -152,7 +150,7 @@ export async function loadProductFacts(itemIds: readonly string[], options: Load
   const cache = options.cache ?? new Map<string, ProductFacts | null>();
   const breaker = options.breaker ?? { trippedAt: null };
   const now = options.now ?? Date.now;
-  const wanted = [...new Set(itemIds)].filter((id) => ITEM_ID.test(id));
+  const wanted = [...new Set(itemIds)].filter((id) => ITEM_ID_PATTERN.test(id));
   const cooling = breaker.trippedAt !== null && now() - breaker.trippedAt < BLOCKED_COOLDOWN_MS;
   if (!cooling) breaker.trippedAt = null; // cooldown over (or never tripped): ask again
   const pending = cooling ? [] : wanted.filter((id) => !cache.has(id)).slice(0, MAX_PAGES_PER_REVIEW);

@@ -106,13 +106,16 @@ export function assessStoreBrand(
     };
   }
 
-  const packagePrice = linePrice / quantity; // live price of one cart package
+  // Compare per unit (oz, count, ...), because the two packages can differ in size.
+  // The cart side uses the live page price; the store-brand side uses the last-checked reference price.
+  const packagePrice = linePrice / quantity;
   const cartUnit = packagePrice / reference.size.amount;
   const altUnit = alternative.priceCents / alternative.size.amount;
+  // Below 1 the store brand is cheaper per unit. Savings under STORE_BRAND_MIN_SAVINGS_RATIO count as "about the same".
   const ratio = altUnit / cartUnit;
   const comparison: AlternativeInfo['comparison'] =
     ratio > 1 ? 'costs_more' : 1 - ratio < STORE_BRAND_MIN_SAVINGS_RATIO ? 'about_same' : 'cheaper';
-  // Same amount as the cart item, for the cart quantity; rounded once.
+  // What the same amount of store brand would cost, for the cart quantity; rounded once.
   const savingsCents =
     comparison === 'cheaper'
       ? Math.round(quantity * (packagePrice - (alternative.priceCents * reference.size.amount) / alternative.size.amount))

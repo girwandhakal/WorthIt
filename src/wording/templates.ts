@@ -30,7 +30,6 @@ export const TEMPLATES = {
   cheaper_different: '{alternative} has some ingredient differences but costs about {amount} less for the same amount. Try the store brand?',
   cheaper_food: '{alternative} costs about {amount} less for the same amount. Try the store brand?',
   cheaper_other: '{alternative} is a lower-priced option, about {amount} less. Want to consider it?',
-
 } as const;
 
 export type TemplateKey = keyof typeof TEMPLATES;

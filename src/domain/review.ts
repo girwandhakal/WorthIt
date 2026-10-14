@@ -1,6 +1,6 @@
 import type { Source } from '../assessment/evidence/sources';
 import type { InvestmentIllustration } from '../assessment/investment';
-import type { TemplateKey } from '../summary/templates';
+import type { TemplateKey } from '../wording/templates';
 import type { Merchant } from './cart';
 import type { CartAssessment, ClarificationQuestion, Confidence, Evidence, SuggestionKind } from './finding';
 

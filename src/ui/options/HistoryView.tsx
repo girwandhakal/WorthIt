@@ -23,22 +23,22 @@ export function HistoryView() {
   const [confirming, setConfirming] = useState<Bulk | null>(null);
   const [status, setStatus] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
+  const load = useCallback(async () => {
     const { purchases } = await repositories();
-    setRecords(await purchases.list({ query, sources: source === 'any' ? undefined : [source] }));
+    return purchases.list({ query, sources: source === 'any' ? undefined : [source] });
   }, [repositories, query, source]);
 
+  const refresh = useCallback(async () => setRecords(await load()), [load]);
+
   useEffect(() => {
-    let cancelled = false;
-    void repositories()
-      .then(({ purchases }) => purchases.list({ query, sources: source === 'any' ? undefined : [source] }))
-      .then((list) => {
-        if (!cancelled) setRecords(list);
-      });
+    let cancelled = false; // a slower, older search must not overwrite a newer one
+    void load().then((list) => {
+      if (!cancelled) setRecords(list);
+    });
     return () => {
       cancelled = true;
     };
-  }, [repositories, query, source]);
+  }, [load]);
 
   const add = async (input: PurchaseInput) => {
     const { purchases } = await repositories();

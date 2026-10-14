@@ -18,7 +18,6 @@ export const MIGRATIONS: Record<number, Migration> = {
     purchases.createIndex('by-source', 'source');
     purchases.createIndex('by-dedupe-key', 'dedupeKey');
     db.createObjectStore('clarifications', { keyPath: 'id' });
-    db.createObjectStore('feedback', { keyPath: 'id' });
   },
 };
 

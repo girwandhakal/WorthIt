@@ -37,7 +37,6 @@ import {
   WAS_PRICE_TEXT,
 } from './selectors';
 
-
 /**
  * Reads the visible Walmart cart rows into a normalized snapshot. Read-only:
  * it only queries the DOM and never dispatches events or edits nodes.

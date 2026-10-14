@@ -23,7 +23,7 @@ export type FoodConcernId =
   | 'ultra_processed';
 
 /** Presentation priority when one item has several concerns (the first leads). */
-export const CONCERN_ORDER: readonly FoodConcernId[] = [
+const CONCERN_ORDER: readonly FoodConcernId[] = [
   'added_sugar',
   'processed_meat',
   'trans_fat',
@@ -38,7 +38,7 @@ export const CONCERN_ORDER: readonly FoodConcernId[] = [
  * more glaring is on the label, that ingredient leads and added sugar follows. (CONCERN_ORDER above is the order
  * the full analysis lists them in.)
  */
-export const GLARE_ORDER: readonly FoodConcernId[] = [
+const GLARE_ORDER: readonly FoodConcernId[] = [
   'trans_fat',
   'processed_meat',
   'sweetener',
@@ -49,7 +49,7 @@ export const GLARE_ORDER: readonly FoodConcernId[] = [
 ];
 
 /** Sodium per serving at or above this is "high" (FDA's 20%-of-Daily-Value line; the percentage itself is never quoted). */
-export const HIGH_SODIUM_MG = 460;
+const HIGH_SODIUM_MG = 460;
 
 export interface FoodInputs {
   ingredients: string | null;

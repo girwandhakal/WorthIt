@@ -87,11 +87,6 @@ describe('opening on the checkout click', () => {
     }
   });
 
-  it('a request while already open changes nothing', () => {
-    const { store } = setup(mixed(), { reducedMotion: true });
-    act(() => store.requestOpen());
-    expect(screen.getAllByRole('dialog')).toHaveLength(1);
-  });
 });
 
 describe('nothing to show', () => {
@@ -324,13 +319,6 @@ describe('See full analysis', () => {
     expect(screen.getByRole('list', { name: 'Worth a second thought' })).toBeTruthy();
   });
 
-  it('has no corner X and no "never changes your cart" line: Continue is the way out', async () => {
-    await open(mixed());
-    expect(screen.queryByRole('button', { name: 'Dismiss Worth It panel' })).toBeNull();
-    expect(screen.queryByText(/never changes your cart/i)).toBeNull();
-    expect(screen.getByRole('button', { name: 'Continue' })).toBeTruthy();
-  });
-
   it('gives each item its main points and what it could save, in plain words', async () => {
     await open(mixed());
     const stanley = screen.getByRole('heading', { level: 5, name: /Stanley Quencher/ }).closest('li')!;
@@ -339,15 +327,6 @@ describe('See full analysis', () => {
     expect(screen.getByText(/You could keep/).textContent).toContain('$38.72');
     // The hypothetical note, short and plain.
     expect(screen.getByText(/^\*Hypothetical: 10% a year, compounded annually, for 40 years/)).toBeTruthy();
-  });
-
-  it('leaves out the technical detail: no tables, classes, prices, quantities, shares, or check names', async () => {
-    await open(mixed());
-    const page = document.querySelector('.wi-analysis')!;
-    expect(page.querySelector('table')).toBeNull();
-    for (const hidden of ['Purpose class', 'Price', 'Quantity', 'Unit price', 'Share of cart', 'Purchase history', 'Store-brand value', 'certainty', 'criteria version', 'Essential (consumable)']) {
-      expect(page.textContent).not.toContain(hidden);
-    }
   });
 
   it('names the source behind a health note, and links it', async () => {

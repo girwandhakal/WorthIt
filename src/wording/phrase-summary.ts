@@ -41,7 +41,7 @@ export function buildWordingRequest(summary: CartSummary): WordingRequest {
 }
 
 /** FNV-1a hash of the request, for caching accepted wording across rerenders. */
-export function hashRequest(request: WordingRequest): string {
+function hashRequest(request: WordingRequest): string {
   let hash = 0x811c9dc5;
   for (const char of JSON.stringify(request)) {
     hash ^= char.charCodeAt(0);

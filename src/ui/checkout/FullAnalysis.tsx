@@ -5,6 +5,7 @@ import type { Source } from '../../assessment/evidence/sources';
 import type { ItemAssessment } from '../../domain/finding';
 import type { CartReview, ReviewFinding } from '../../domain/review';
 import { formatCents } from '../../shared/currency';
+import { SourceLink } from './SourceLink';
 import { Thumb } from './Thumb';
 
 /** Sources about the shopper's own cart or about Walmart itself: not the health and nutrition sources a reader would look up. */
@@ -124,13 +125,7 @@ function ItemBlock({ item, findings, empty }: { item: ItemAssessment; findings: 
           {sources.map((source, index) => (
             <span key={source.id}>
               {index > 0 && ', '}
-              {source.url ? (
-                <a href={source.url} target="_blank" rel="noreferrer noopener">
-                  {source.label}
-                </a>
-              ) : (
-                source.label
-              )}
+              <SourceLink source={source} />
             </span>
           ))}
         </p>

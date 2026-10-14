@@ -54,7 +54,7 @@ Open each cart and note that nothing from Worth It appears on the page. Click **
 
 ## 5. Data, deletion, and disconnecting
 
-- Everything stays on this device: purchase history, answers, and feedback in the extension's IndexedDB; settings, allergies, and the OpenAI key in `chrome.storage.local`. Nothing is synced or sent to a Worth It server (there isn't one).
+- Everything stays on this device: purchase history and answers in the extension's IndexedDB; settings, allergies, and the OpenAI key in `chrome.storage.local`. Nothing is synced or sent to a Worth It server (there isn't one).
 - **Purchase history** → edit or delete records, **Remove all Gmail-imported records**, **Remove synthetic test records**, or **Delete all purchase history**; **Export (JSON)** downloads records only.
 - **Import from Gmail** → **Disconnect Gmail** clears the cached token (records are kept). Revoke fully at [Google Account → Third-party connections](https://myaccount.google.com/connections).
 - **Wording assistant** → **Remove key**. **Privacy** → **Delete all Worth It data**. Removing the extension deletes all of its storage.

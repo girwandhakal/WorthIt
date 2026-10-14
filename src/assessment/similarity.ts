@@ -23,6 +23,7 @@ const IGNORED = new Set(
   ).split(' '),
 );
 
+/** Crude singularization ("tumblers" -> "tumbler", "batteries" -> "battery") so plural and singular titles match. */
 function stem(word: string): string {
   if (word.length > 4 && word.endsWith('ies')) return `${word.slice(0, -3)}y`;
   if (word.length > 4 && /(s|x|ch|sh)es$/.test(word)) return word.slice(0, -2);

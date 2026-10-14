@@ -8,6 +8,7 @@ import {
 } from '../domain/finding';
 import type { ClarificationRecord, PurchaseRecord } from '../domain/history';
 import type { ProductFacts, ProductFactsMap } from '../domain/product-facts';
+import { shareBps } from '../shared/calculations';
 import { sumCents } from '../shared/currency';
 import { REPEAT_PURPOSE_QUESTION_ID, itemMatchKey, storedAnswer } from './clarification';
 import { HIGH_VALUE_PURCHASE_DAYS, RECENT_PURCHASE_DAYS } from './reference/categories';
@@ -123,8 +124,7 @@ function assessItem(
     question: item.issues.includes('unavailable') ? null : repeat.question,
     answer,
     historyMatches: matches,
-    shareOfCartBps:
-      readableTotalCents && item.linePriceCents !== null ? Math.round((item.linePriceCents * 10_000) / readableTotalCents) : null,
+    shareOfCartBps: item.linePriceCents !== null ? shareBps(item.linePriceCents, readableTotalCents) : null,
   };
 }
 

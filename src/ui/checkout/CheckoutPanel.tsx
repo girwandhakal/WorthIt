@@ -77,7 +77,8 @@ function PanelForReview({
   /** Where focus was when the presentation opened (usually the retailer's checkout button), restored on close. */
   const returnFocus = useRef<HTMLElement | null>(null);
 
-  // The shopper clicked the retailer's checkout control: open now.
+  // The shopper clicked the retailer's checkout control: open now. Updating state while rendering (instead of in an
+  // effect) makes React re-render at once, so the presentation never flashes a stale frame first.
   if (openRequests !== seenOpenRequests) {
     setSeenOpenRequests(openRequests);
     if (!open) {

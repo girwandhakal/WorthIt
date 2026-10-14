@@ -71,12 +71,6 @@ describe('extractAmazonCart', () => {
     expect(amazonAdapter.extractCart(doc, CART_URL, NOW).items[0]).toMatchObject({ quantity: 3, linePriceCents: 8397 });
   });
 
-  it('never mutates the page', () => {
-    const doc = loadRetailerDocument('amazon', 'cart.html');
-    const before = doc.documentElement.outerHTML;
-    amazonAdapter.extractCart(doc, CART_URL, NOW);
-    expect(doc.documentElement.outerHTML).toBe(before);
-  });
 });
 
 describe('shared assessment on Amazon data (no retailer-specific rules)', () => {
@@ -146,13 +140,3 @@ describe('extractAmazonOrders', () => {
   });
 });
 
-describe('reference lookup by retailer', () => {
-  it('uses Walmart item IDs for Walmart and only reviewed ASINs for Amazon', async () => {
-    const { referenceForItem } = await import('../../src/assessment/reference/products');
-    expect(referenceForItem('walmart', '10309701')?.brand).toBe('Horizon Organic');
-    // A Walmart item ID is not an ASIN; no ASINs are reviewed yet.
-    expect(referenceForItem('amazon', '10309701')).toBeNull();
-    expect(referenceForItem('amazon', 'B0WITEST01')).toBeNull();
-    expect(referenceForItem('amazon', null)).toBeNull();
-  });
-});

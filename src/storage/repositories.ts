@@ -4,25 +4,23 @@ import {
   normalizeTitle,
   purchaseInputSchema,
   type ClarificationRecord,
-  type FeedbackKind,
-  type FeedbackRecord,
   type HistorySource,
   type PurchaseInput,
   type PurchaseRecord,
 } from '../domain/history';
 import type { WorthItDb } from './database';
 
-export interface PurchaseFilter {
+interface PurchaseFilter {
   query?: string;
   sources?: readonly HistorySource[];
 }
 
-export interface AddManyResult {
+interface AddManyResult {
   saved: PurchaseRecord[];
   duplicates: number;
 }
 
-export const EXPORT_FORMAT = 'worth-it-purchase-history';
+const EXPORT_FORMAT = 'worth-it-purchase-history';
 
 /** Local purchase history. Every write is validated against the schema. */
 export class PurchaseRepository {
@@ -170,37 +168,14 @@ export class ClarificationRepository {
   }
 }
 
-export class FeedbackRepository {
-  constructor(
-    private readonly db: WorthItDb,
-    private readonly now: () => Date = () => new Date(),
-  ) {}
-
-  async add(findingId: string, kind: FeedbackKind): Promise<FeedbackRecord> {
-    const record: FeedbackRecord = { id: crypto.randomUUID(), findingId, kind, createdAt: this.now().toISOString() };
-    await this.db.add('feedback', record);
-    return record;
-  }
-
-  async list(): Promise<FeedbackRecord[]> {
-    return this.db.getAll('feedback');
-  }
-
-  async deleteAll(): Promise<void> {
-    await this.db.clear('feedback');
-  }
-}
-
 export interface Repositories {
   purchases: PurchaseRepository;
   clarifications: ClarificationRepository;
-  feedback: FeedbackRepository;
 }
 
 export function createRepositories(db: WorthItDb, now?: () => Date): Repositories {
   return {
     purchases: new PurchaseRepository(db, now),
     clarifications: new ClarificationRepository(db),
-    feedback: new FeedbackRepository(db, now),
   };
 }

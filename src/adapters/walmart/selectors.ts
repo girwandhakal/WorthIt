@@ -37,10 +37,10 @@ export const ORDER_EXCLUDED_REGIONS = [
   'form',
 ] as const;
 
-/** Product links look like `/ip/<slug>/<itemId>` or `/ip/<itemId>`. */
 /** Walmart's checkout control on the cart page (plus a label check in matchesCheckoutControl). */
 export const CHECKOUT_CONTROL_SELECTORS = ['[data-automation-id="checkout"]'] as const;
 
+/** Product links look like `/ip/<slug>/<itemId>` or `/ip/<itemId>`. */
 export const ITEM_ID_FROM_URL = /\/ip\/(?:[^/?#]+\/)?(\d{5,15})(?:[/?#]|$)/;
 
 /** Known cart containers, most specific first; list groups are split into individual rows. */

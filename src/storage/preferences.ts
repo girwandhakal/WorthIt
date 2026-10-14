@@ -16,7 +16,7 @@ export const ALLERGENS = [
   'soy',
   'sesame',
 ] as const;
-export const allergenSchema = z.enum(ALLERGENS);
+const allergenSchema = z.enum(ALLERGENS);
 export type Allergen = z.infer<typeof allergenSchema>;
 
 export const ALLERGEN_LABELS: Record<Allergen, string> = {
@@ -32,7 +32,7 @@ export const ALLERGEN_LABELS: Record<Allergen, string> = {
 };
 
 export const DIETARY_PREFERENCES = ['vegetarian', 'vegan'] as const;
-export const dietaryPreferenceSchema = z.enum(DIETARY_PREFERENCES);
+const dietaryPreferenceSchema = z.enum(DIETARY_PREFERENCES);
 export type DietaryPreference = z.infer<typeof dietaryPreferenceSchema>;
 
 export const DIETARY_LABELS: Record<DietaryPreference, string> = {
@@ -40,7 +40,7 @@ export const DIETARY_LABELS: Record<DietaryPreference, string> = {
   vegan: 'Vegan',
 };
 
-export const preferencesSchema = z.object({
+const preferencesSchema = z.object({
   onboardingComplete: z.boolean(),
   /** Checkout prompts on/off. Off: nothing is shown and the checkout click is never held. */
   promptsEnabled: z.boolean(),
