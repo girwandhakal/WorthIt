@@ -18,8 +18,7 @@ const NOVELTY_SUMMARY = 'A novelty or collectible item with no practical use.';
 const TOY_SUMMARY = 'A toy: more of a want than a need.';
 
 /**
- * The non-food branch of the decision tree: is this a novelty item with no
- * practical use? Recognized from the retailer's own category path or a
+ * Novelty detection for the non-food branch of the decision tree: a category path or a
  * product line that exists only as a collectible. Ordinary toys, tools, and
  * household goods are never flagged just for being optional.
  */

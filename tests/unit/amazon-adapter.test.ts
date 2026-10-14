@@ -64,6 +64,13 @@ describe('extractAmazonCart', () => {
     expect(snapshot.items[2]!.retailerItemId).toBe('B0WITEST06');
   });
 
+  it('never mutates the page', () => {
+    const doc = loadRetailerDocument('amazon', 'cart.html');
+    const before = doc.documentElement.outerHTML;
+    amazonAdapter.extractCart(doc, CART_URL, NOW);
+    expect(doc.documentElement.outerHTML).toBe(before);
+  });
+
   it('reflects a rerendered quantity change', () => {
     const doc = loadRetailerDocument('amazon', 'cart.html');
     const row = doc.querySelector('[data-asin="B0WITEST01"]')!;

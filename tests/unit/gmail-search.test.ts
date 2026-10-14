@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { GmailError, disconnectGmail, getGmailToken, type IdentityApi } from '../../src/ingestion/gmail/oauth';
+import { GmailError, disconnectGmail, getGmailToken, isGmailConfigured, type IdentityApi } from '../../src/ingestion/gmail/oauth';
 import { GMAIL_API, buildGmailQuery, listMessageIds, searchAndParseReceipts, type FetchLike } from '../../src/ingestion/gmail/search-orders';
 import { reviewGmailOutcomes } from '../../src/ingestion/review-import';
 import { loadEmail } from '../helpers/eml';
@@ -153,4 +153,9 @@ describe('Chrome identity', () => {
     expect(api.cleared).toBe(1);
   });
 
+
+  it('detects whether this build has an OAuth client', () => {
+    expect(isGmailConfigured({})).toBe(false);
+    expect(isGmailConfigured({ oauth2: { client_id: 'x.apps.googleusercontent.com' } })).toBe(true);
+  });
 });
